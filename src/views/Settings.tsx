@@ -32,14 +32,16 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 transition-colors duration-300">
-      <header className="sticky top-0 z-50 flex items-center glass backdrop-blur-md px-6 py-6 justify-between">
+    <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 transition-colors duration-300">
+      <header className="sticky top-0 z-sticky flex items-center glass backdrop-blur-md px-6 py-6 justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={onClose} className="text-primary material-symbols-outlined text-3xl">chevron_left</button>
+          <button onClick={onClose} aria-label="Go back" className="text-primary material-symbols-outlined text-3xl">chevron_left</button>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
         </div>
         <div className="size-10 rounded-full overflow-hidden border-2 border-primary/30">
-          <img src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100`} alt="Avatar" className="w-full h-full object-cover" />
+          <button aria-label="User Avatar">
+            <img src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100`} alt="Avatar" className="w-full h-full object-cover" />
+          </button>
         </div>
       </header>
 
@@ -118,6 +120,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
               </div>
               <button
                 onClick={onToggleTheme}
+                aria-label="Toggle dark mode"
                 className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 ${isDarkMode ? 'bg-primary' : 'bg-slate-200'}`}
               >
                 <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
@@ -181,7 +184,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
 
       {/* Feedback Confirmation Modal */}
       {showFeedbackModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="glass rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-primary/20 bg-white dark:bg-background-dark animate-pop">
             <div className="flex flex-col items-center text-center gap-4">
               <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center">

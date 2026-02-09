@@ -33,7 +33,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  
+
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [iconicQuotes, setIconicQuotes] = useState<IconicQuote[]>(ICONIC_QUOTES);
   const [bibleAffirmations, setBibleAffirmations] = useState<BibleAffirmation[]>(BIBLE_AFFIRMATIONS);
@@ -123,7 +123,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!supabase) return;
-    
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         syncUserContent(session.user.id);
@@ -133,11 +133,11 @@ const App: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        setUser({ 
-          id: session.user.id, 
-          username: session.user.user_metadata?.username || 'Seeker', 
-          isGuest: false, 
-          isPremium: false 
+        setUser({
+          id: session.user.id,
+          username: session.user.user_metadata?.username || 'Seeker',
+          isGuest: false,
+          isPremium: false
         });
         syncUserContent(session.user.id);
         if (view === 'auth' || view === 'splash') setView('main');
@@ -196,7 +196,7 @@ const App: React.FC = () => {
     if (type === 'quote') setQuotes(prev => prev.map(q => q.id === id ? { ...q, isFavorite: newState = !q.isFavorite, updatedAt: Date.now() } : q));
     else if (type === 'iconic') setIconicQuotes(prev => prev.map(q => q.id === id ? { ...q, isFavorite: newState = !q.isFavorite } : q));
     else if (type === 'bible') setBibleAffirmations(prev => prev.map(q => q.id === id ? { ...q, isFavorite: newState = !q.isFavorite } : q));
-    
+
     if (user && !user.isGuest && supabase && navigator.onLine) {
       try {
         if (newState) await supabase.from('bookmarks').insert({ user_id: user.id, item_id: id, item_type: type });
@@ -225,11 +225,11 @@ const App: React.FC = () => {
     if (user && !user.isGuest && supabase && navigator.onLine) {
       try {
         if (!exists) {
-          await supabase.from('bookmarks').insert({ 
-            user_id: user.id, 
-            item_id: verseId, 
+          await supabase.from('bookmarks').insert({
+            user_id: user.id,
+            item_id: verseId,
             item_type: 'kjv',
-            metadata: { text: verse.text, reference } 
+            metadata: { text: verse.text, reference }
           });
         } else {
           await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('item_id', verseId);
@@ -293,10 +293,10 @@ const App: React.FC = () => {
     if (view === 'privacy') return <LegalView type="privacy" onClose={() => setView('main')} />;
     if (view === 'terms') return <LegalView type="terms" onClose={() => setView('main')} />;
     if (activeCategory) return <CategoryResultsView categoryId={activeCategory} onClose={() => setActiveCategory(null)} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} onFavorite={handleToggleFavorite} />;
-    
+
     if (!user) {
-        if (view === 'onboarding') return <Onboarding onFinish={() => setView('auth')} />;
-        return <Auth onAuthComplete={(u) => { setUser(u); setView('main'); if (!u.isGuest) syncUserContent(u.id); }} />;
+      if (view === 'onboarding') return <Onboarding onFinish={() => setView('auth')} />;
+      return <Auth onAuthComplete={(u) => { setUser(u); setView('main'); if (!u.isGuest) syncUserContent(u.id); }} />;
     }
 
     switch (activeTab) {
@@ -314,21 +314,21 @@ const App: React.FC = () => {
   return (
     <div className="relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300">
       <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0"></div>
-      
+
       {!isOnline && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[2500] animate-fade-in pointer-events-none">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none">
           <div className="glass px-6 py-2 rounded-full border-red-500/20 bg-background-dark/80 flex items-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/5">
-             <span className="material-symbols-outlined text-red-500 text-sm animate-pulse">wifi_off</span>
-             <div className="flex flex-col items-start leading-none">
-                <span className="text-[9px] font-black uppercase text-white tracking-[0.2em]">Signal Low</span>
-                <span className="text-[7px] font-bold uppercase text-white/40 tracking-[0.1em]">Stashed wisdom active</span>
-             </div>
+            <span className="material-symbols-outlined text-red-500 text-sm animate-pulse">wifi_off</span>
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-[9px] font-black uppercase text-white tracking-[0.2em]">Signal Low</span>
+              <span className="text-[7px] font-bold uppercase text-white/40 tracking-[0.1em]">Stashed wisdom active</span>
+            </div>
           </div>
         </div>
       )}
 
       {notification && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[2000] animate-fade-in pointer-events-none w-fit px-8">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-tooltip animate-fade-in pointer-events-none w-fit px-8">
           <div className="bg-jamaican-gold py-2.5 px-4 rounded-full flex items-center gap-2 shadow-2xl border border-black/10">
             <span className="material-symbols-outlined text-black font-black text-sm">notifications_active</span>
             <p className="text-black font-black text-[9px] uppercase tracking-wider whitespace-nowrap">{notification}</p>
@@ -336,11 +336,11 @@ const App: React.FC = () => {
         </div>
       )}
       <main className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth">{renderContent()}</main>
-      
+
       {showAuthGate && (
         <GuestAuthModal onClose={() => setShowAuthGate(false)} onSignUp={() => { setShowAuthGate(false); setView('auth'); }} />
       )}
-      
+
       {showPinGate && (
         <PinEntryModal onClose={() => setShowPinGate(false)} onVerify={() => { setShowPinGate(false); setShowPremium(true); }} />
       )}
@@ -359,7 +359,7 @@ const App: React.FC = () => {
 };
 
 const GuestAuthModal: React.FC<{ onClose: () => void; onSignUp: () => void }> = ({ onClose, onSignUp }) => (
-  <div className="fixed inset-0 z-[4000] bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in">
+  <div className="fixed inset-0 z-modal bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in">
     <div className="glass p-10 rounded-[3rem] w-full max-w-[340px] text-center border-white/10 shadow-2xl">
       <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-6">
         <span className="material-symbols-outlined text-4xl">person_add</span>
@@ -387,7 +387,7 @@ const PinEntryModal: React.FC<{ onClose: () => void; onVerify: () => void }> = (
     }
   };
   return (
-    <div className="fixed inset-0 z-[3000] bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in">
+    <div className="fixed inset-0 z-modal bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in">
       <div className={`glass p-10 rounded-[3rem] w-full max-w-[320px] text-center border-white/5 shadow-2xl transition-all ${error ? 'border-red-500 bg-red-500/10 scale-95' : 'border-primary/20'}`}>
         <span className="material-symbols-outlined text-primary text-5xl mb-6">lock_open</span>
         <h2 className="text-xl font-black text-white mb-2 uppercase tracking-widest">Secret Gate</h2>
@@ -395,8 +395,8 @@ const PinEntryModal: React.FC<{ onClose: () => void; onVerify: () => void }> = (
         <form onSubmit={handleSubmit} className="space-y-6">
           <input type="password" maxLength={4} placeholder="••••" autoFocus className="w-full h-20 bg-white/5 border border-white/10 rounded-2xl text-center text-4xl font-black text-primary focus:ring-0 focus:border-primary transition-all tracking-[0.5em]" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
           <div className="grid grid-cols-2 gap-3">
-             <button type="button" onClick={onClose} className="glass py-4 rounded-xl font-black text-[10px] uppercase text-white/30">Cancel</button>
-             <button type="submit" className="bg-primary py-4 rounded-xl font-black text-[10px] uppercase text-background-dark shadow-xl">Confirm</button>
+            <button type="button" onClick={onClose} className="glass py-4 rounded-xl font-black text-[10px] uppercase text-white/30">Cancel</button>
+            <button type="submit" className="bg-primary py-4 rounded-xl font-black text-[10px] uppercase text-background-dark shadow-xl">Confirm</button>
           </div>
         </form>
         {error && <p className="text-red-500 text-[10px] font-black uppercase mt-4 animate-bounce">PIN incorrect!</p>}
