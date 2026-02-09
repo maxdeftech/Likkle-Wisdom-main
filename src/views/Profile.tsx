@@ -14,11 +14,20 @@ interface ProfileProps {
   onUpdateUser: (data: Partial<User>) => void;
   onRemoveBookmark: (id: string, type: string) => void;
   onOpenFriendRequests: () => void;
+  viewingUserId?: string | null;
+  onClose?: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, viewingUserId, onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
+
+  const isOwnProfile = !viewingUserId || viewingUserId === user.id;
+  const targetUserId = viewingUserId || user.id;
+
+  // Track data for public profile
+  const [publicUser, setPublicUser] = useState<User | null>(null);
+  const [publicCabinet, setPublicCabinet] = useState<any[]>([]);
 
   // Social stats
   const [requestCount, setRequestCount] = useState(0);
@@ -29,30 +38,42 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteInput, setNoteInput] = useState('');
 
-  // Fetch stats
+  // Fetch stats and public data
   React.useEffect(() => {
     import('../services/social').then(({ SocialService }) => {
-      SocialService.getFriendRequests(user.id).then(reqs => setRequestCount(reqs.length));
-      SocialService.getUserStats(user.id).then(stats => {
+      SocialService.getFriendRequests(targetUserId).then(reqs => setRequestCount(reqs.length));
+      SocialService.getUserStats(targetUserId).then(stats => {
         setFriendsCount(stats.friendsCount);
         setJoinedAt(stats.createdAt);
         setLoadingStats(false);
 
         // Handle 24h expiration
-        // ... (rest of the note logic)
         if (stats.statusNote && stats.statusNoteAt) {
           const noteDate = new Date(stats.statusNoteAt).getTime();
           const now = Date.now();
           if (now - noteDate < 86400000) {
             setStatusNote(stats.statusNote);
             setNoteInput(stats.statusNote);
-          } else {
-            SocialService.updateProfileNote(user.id, '');
+          } else if (isOwnProfile) {
+            SocialService.updateProfileNote(targetUserId, '');
           }
         }
-      }).catch(() => setLoadingStats(false));
+      });
+
+      if (!isOwnProfile) {
+        SocialService.getPublicProfile(targetUserId).then(setPublicUser);
+        SocialService.getPublicCabinet(targetUserId).then(cab => {
+          const combined: any[] = [
+            ...quotes.filter(q => cab.quoteIds.includes(q.id)).map(q => ({ id: q.id, type: 'wisdom', label: 'Old Wisdom', data: q, timestamp: 1 })),
+            ...iconic.filter(q => cab.iconicIds.includes(q.id)).map(q => ({ id: q.id, type: 'legend', label: 'Iconic Soul', data: q, timestamp: 2 })),
+            ...bible.filter(q => cab.bibleIds.includes(q.id)).map(q => ({ id: q.id, type: 'verse', label: 'Scripture Flow', data: q, timestamp: 3 })),
+            ...cab.kjv.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
+          ];
+          setPublicCabinet(combined.sort((a, b) => b.timestamp - a.timestamp));
+        });
+      }
     });
-  }, [user.id]);
+  }, [targetUserId, isOwnProfile]);
 
   const handleSaveNote = async () => {
     const { SocialService } = await import('../services/social');
@@ -95,6 +116,10 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
     // Sort by timestamp if available
     return list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }, [savedWisdom, savedIconic, savedBible, bookmarkedVerses]);
+
+  const displayFeed = isOwnProfile ? combinedFeed : publicCabinet;
+  const displayUser = isOwnProfile ? user : (publicUser || { ...user, username: 'Searching...', avatarUrl: '' });
+  const displayMemberSince = isOwnProfile ? memberSinceText : (user.isGuest ? 'Wisdom Seeker (Guest)' : (loadingStats ? 'Joining...' : (joinedAt ? memberSinceText : 'Lifelong Seeker')));
 
   const activeDaysThisMonth = useMemo(() => {
     if (!entries || entries.length === 0) return 0;

@@ -109,7 +109,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                             setActiveChatUser({ id: f.friendId, username: f.friendName, avatarUrl: f.friendAvatar, isGuest: false, isPremium: false }); // Mock full user
                             setViewState('chat');
                         }} className="glass p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer">
-                            <div className="relative">
+                            <div className="relative" onClick={(e) => { e.stopPropagation(); onOpenProfile(f.friendId); }}>
                                 <div className="size-12 rounded-full bg-white/10 overflow-hidden">
                                     {f.friendAvatar ? (
                                         <img src={f.friendAvatar} className="w-full h-full object-cover" />
@@ -302,7 +302,7 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {results.map(u => (
                     <div key={u.id} className="glass p-4 rounded-xl flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => onOpenProfile(u.id)}>
                             <div className="size-10 rounded-full bg-white/10 overflow-hidden">
                                 {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-white">{u.username[0]}</span>}
                             </div>

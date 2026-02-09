@@ -38,7 +38,7 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState<string | null>(null);
   const [showMessages, setShowMessages] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
-  const [messagesTargetUser, setMessagesTargetUser] = useState<string | null>(null);
+  const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
 
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [iconicQuotes, setIconicQuotes] = useState<IconicQuote[]>(ICONIC_QUOTES);
@@ -358,7 +358,24 @@ const App: React.FC = () => {
         <PremiumUpgrade onClose={() => setShowPremium(false)} onPurchaseSuccess={() => { setShowPremium(false); setNotification("Thanks fi di support!"); }} />
       )}
       {showMessages && user && (
-        <Messages currentUser={user} onClose={() => setShowMessages(false)} onOpenProfile={(id) => { console.log("Open profile", id); /* TODO: Implement friend profile view */ }} />
+        <Messages currentUser={user} onClose={() => setShowMessages(false)} onOpenProfile={setPublicProfileId} />
+      )}
+      {publicProfileId && user && (
+        <Profile
+          user={user}
+          entries={journalEntries}
+          quotes={quotes}
+          iconic={iconicQuotes}
+          bible={bibleAffirmations}
+          bookmarkedVerses={bookmarkedVerses}
+          viewingUserId={publicProfileId}
+          onClose={() => setPublicProfileId(null)}
+          onOpenSettings={() => { }}
+          onStatClick={() => { }}
+          onUpdateUser={() => { }}
+          onRemoveBookmark={() => { }}
+          onOpenFriendRequests={() => { }}
+        />
       )}
       {showFriendRequests && user && (
         <FriendRequestList userId={user.id} onClose={() => setShowFriendRequests(false)} onRequestsChanged={() => { /* maybe refresh profile badge */ }} />

@@ -53,6 +53,52 @@ export const SocialService = {
         }));
     },
 
+    async getPublicProfile(userId: string): Promise<User | null> {
+        if (!supabase) return null;
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, is_premium, is_admin')
+            .eq('id', userId)
+            .single();
+
+        if (error || !data) return null;
+
+        return {
+            id: data.id,
+            username: data.username || 'Wisdom Seeker',
+            avatarUrl: data.avatar_url,
+            isPremium: data.is_premium,
+            isGuest: false,
+            isAdmin: data.is_admin
+        };
+    },
+
+    async getPublicCabinet(userId: string) {
+        if (!supabase) return { quotes: [], iconic: [], bible: [], kjv: [] };
+
+        const { data: bookmarks, error } = await supabase
+            .from('bookmarks')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (error || !bookmarks) return { quotes: [], iconic: [], bible: [], kjv: [] };
+
+        const bookmarkedIds = new Set(bookmarks.map(b => b.item_id));
+
+        // We'll return the IDs and metadata. The frontend will need to filter constants or display metadata for KJV.
+        return {
+            quoteIds: bookmarks.filter(b => b.item_type === 'quote').map(b => b.item_id),
+            iconicIds: bookmarks.filter(b => b.item_type === 'iconic').map(b => b.item_id),
+            bibleIds: bookmarks.filter(b => b.item_type === 'bible').map(b => b.item_id),
+            kjv: bookmarks.filter(b => b.item_type === 'kjv').map(b => ({
+                id: b.item_id,
+                text: b.metadata?.text,
+                reference: b.metadata?.reference,
+                timestamp: new Date(b.created_at).getTime()
+            }))
+        };
+    },
+
     async updateProfileNote(userId: string, note: string) {
         if (!supabase) return { error: 'Offline' };
 
