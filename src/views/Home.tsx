@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
 import { CATEGORIES } from '../constants';
+import { presentPaywall } from '../services/revenueCat';
 
 interface HomeProps {
   user: User;
@@ -124,6 +125,29 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onO
           </div>
         </div>
       </section>
+
+      <div className="mb-10 px-1">
+        <button
+          onClick={() => presentPaywall()}
+          className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
+        >
+          <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none"></div>
+          <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
+                <span className="material-symbols-outlined text-xl">volunteer_activism</span>
+              </div>
+              <div className="text-left">
+                <h3 className="text-white font-black text-sm uppercase tracking-wide">Support Likkle Wisdom</h3>
+                <p className="text-white/50 text-[10px] font-bold tracking-wider">Help keep the vibes flowin'</p>
+              </div>
+            </div>
+            <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
+              <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+            </div>
+          </div>
+        </button>
+      </div>
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-6">
