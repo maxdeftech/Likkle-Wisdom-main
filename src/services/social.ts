@@ -70,6 +70,15 @@ export const SocialService = {
     async sendFriendRequest(requesterId: string, receiverId: string) {
         if (!supabase) return { error: 'Offline' };
 
+        // Check if already exist
+        const { data: existing } = await supabase
+            .from('friendships')
+            .select('id')
+            .or(`and(requester_id.eq.${requesterId},receiver_id.eq.${receiverId}),and(requester_id.eq.${receiverId},receiver_id.eq.${requesterId})`)
+            .single();
+
+        if (existing) return { error: 'Already connected or request pending' };
+
         const { error } = await supabase
             .from('friendships')
             .insert({ requester_id: requesterId, receiver_id: receiverId, status: 'pending' });
@@ -158,7 +167,15 @@ export const SocialService = {
             }));
         }
 
-        return friends;
+        // Deduplicate by friendId
+        const unique = new Map();
+        friends.forEach(f => {
+            if (!unique.has(f.friendId)) {
+                unique.set(f.friendId, f);
+            }
+        });
+
+        return Array.from(unique.values());
     },
 
     // Realtime Presence for "Online Users" count

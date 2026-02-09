@@ -24,6 +24,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [requestCount, setRequestCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteInput, setNoteInput] = useState('');
@@ -35,8 +36,10 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       SocialService.getUserStats(user.id).then(stats => {
         setFriendsCount(stats.friendsCount);
         setJoinedAt(stats.createdAt);
+        setLoadingStats(false);
 
         // Handle 24h expiration
+        // ... (rest of the note logic)
         if (stats.statusNote && stats.statusNoteAt) {
           const noteDate = new Date(stats.statusNoteAt).getTime();
           const now = Date.now();
@@ -44,11 +47,10 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             setStatusNote(stats.statusNote);
             setNoteInput(stats.statusNote);
           } else {
-            // Expired
             SocialService.updateProfileNote(user.id, '');
           }
         }
-      });
+      }).catch(() => setLoadingStats(false));
     });
   }, [user.id]);
 
@@ -61,7 +63,8 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
   const memberSinceText = useMemo(() => {
     if (user.isGuest) return "Wisdom Seeker (Guest)";
-    if (!joinedAt) return "Joining...";
+    if (loadingStats) return "Joining...";
+    if (!joinedAt) return "Lifelong Seeker";
 
     const start = new Date(joinedAt);
     const now = new Date();
@@ -74,7 +77,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
     if (years > 0) return `${years}y ${months % 12}m in wisdom`;
     if (months > 0) return `${months}m ${days % 30}d in wisdom`;
     return `${days} days in wisdom`;
-  }, [joinedAt, user.isGuest]);
+  }, [joinedAt, user.isGuest, loadingStats]);
 
 
   const savedWisdom = quotes.filter(q => q.isFavorite);
