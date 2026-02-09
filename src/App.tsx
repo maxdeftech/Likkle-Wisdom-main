@@ -18,6 +18,7 @@ import PremiumUpgrade from './views/PremiumUpgrade';
 import BottomNav from './components/BottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
 import LegalView from './views/LegalView';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
@@ -362,6 +363,7 @@ const App: React.FC = () => {
         <PremiumUpgrade onClose={() => setShowPremium(false)} onPurchaseSuccess={() => { setShowPremium(false); setNotification("Thanks fi di support!"); }} />
       )}
       {view === 'main' && <BottomNav activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} />}
+      <PWAInstallPrompt />
     </div>
   );
 };

@@ -1,0 +1,137 @@
+
+import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+
+const PWAInstallPrompt: React.FC = () => {
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [showPrompt, setShowPrompt] = useState(false);
+    const [isIOS, setIsIOS] = useState(false);
+    const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
+
+    useEffect(() => {
+        // Check if already standalone/installed
+        const isNative = Capacitor.isNativePlatform();
+        const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+
+        if (isNative || isStandaloneMode) {
+            setIsStandalone(true);
+            return;
+        }
+
+        // Check if iOS
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        const ios = /iphone|ipad|ipod/.test(userAgent);
+        setIsIOS(ios);
+
+        if (ios) {
+            // Show prompt for iOS immediately if not standalone
+            // Delay slightly to not clash with splash screen immediately
+            setTimeout(() => setShowPrompt(true), 3000);
+        } else {
+            // Android/Desktop: Listen for beforeinstallprompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                setDeferredPrompt(e);
+                setTimeout(() => setShowPrompt(true), 3000);
+            });
+        }
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (isIOS) {
+            setShowIOSInstructions(true);
+            setShowPrompt(false);
+        } else if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+                setShowPrompt(false);
+            }
+        }
+    };
+
+    const handleMinimize = () => {
+        setIsMinimized(true);
+    };
+
+    const handleMaximize = () => {
+        setIsMinimized(false);
+    };
+
+    if (isStandalone || !showPrompt) return null;
+
+    if (isMinimized) {
+        return (
+            <button
+                onClick={handleMaximize}
+                className="fixed bottom-24 right-4 z-[9999] size-14 rounded-full glass bg-white/10 border border-white/20 shadow-2xl flex items-center justify-center animate-bounce-slow"
+                aria-label="Install App"
+            >
+                <span className="material-symbols-outlined text-white text-2xl">download</span>
+                <span className="absolute -top-1 -right-1 size-3 bg-red-500 rounded-full animate-pulse"></span>
+            </button>
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-sm bg-background-dark/95 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 jamaica-gradient opacity-10 pointer-events-none"></div>
+
+                <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="size-16 rounded-2xl bg-gradient-to-br from-jamaican-gold to-primary flex items-center justify-center mb-4 shadow-lg">
+                        <img src="/icons/icon-192x192.png" alt="Icon" className="w-full h-full object-cover rounded-2xl opacity-90" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                        <span className="material-symbols-outlined text-3xl text-background-dark absolute" style={{ display: 'var(--icon-display, none)' }}>install_mobile</span>
+                    </div>
+
+                    <h3 className="text-xl font-black text-white mb-2 uppercase tracking-wide">Install Likkle Wisdom</h3>
+                    <p className="text-white/60 text-xs mb-6 font-medium leading-relaxed">
+                        Add to your Home Screen for full screen vibes, offline mode, and a better experience.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <button
+                            onClick={handleMinimize}
+                            className="py-3 px-4 rounded-xl glass border-white/10 text-white/50 text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-colors"
+                        >
+                            Later
+                        </button>
+                        <button
+                            onClick={handleInstallClick}
+                            className="py-3 px-4 rounded-xl bg-primary text-background-dark text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            {isIOS ? 'Show How' : 'Install'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {showIOSInstructions && (
+                <div
+                    className="fixed inset-0 z-[10000] bg-black/90 flex flex-col justify-end pb-8 px-6 animate-fade-in backdrop-blur-sm"
+                    onClick={() => setShowIOSInstructions(false)}
+                >
+                    <div className="flex flex-col items-center text-center text-white mb-8">
+                        <span className="material-symbols-outlined text-5xl mb-4 text-jamaican-gold animate-bounce">ios_share</span>
+                        <h3 className="text-2xl font-black mb-2">Tap Share</h3>
+                        <p className="text-white/60 font-medium mb-8 max-w-[200px]">Then scroll down and select <br /><span className="text-white font-bold">"Add to Home Screen"</span></p>
+                        <div className="size-16 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-3xl">add_box</span>
+                        </div>
+                    </div>
+                    <div className="w-full flex justify-center animate-bounce-slow text-white/50">
+                        <span className="material-symbols-outlined text-4xl">keyboard_arrow_down</span>
+                    </div>
+                    <button className="absolute top-8 right-8 text-white/50 p-4">Close</button>
+                    <div className="absolute inset-0 pointer-events-none border-[12px] border-primary/20 animate-pulse"></div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default PWAInstallPrompt;
