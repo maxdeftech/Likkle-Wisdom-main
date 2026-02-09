@@ -418,23 +418,15 @@ const App: React.FC = () => {
     <div className="relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300">
       <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0"></div>
 
-      {navHistory.length > 0 &&
-        view === 'main' &&
-        !showSettings &&
-        !showAI &&
-        !showPremium &&
-        !showMessages &&
-        !showFriendRequests &&
-        !publicProfileId &&
-        !activeCategory && (
-          <button
-            onClick={handleBack}
-            className="fixed top-5 left-5 z-overlay size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-95 transition-transform"
-            aria-label="Go back"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-        )}
+      {navHistory.length > 0 && (
+        <button
+          onClick={handleBack}
+          className="fixed top-5 left-5 z-overlay size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-95 transition-transform"
+          aria-label="Go back"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+      )}
 
       {!isOnline && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none">
