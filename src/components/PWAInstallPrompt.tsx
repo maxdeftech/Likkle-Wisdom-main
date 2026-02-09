@@ -23,14 +23,15 @@ const PWAInstallPrompt: React.FC = () => {
         // Check if iOS
         const userAgent = window.navigator.userAgent.toLowerCase();
         const ios = /iphone|ipad|ipod/.test(userAgent);
+        const android = /android/.test(userAgent);
         setIsIOS(ios);
 
-        if (ios) {
-            // Show prompt for iOS immediately if not standalone
+        if (ios || android) {
+            // Show prompt for both IOS and Android immediately if not standalone
             // Delay slightly to not clash with splash screen immediately
             setTimeout(() => setShowPrompt(true), 3000);
         } else {
-            // Android/Desktop: Listen for beforeinstallprompt
+            // Desktop: Listen for beforeinstallprompt just in case
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 setDeferredPrompt(e);
@@ -40,9 +41,9 @@ const PWAInstallPrompt: React.FC = () => {
     }, []);
 
     const handleInstallClick = async () => {
-        if (isIOS) {
+        if (isIOS || /android/.test(window.navigator.userAgent.toLowerCase())) {
             setShowIOSInstructions(true);
-            setShowPrompt(false);
+            // Don't set showPrompt(false) yet, or rely on showIOSInstructions to keep component mounted
         } else if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
@@ -105,7 +106,7 @@ const PWAInstallPrompt: React.FC = () => {
                             className="py-3 px-4 rounded-xl bg-primary text-background-dark text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-sm">download</span>
-                            {isIOS ? 'Show How' : 'Install'}
+                            {isIOS || /android/.test(window.navigator.userAgent.toLowerCase()) ? 'Show How' : 'Install'}
                         </button>
                     </div>
                 </div>
@@ -117,9 +118,17 @@ const PWAInstallPrompt: React.FC = () => {
                     onClick={() => setShowIOSInstructions(false)}
                 >
                     <div className="flex flex-col items-center text-center text-white mb-8">
-                        <span className="material-symbols-outlined text-5xl mb-4 text-jamaican-gold animate-bounce">ios_share</span>
-                        <h3 className="text-2xl font-black mb-2">Tap Share</h3>
-                        <p className="text-white/60 font-medium mb-8 max-w-[200px]">Then scroll down and select <br /><span className="text-white font-bold">"Add to Home Screen"</span></p>
+                        <span className="material-symbols-outlined text-5xl mb-4 text-jamaican-gold animate-bounce">
+                            {isIOS ? 'ios_share' : 'more_vert'}
+                        </span>
+                        <h3 className="text-2xl font-black mb-2">{isIOS ? 'Tap Share' : 'Tap Menu'}</h3>
+                        <p className="text-white/60 font-medium mb-8 max-w-[200px]">
+                            {isIOS ? (
+                                <>Then scroll down and select <br /><span className="text-white font-bold">"Add to Home Screen"</span></>
+                            ) : (
+                                <>Select <span className="text-white font-bold">"Install App"</span> or <br /><span className="text-white font-bold">"Add to Home screen"</span></>
+                            )}
+                        </p>
                         <div className="size-16 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center">
                             <span className="material-symbols-outlined text-3xl">add_box</span>
                         </div>
