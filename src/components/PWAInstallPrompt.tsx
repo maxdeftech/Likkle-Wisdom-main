@@ -122,22 +122,27 @@ const PWAInstallPrompt: React.FC = () => {
                             {isIOS ? 'ios_share' : 'more_vert'}
                         </span>
                         <h3 className="text-2xl font-black mb-2">{isIOS ? 'Tap Share' : 'Tap Menu'}</h3>
-                        <p className="text-white/60 font-medium mb-8 max-w-[200px]">
+                        <p className="text-white/60 font-medium mb-8 max-w-[260px] leading-relaxed">
                             {isIOS ? (
                                 <>Then scroll down and select <br /><span className="text-white font-bold">"Add to Home Screen"</span></>
                             ) : (
-                                <>Select <span className="text-white font-bold">"Install App"</span> or <br /><span className="text-white font-bold">"Add to Home screen"</span></>
+                                <>
+                                    Select the <span className="text-white font-bold inline-flex items-center gap-1 mx-1 align-middle"><span className="material-symbols-outlined text-sm">more_vert</span> 3 dots</span>
+                                    at the top right, then scroll down and select <span className="text-white font-bold">"Add to Home screen"</span> or <span className="text-white font-bold">"Install App"</span>
+                                </>
                             )}
                         </p>
-                        <div className="size-16 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center">
+                        <div className="size-16 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center animate-pulse">
                             <span className="material-symbols-outlined text-3xl">add_box</span>
                         </div>
                     </div>
                     <div className="w-full flex justify-center animate-bounce-slow text-white/50">
                         <span className="material-symbols-outlined text-4xl">keyboard_arrow_down</span>
                     </div>
-                    <button className="absolute top-8 right-8 text-white/50 p-4">Close</button>
-                    <div className="absolute inset-0 pointer-events-none border-[12px] border-primary/20 animate-pulse"></div>
+                    <button className="absolute top-8 right-8 text-white/50 p-4 active:scale-90 transition-transform">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                    {isIOS && <div className="absolute inset-0 pointer-events-none border-[12px] border-primary/20 animate-pulse"></div>}
                 </div>
             )}
         </div>
