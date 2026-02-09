@@ -22,6 +22,19 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Messages from './views/Messages';
 import FriendRequestList from './components/FriendRequestList';
 
+type NavigationSnapshot = {
+  view: View;
+  activeTab: Tab;
+  showSettings: boolean;
+  showAI: boolean;
+  showPremium: boolean;
+  showAuthGate: boolean;
+  activeCategory: string | null;
+  showMessages: boolean;
+  showFriendRequests: boolean;
+  publicProfileId: string | null;
+};
+
 const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
   const [user, setUser] = useState<User | null>(null);
@@ -39,6 +52,8 @@ const App: React.FC = () => {
   const [showMessages, setShowMessages] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
+
+  const [navHistory, setNavHistory] = useState<NavigationSnapshot[]>([]);
 
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [iconicQuotes, setIconicQuotes] = useState<IconicQuote[]>(ICONIC_QUOTES);
@@ -194,6 +209,56 @@ const App: React.FC = () => {
     }
   };
 
+  const pushHistory = useCallback(() => {
+    setNavHistory(prev => [
+      ...prev,
+      {
+        view,
+        activeTab,
+        showSettings,
+        showAI,
+        showPremium,
+        showAuthGate,
+        activeCategory,
+        showMessages,
+        showFriendRequests,
+        publicProfileId
+      }
+    ]);
+  }, [
+    view,
+    activeTab,
+    showSettings,
+    showAI,
+    showPremium,
+    showAuthGate,
+    activeCategory,
+    showMessages,
+    showFriendRequests,
+    publicProfileId
+  ]);
+
+  const handleBack = useCallback(() => {
+    setNavHistory(prev => {
+      if (prev.length === 0) return prev;
+      const next = [...prev];
+      const last = next.pop()!;
+
+      setView(last.view);
+      setActiveTab(last.activeTab);
+      setShowSettings(last.showSettings);
+      setShowAI(last.showAI);
+      setShowPremium(last.showPremium);
+      setShowAuthGate(last.showAuthGate);
+      setActiveCategory(last.activeCategory);
+      setShowMessages(last.showMessages);
+      setShowFriendRequests(last.showFriendRequests);
+      setPublicProfileId(last.publicProfileId);
+
+      return next;
+    });
+  }, []);
+
   const handleToggleFavorite = async (id: string, type: 'quote' | 'iconic' | 'bible') => {
     if (user?.isGuest) {
       setShowAuthGate(true);
@@ -292,14 +357,45 @@ const App: React.FC = () => {
     if (user?.isGuest) {
       setShowAuthGate(true);
     } else {
+      pushHistory();
       setShowAI(true);
     }
   };
 
+  const handleOpenSettings = () => {
+    pushHistory();
+    setShowSettings(true);
+  };
+
+  const handleOpenPremium = () => {
+    pushHistory();
+    setShowPremium(true);
+  };
+
+  const handleOpenMessages = () => {
+    pushHistory();
+    setShowMessages(true);
+  };
+
+  const handleOpenFriendRequests = () => {
+    pushHistory();
+    setShowFriendRequests(true);
+  };
+
+  const handleOpenPublicProfile = (id: string) => {
+    pushHistory();
+    setPublicProfileId(id);
+  };
+
+  const handleOpenCategory = (categoryId: string) => {
+    pushHistory();
+    setActiveCategory(categoryId);
+  };
+
   const renderContent = () => {
-    if (view === 'privacy') return <LegalView type="privacy" onClose={() => setView('main')} />;
-    if (view === 'terms') return <LegalView type="terms" onClose={() => setView('main')} />;
-    if (activeCategory) return <CategoryResultsView categoryId={activeCategory} onClose={() => setActiveCategory(null)} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} onFavorite={handleToggleFavorite} />;
+    if (view === 'privacy') return <LegalView type="privacy" onClose={handleBack} />;
+    if (view === 'terms') return <LegalView type="terms" onClose={handleBack} />;
+    if (activeCategory) return <CategoryResultsView categoryId={activeCategory} onClose={handleBack} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} onFavorite={handleToggleFavorite} />;
 
     if (!user) {
       if (view === 'onboarding') return <Onboarding onFinish={() => setView('auth')} />;
@@ -307,12 +403,12 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
-      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={setActiveCategory} isOnline={isOnline} />;
-      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => setShowPremium(true)} isOnline={isOnline} />;
+      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} />;
+      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
+      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={() => setShowSettings(true)} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={() => setShowFriendRequests(true)} />;
-      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} />;
+      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} />;
     }
   };
 
@@ -321,6 +417,24 @@ const App: React.FC = () => {
   return (
     <div className="relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300">
       <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0"></div>
+
+      {navHistory.length > 0 &&
+        view === 'main' &&
+        !showSettings &&
+        !showAI &&
+        !showPremium &&
+        !showMessages &&
+        !showFriendRequests &&
+        !publicProfileId &&
+        !activeCategory && (
+          <button
+            onClick={handleBack}
+            className="fixed top-5 left-5 z-overlay size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-95 transition-transform"
+            aria-label="Go back"
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+        )}
 
       {!isOnline && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none">
@@ -349,16 +463,49 @@ const App: React.FC = () => {
       )}
 
       {showSettings && user && (
-        <Settings user={user} isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} onClose={() => setShowSettings(false)} onUpgrade={() => setShowPremium(true)} onSignOut={handleSignOut} onUpdateUser={handleUpdateUser} onOpenPrivacy={() => { setShowSettings(false); setView('privacy'); }} onOpenTerms={() => { setShowSettings(false); setView('terms'); }} />
+        <Settings
+          user={user}
+          isDarkMode={isDarkMode}
+          onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+          onClose={handleBack}
+          onUpgrade={handleOpenPremium}
+          onSignOut={handleSignOut}
+          onUpdateUser={handleUpdateUser}
+          onOpenPrivacy={() => {
+            pushHistory();
+            setShowSettings(false);
+            setView('privacy');
+          }}
+          onOpenTerms={() => {
+            pushHistory();
+            setShowSettings(false);
+            setView('terms');
+          }}
+        />
       )}
       {showAI && user && (
-        <AIWisdom user={user} isOnline={isOnline} onClose={() => setShowAI(false)} onUpgrade={() => { setShowAI(false); setShowPremium(true); }} onGuestRestricted={() => { setShowAI(false); setShowAuthGate(true); }} />
+        <AIWisdom
+          user={user}
+          isOnline={isOnline}
+          onClose={handleBack}
+          onUpgrade={handleOpenPremium}
+          onGuestRestricted={() => {
+            setShowAI(false);
+            setShowAuthGate(true);
+          }}
+        />
       )}
       {showPremium && (
-        <PremiumUpgrade onClose={() => setShowPremium(false)} onPurchaseSuccess={() => { setShowPremium(false); setNotification("Thanks fi di support!"); }} />
+        <PremiumUpgrade
+          onClose={handleBack}
+          onPurchaseSuccess={() => {
+            handleBack();
+            setNotification("Thanks fi di support!");
+          }}
+        />
       )}
       {showMessages && user && (
-        <Messages currentUser={user} onClose={() => setShowMessages(false)} onOpenProfile={setPublicProfileId} />
+        <Messages currentUser={user} onClose={handleBack} onOpenProfile={handleOpenPublicProfile} />
       )}
       {publicProfileId && user && (
         <Profile
@@ -369,7 +516,7 @@ const App: React.FC = () => {
           bible={bibleAffirmations}
           bookmarkedVerses={bookmarkedVerses}
           viewingUserId={publicProfileId}
-          onClose={() => setPublicProfileId(null)}
+          onClose={handleBack}
           onOpenSettings={() => { }}
           onStatClick={() => { }}
           onUpdateUser={() => { }}
