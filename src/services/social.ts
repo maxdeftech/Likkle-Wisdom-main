@@ -29,6 +29,44 @@ export const SocialService = {
         }));
     },
 
+    async getAllUsers(currentUserId: string): Promise<User[]> {
+        if (!supabase) return [];
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url, is_premium, is_admin')
+            .neq('id', currentUserId)
+            .limit(50);
+
+        if (error) {
+            console.error('Fetch all users error:', error);
+            return [];
+        }
+
+        return data.map((p: any) => ({
+            id: p.id,
+            username: p.username || 'Seeker',
+            avatarUrl: p.avatar_url,
+            isPremium: p.is_premium,
+            isGuest: false,
+            isAdmin: p.is_admin
+        }));
+    },
+
+    async updateProfileNote(userId: string, note: string) {
+        if (!supabase) return { error: 'Offline' };
+
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                status_note: note,
+                status_note_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        return { error };
+    },
+
     async sendFriendRequest(requesterId: string, receiverId: string) {
         if (!supabase) return { error: 'Offline' };
 
@@ -173,16 +211,18 @@ export const SocialService = {
             .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
             .eq('status', 'accepted');
 
-        // 2. Get join date
+        // 2. Get profile data
         const { data: profile, error: e2 } = await supabase
             .from('profiles')
-            .select('created_at')
+            .select('created_at, status_note, status_note_at')
             .eq('id', userId)
             .single();
 
         return {
             friendsCount: count || 0,
             createdAt: profile?.created_at || null,
+            statusNote: profile?.status_note || null,
+            statusNoteAt: profile?.status_note_at || null,
             error: e1 || e2
         };
     }

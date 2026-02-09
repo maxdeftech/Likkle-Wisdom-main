@@ -251,6 +251,18 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
     const [results, setResults] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        // Load discovery list on mount
+        loadDiscoveryList();
+    }, []);
+
+    const loadDiscoveryList = async () => {
+        setLoading(true);
+        const res = await SocialService.getAllUsers(currentUser.id);
+        setResults(res);
+        setLoading(false);
+    };
+
     const handleSearch = async (val: string) => {
         setQuery(val);
         if (val.length > 2) {
@@ -258,6 +270,8 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
             const res = await SocialService.searchUsers(val, currentUser.id);
             setResults(res);
             setLoading(false);
+        } else if (val.length === 0) {
+            loadDiscoveryList();
         } else {
             setResults([]);
         }

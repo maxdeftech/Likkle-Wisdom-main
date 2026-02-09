@@ -24,6 +24,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [requestCount, setRequestCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
+  const [statusNote, setStatusNote] = useState<string | null>(null);
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteInput, setNoteInput] = useState('');
 
   // Fetch stats
   React.useEffect(() => {
@@ -32,12 +35,34 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       SocialService.getUserStats(user.id).then(stats => {
         setFriendsCount(stats.friendsCount);
         setJoinedAt(stats.createdAt);
+
+        // Handle 24h expiration
+        if (stats.statusNote && stats.statusNoteAt) {
+          const noteDate = new Date(stats.statusNoteAt).getTime();
+          const now = Date.now();
+          if (now - noteDate < 86400000) {
+            setStatusNote(stats.statusNote);
+            setNoteInput(stats.statusNote);
+          } else {
+            // Expired
+            SocialService.updateProfileNote(user.id, '');
+          }
+        }
       });
     });
   }, [user.id]);
 
+  const handleSaveNote = async () => {
+    const { SocialService } = await import('../services/social');
+    await SocialService.updateProfileNote(user.id, noteInput);
+    setStatusNote(noteInput);
+    setIsEditingNote(false);
+  };
+
   const memberSinceText = useMemo(() => {
+    if (user.isGuest) return "Wisdom Seeker (Guest)";
     if (!joinedAt) return "Joining...";
+
     const start = new Date(joinedAt);
     const now = new Date();
     const diff = now.getTime() - start.getTime();
@@ -49,7 +74,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
     if (years > 0) return `${years}y ${months % 12}m in wisdom`;
     if (months > 0) return `${months}m ${days % 30}d in wisdom`;
     return `${days} days in wisdom`;
-  }, [joinedAt]);
+  }, [joinedAt, user.isGuest]);
 
 
   const savedWisdom = quotes.filter(q => q.isFavorite);
@@ -96,6 +121,13 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Wise One</h2>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
+            title="Refresh App"
+          >
+            <span className="material-symbols-outlined">refresh</span>
+          </button>
           <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
             <span className="material-symbols-outlined">group_add</span>
             {requestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{requestCount}</span>}
@@ -124,7 +156,42 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           }} />
         </div>
 
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">{user.username}</h1>
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-1">{user.username}</h1>
+
+        {/* 24h Note Area */}
+        <div className="mb-4 w-full px-4">
+          {isEditingNote ? (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={noteInput}
+                onChange={e => setNoteInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveNote()}
+                placeholder="What's on your mind? (24h)"
+                className="flex-1 bg-white/10 rounded-xl px-4 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none border border-primary/30"
+                maxLength={60}
+              />
+              <button
+                onClick={handleSaveNote}
+                className="size-8 rounded-lg bg-primary text-background-dark flex items-center justify-center transition-all active:scale-90"
+              >
+                <span className="material-symbols-outlined text-base">check</span>
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={() => setIsEditingNote(true)}
+              className="group flex flex-col items-center cursor-pointer"
+            >
+              <p className="text-slate-900/60 dark:text-white/60 text-[11px] font-bold italic line-clamp-2 max-w-[200px]">
+                {statusNote ? `"${statusNote}"` : "Tap to add a vibe note..."}
+              </p>
+              <span className="text-[7px] text-primary/40 uppercase font-black tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Expires in 24h • Tap to edit</span>
+            </div>
+          )}
+        </div>
+
         <p className="text-primary/60 text-[10px] font-black uppercase tracking-[0.4em] mb-8">{memberSinceText}</p>
 
         <div className="grid grid-cols-4 gap-2 w-full">
