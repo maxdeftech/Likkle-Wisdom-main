@@ -61,7 +61,8 @@ const PWAInstallPrompt: React.FC = () => {
         setIsMinimized(false);
     };
 
-    if (isStandalone || !showPrompt) return null;
+    if (isStandalone) return null;
+    if (!showPrompt && !showIOSInstructions && !isMinimized) return null;
 
     if (isMinimized) {
         return (
