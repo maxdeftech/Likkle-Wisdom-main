@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote } from './types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
+import { initializePurchases } from './services/revenueCat';
 import SplashScreen from './views/SplashScreen';
 import Onboarding from './views/Onboarding';
 import Auth from './views/Auth';
@@ -26,7 +27,6 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
-  const [showPinGate, setShowPinGate] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -51,6 +51,10 @@ const App: React.FC = () => {
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // Initialize RevenueCat
+    initializePurchases();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -85,7 +89,7 @@ const App: React.FC = () => {
           id: userId,
           username: profile.username || prev?.username || 'Seeker',
           avatarUrl: profile.avatar_url || prev?.avatarUrl || undefined,
-          isPremium: !!profile.is_premium,
+          isPremium: true, // Auto-grant premium
           isGuest: false
         }));
       }
@@ -137,7 +141,7 @@ const App: React.FC = () => {
           id: session.user.id,
           username: session.user.user_metadata?.username || 'Seeker',
           isGuest: false,
-          isPremium: false
+          isPremium: true // Auto-grant premium
         });
         syncUserContent(session.user.id);
         if (view === 'auth' || view === 'splash') setView('main');
@@ -302,7 +306,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={setActiveCategory} isOnline={isOnline} />;
-      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => setShowPinGate(true)} isOnline={isOnline} />;
+      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => setShowPremium(true)} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={() => setShowSettings(true)} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} />;
       default: return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} />;
@@ -341,17 +345,14 @@ const App: React.FC = () => {
         <GuestAuthModal onClose={() => setShowAuthGate(false)} onSignUp={() => { setShowAuthGate(false); setView('auth'); }} />
       )}
 
-      {showPinGate && (
-        <PinEntryModal onClose={() => setShowPinGate(false)} onVerify={() => { setShowPinGate(false); setShowPremium(true); }} />
-      )}
       {showSettings && user && (
-        <Settings user={user} isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} onClose={() => setShowSettings(false)} onUpgrade={() => setShowPinGate(true)} onSignOut={handleSignOut} onUpdateUser={handleUpdateUser} onOpenPrivacy={() => { setShowSettings(false); setView('privacy'); }} onOpenTerms={() => { setShowSettings(false); setView('terms'); }} />
+        <Settings user={user} isDarkMode={isDarkMode} onToggleTheme={() => setIsDarkMode(!isDarkMode)} onClose={() => setShowSettings(false)} onUpgrade={() => setShowPremium(true)} onSignOut={handleSignOut} onUpdateUser={handleUpdateUser} onOpenPrivacy={() => { setShowSettings(false); setView('privacy'); }} onOpenTerms={() => { setShowSettings(false); setView('terms'); }} />
       )}
       {showAI && user && (
-        <AIWisdom user={user} isOnline={isOnline} onClose={() => setShowAI(false)} onUpgrade={() => { setShowAI(false); setShowPinGate(true); }} onGuestRestricted={() => { setShowAI(false); setShowAuthGate(true); }} />
+        <AIWisdom user={user} isOnline={isOnline} onClose={() => setShowAI(false)} onUpgrade={() => { setShowAI(false); setShowPremium(true); }} onGuestRestricted={() => { setShowAI(false); setShowAuthGate(true); }} />
       )}
       {showPremium && (
-        <PremiumUpgrade onClose={() => setShowPremium(false)} onPurchaseSuccess={() => { handleUpdateUser({ isPremium: true }); setShowPremium(false); }} />
+        <PremiumUpgrade onClose={() => setShowPremium(false)} onPurchaseSuccess={() => { setShowPremium(false); setNotification("Thanks fi di support!"); }} />
       )}
       {view === 'main' && <BottomNav activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} />}
     </div>
@@ -374,35 +375,6 @@ const GuestAuthModal: React.FC<{ onClose: () => void; onSignUp: () => void }> = 
   </div>
 );
 
-const PinEntryModal: React.FC<{ onClose: () => void; onVerify: () => void }> = ({ onClose, onVerify }) => {
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState(false);
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin === '1022') onVerify();
-    else {
-      setError(true);
-      setPin('');
-      setTimeout(() => setError(false), 500);
-    }
-  };
-  return (
-    <div className="fixed inset-0 z-modal bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in">
-      <div className={`glass p-10 rounded-[3rem] w-full max-w-[320px] text-center border-white/5 shadow-2xl transition-all ${error ? 'border-red-500 bg-red-500/10 scale-95' : 'border-primary/20'}`}>
-        <span className="material-symbols-outlined text-primary text-5xl mb-6">lock_open</span>
-        <h2 className="text-xl font-black text-white mb-2 uppercase tracking-widest">Secret Gate</h2>
-        <p className="text-white/40 text-[10px] font-bold mb-8 uppercase tracking-widest leading-relaxed">Enter di secret pin fi access di donation feature.</p>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <input type="password" maxLength={4} placeholder="••••" autoFocus className="w-full h-20 bg-white/5 border border-white/10 rounded-2xl text-center text-4xl font-black text-primary focus:ring-0 focus:border-primary transition-all tracking-[0.5em]" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
-          <div className="grid grid-cols-2 gap-3">
-            <button type="button" onClick={onClose} className="glass py-4 rounded-xl font-black text-[10px] uppercase text-white/30">Cancel</button>
-            <button type="submit" className="bg-primary py-4 rounded-xl font-black text-[10px] uppercase text-background-dark shadow-xl">Confirm</button>
-          </div>
-        </form>
-        {error && <p className="text-red-500 text-[10px] font-black uppercase mt-4 animate-bounce">PIN incorrect!</p>}
-      </div>
-    </div>
-  );
-};
+
 
 export default App;

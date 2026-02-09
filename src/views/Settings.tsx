@@ -69,7 +69,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
               className="w-full bg-jamaican-gold text-black font-black py-4 rounded-2xl flex justify-between px-5 items-center active:scale-95 transition-all shadow-xl"
             >
               <span>{user.isGuest ? 'Sign in to Upgrade' : 'Upgrade to Premium'}</span>
-              <span className="bg-black/10 px-3 py-1 rounded-lg text-xs">$5.00 USD</span>
+              <span className="bg-black/10 px-3 py-1 rounded-lg text-xs">$0.00 USD</span>
             </button>
           )}
         </div>
