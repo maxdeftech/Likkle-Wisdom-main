@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
 import { CATEGORIES } from '../constants';
 import { presentPaywall } from '../services/revenueCat';
+import { Capacitor } from '@capacitor/core';
 
 interface HomeProps {
   user: User;
@@ -128,7 +129,13 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onO
 
       <div className="mb-10 px-1">
         <button
-          onClick={() => presentPaywall()}
+          onClick={() => {
+            if (Capacitor.getPlatform() === 'web') {
+              window.open('https://www.paypal.com/donate/?business=maxwelldefinitivetechnologies@gmail.com&currency_code=USD', '_blank');
+            } else {
+              presentPaywall();
+            }
+          }}
           className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
         >
           <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none"></div>

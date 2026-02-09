@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { presentPaywall } from '../services/revenueCat';
+import { Capacitor } from '@capacitor/core';
 
 interface PremiumUpgradeProps {
   onClose: () => void;
@@ -11,6 +12,10 @@ const PremiumUpgrade: React.FC<PremiumUpgradeProps> = ({ onClose, onPurchaseSucc
   const [loading, setLoading] = useState(false);
 
   const handleDonate = async () => {
+    if (Capacitor.getPlatform() === 'web') {
+      window.open('https://www.paypal.com/donate/?business=maxwelldefinitivetechnologies@gmail.com&currency_code=USD', '_blank');
+      return;
+    }
     setLoading(true);
     try {
       const success = await presentPaywall();
