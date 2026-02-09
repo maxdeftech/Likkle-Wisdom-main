@@ -204,6 +204,22 @@ export const SocialService = {
         }
     },
 
+    subscribeToFriendRequests(userId: string, onChange: () => void) {
+        if (!supabase) return null;
+
+        return supabase
+            .channel(`friend_requests:${userId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'friendships',
+                filter: `receiver_id=eq.${userId}`
+            }, () => {
+                onChange();
+            })
+            .subscribe();
+    },
+
     async getFriends(userId: string): Promise<Friendship[]> {
         if (!supabase) return [];
 

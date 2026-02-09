@@ -53,6 +53,10 @@ const App: React.FC = () => {
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
 
+  // Badge Counts
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
+
   const [navHistory, setNavHistory] = useState<NavigationSnapshot[]>([]);
 
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
@@ -89,8 +93,6 @@ const App: React.FC = () => {
     }
   }, [notification]);
 
-
-
   const syncUserContent = useCallback(async (userId: string) => {
     if (!supabase || userId === 'guest' || !navigator.onLine) return;
     try {
@@ -104,6 +106,14 @@ const App: React.FC = () => {
           isGuest: false
         }));
       }
+
+      // Sync badge counts
+      import('./services/messaging').then(({ MessagingService }) => {
+        MessagingService.getUnreadCount(userId).then(setUnreadMessageCount);
+      });
+      import('./services/social').then(({ SocialService }) => {
+        SocialService.getFriendRequests(userId).then(reqs => setPendingRequestCount(reqs.length));
+      });
 
       const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', userId);
       if (bookmarks) {
@@ -135,6 +145,31 @@ const App: React.FC = () => {
       console.error("Sync failed:", e);
     }
   }, []);
+
+  // Real-time subscriptions for badges
+  useEffect(() => {
+    if (!user || user.isGuest || !supabase) return;
+
+    let msgSub: any;
+    let friendSub: any;
+
+    import('./services/messaging').then(({ MessagingService }) => {
+      msgSub = MessagingService.subscribeToMessages(user.id, () => {
+        MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
+      });
+    });
+
+    import('./services/social').then(({ SocialService }) => {
+      friendSub = SocialService.subscribeToFriendRequests(user.id, () => {
+        SocialService.getFriendRequests(user.id).then(reqs => setPendingRequestCount(reqs.length));
+      });
+    });
+
+    return () => {
+      msgSub?.unsubscribe();
+      friendSub?.unsubscribe();
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -403,12 +438,12 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} />;
+      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} />;
-      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} requestCount={pendingRequestCount} />;
+      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} />;
     }
   };
 

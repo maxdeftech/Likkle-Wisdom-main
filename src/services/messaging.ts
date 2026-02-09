@@ -18,13 +18,37 @@ export const MessagingService = {
     },
 
     async getMessages(userId: string, currentUserId: string): Promise<ChatMessage[]> {
+        // 1. Try fetching from Supabase first
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .or(`and(sender_id.eq.${userId},receiver_id.eq.${currentUserId}),and(sender_id.eq.${currentUserId},receiver_id.eq.${userId})`)
+                .order('created_at', { ascending: true });
+
+            if (!error && data) {
+                const cloudMsgs: ChatMessage[] = data.map(m => ({
+                    id: m.id,
+                    senderId: m.sender_id,
+                    receiverId: m.receiver_id,
+                    content: m.content,
+                    timestamp: new Date(m.created_at).getTime(),
+                    read: m.read,
+                    type: m.type || 'text'
+                }));
+                // Sync to local
+                for (const msg of cloudMsgs) {
+                    await this.saveMessage(msg);
+                }
+            }
+        }
+
+        // 2. Return from local (which is now synced)
         const allMessages = await get<ChatMessage[]>(STORE_KEY) || [];
         return allMessages.filter(m =>
             (m.senderId === userId && m.receiverId === currentUserId) ||
             (m.senderId === currentUserId && m.receiverId === userId) ||
-            (m.type === 'admin-broadcast') // Broadcasts show for everyone? Or filter? 
-            // Actually broadcasts usually have receiverId = null in DB, but locally we might store differently.
-            // For now, simple p2p filtering.
+            (m.type === 'admin-broadcast')
         ).sort((a, b) => a.timestamp - b.timestamp);
     },
 
@@ -32,14 +56,36 @@ export const MessagingService = {
         return await get<ChatMessage[]>(STORE_KEY) || [];
     },
 
-    async markAsRead(senderId: string) {
+    async markAsRead(senderId: string, receiverId: string) {
+        // Local update
         await update(STORE_KEY, (val: ChatMessage[] | undefined) => {
             if (!val) return [];
             return val.map(m => {
-                if (m.senderId === senderId && !m.read) return { ...m, read: true };
+                if (m.senderId === senderId && m.receiverId === receiverId && !m.read) return { ...m, read: true };
                 return m;
             });
         });
+
+        // Remote update
+        if (supabase) {
+            await supabase
+                .from('messages')
+                .update({ read: true })
+                .eq('sender_id', senderId)
+                .eq('receiver_id', receiverId)
+                .eq('read', false);
+        }
+    },
+
+    async getUnreadCount(userId: string): Promise<number> {
+        if (!supabase) return 0;
+        const { count, error } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('receiver_id', userId)
+            .eq('read', false);
+
+        return error ? 0 : (count || 0);
     },
 
     // --- Realtime / Network ---
@@ -47,14 +93,33 @@ export const MessagingService = {
     subscribeToMessages(userId: string, onMessage: (msg: ChatMessage) => void) {
         if (!supabase) return null;
 
+        // Use Postgres Changes for persistence + Live Broadcast for speed/fallthrough
         const channel = supabase.channel(`messages:${userId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `receiver_id=eq.${userId}`
+            }, (payload) => {
+                const m = payload.new;
+                const msg: ChatMessage = {
+                    id: m.id,
+                    senderId: m.sender_id,
+                    receiverId: m.receiver_id,
+                    content: m.content,
+                    timestamp: new Date(m.created_at).getTime(),
+                    read: m.read,
+                    type: m.type || 'text'
+                };
+                onMessage(msg);
+                this.saveMessage(msg);
+            })
             .on('broadcast', { event: 'new-message' }, (payload) => {
                 const msg = payload.payload as ChatMessage;
-                // Verify it's for us (broadcasts go to everyone subscribed to channel)
-                // If we use a channel per user (e.g. 'room:user_id'), only they get it.
-                // We will assume channel name is specific to the receiver.
+                // Broadcasts are faster, but INSERTs are reliable.
+                // saveMessage handles duplicates by ID.
                 onMessage(msg);
-                this.saveMessage(msg); // Auto-save received messages
+                this.saveMessage(msg);
             })
             .subscribe();
 
@@ -77,16 +142,28 @@ export const MessagingService = {
         // 1. Save locally
         await this.saveMessage(newMessage);
 
-        // 2. Send via Realtime (to receiver's channel)
+        // 2. Save to DB (Persistence)
+        const { error } = await supabase.from('messages').insert({
+            id: newMessage.id,
+            sender_id: senderId,
+            receiver_id: receiverId,
+            content: content,
+            type: 'text',
+            read: false,
+            created_at: new Date(newMessage.timestamp).toISOString()
+        });
+
+        if (error) {
+            console.error("Message save error:", error);
+            // If table missing, we still try broadcast for session-only messages
+        }
+
+        // 3. Send via Realtime (to receiver's channel)
         await supabase.channel(`messages:${receiverId}`).send({
             type: 'broadcast',
             event: 'new-message',
             payload: newMessage
         });
-
-        // 3. TODO: Trigger Push Notification via Edge Function if user is offline?
-        // Since we don't store in DB, we rely on Realtime. If they are offline, they miss it unless we use Push.
-        // For now, this meets the "messages on own device" requirement.
 
         return newMessage;
     },
@@ -98,9 +175,6 @@ export const MessagingService = {
         const channel = supabase.channel('admin_broadcasts')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_messages' }, (payload) => {
                 const dbMsg = payload.new;
-                // Check if broadcast (recipient_id is null) or specific to us is handled by RLS subscription?
-                // Postgres changes filters are limited. 
-                // Simplest: Admin sends, we receive.
                 const msg: ChatMessage = {
                     id: dbMsg.id,
                     senderId: dbMsg.sender_id,

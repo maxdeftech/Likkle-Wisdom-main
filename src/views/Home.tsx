@@ -15,9 +15,10 @@ interface HomeProps {
   onTabChange: (tab: Tab) => void;
   onCategoryClick: (id: string) => void;
   onOpenMessages: () => void;
+  unreadCount?: number;
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0 }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
   const [localDaily, setLocalDaily] = useState<{ quote: Quote | null; wisdom: Quote | null; verse: BibleAffirmation | null }>({
@@ -95,7 +96,11 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         <div className="flex gap-3">
           <button onClick={onOpenMessages} className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white active:scale-95 transition-all relative">
             <span className="material-symbols-outlined text-xl sm:text-2xl">forum</span>
-            {/* We could add an unread badge here if we pass count prop */}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
+                {unreadCount}
+              </span>
+            )}
           </button>
           <button onClick={() => onTabChange('discover')} aria-label="Search" className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white">
             <span className="material-symbols-outlined text-xl sm:text-2xl">search</span>

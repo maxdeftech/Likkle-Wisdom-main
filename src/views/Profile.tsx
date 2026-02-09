@@ -17,9 +17,11 @@ interface ProfileProps {
   onOpenFriendRequests: () => void;
   viewingUserId?: string | null;
   onClose?: () => void;
+  requestCount?: number;
+  unreadCount?: number;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, viewingUserId, onClose }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +33,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [publicCabinet, setPublicCabinet] = useState<any[]>([]);
 
   // Social stats
-  const [requestCount, setRequestCount] = useState(0);
+  const [localRequestCount, setLocalRequestCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -39,11 +41,14 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteInput, setNoteInput] = useState('');
 
+  const displayRequestCount = isOwnProfile ? (passedRequestCount > 0 ? passedRequestCount : localRequestCount) : 0;
+
   // Fetch stats and public data
   React.useEffect(() => {
     import('../services/social').then(({ SocialService }) => {
-      SocialService.getFriendRequests(targetUserId).then(reqs => setRequestCount(reqs.length));
-      SocialService.getUserStats(targetUserId).then(stats => {
+      if (isOwnProfile && !passedRequestCount) {
+        SocialService.getFriendRequests(targetUserId).then(reqs => setLocalRequestCount(reqs.length));
+      } SocialService.getUserStats(targetUserId).then(stats => {
         setFriendsCount(stats.friendsCount);
         setJoinedAt(stats.createdAt);
         setLoadingStats(false);
@@ -178,7 +183,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             </button>
             <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
               <span className="material-symbols-outlined">group_add</span>
-              {requestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{requestCount}</span>}
+              {displayRequestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{displayRequestCount}</span>}
             </button>
             <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
               <span className="material-symbols-outlined">settings</span>

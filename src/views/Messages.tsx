@@ -43,7 +43,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         if (activeChatUser) {
             MessagingService.getMessages(activeChatUser.id, currentUser.id).then(setMessages);
             setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
-            MessagingService.markAsRead(activeChatUser.id);
+            MessagingService.markAsRead(activeChatUser.id, currentUser.id);
             // Check friendship status
             SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus);
         }
@@ -292,8 +292,8 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
             setOffset(0);
             loadDiscoveryList(true);
         } else {
-            setResults([]);
-            setHasMore(false);
+            // Keep the previous results or show the discovery list
+            // Instead of clearing, we just wait for more characters
         }
     };
 
