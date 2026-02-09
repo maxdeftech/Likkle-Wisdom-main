@@ -9,9 +9,10 @@ export const SocialService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_premium, is_admin, is_donor')
+            .select('id, username, avatar_url, is_premium, is_admin, is_donor, is_public')
             .ilike('username', `%${query}%`)
             .neq('id', currentUserId)
+            .eq('is_public', true)
             .limit(50);
 
         if (error) {
@@ -26,7 +27,8 @@ export const SocialService = {
             isPremium: p.is_premium,
             isGuest: false,
             isAdmin: p.is_admin,
-            isDonor: p.is_donor
+            isDonor: p.is_donor,
+            isPublic: p.is_public
         }));
     },
 
@@ -38,8 +40,9 @@ export const SocialService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_premium, is_admin, is_donor')
+            .select('id, username, avatar_url, is_premium, is_admin, is_donor, is_public')
             .neq('id', currentUserId)
+            .eq('is_public', true)
             .order('username', { ascending: true })
             .range(offset, offset + limit - 1);
 
@@ -55,7 +58,8 @@ export const SocialService = {
             isPremium: p.is_premium,
             isGuest: false,
             isAdmin: p.is_admin,
-            isDonor: p.is_donor
+            isDonor: p.is_donor,
+            isPublic: p.is_public
         }));
     },
 
@@ -92,7 +96,7 @@ export const SocialService = {
         if (!supabase) return null;
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_premium, is_admin, is_donor')
+            .select('id, username, avatar_url, is_premium, is_admin, is_donor, is_public')
             .eq('id', userId)
             .single();
 
@@ -105,7 +109,8 @@ export const SocialService = {
             isPremium: data.is_premium,
             isGuest: false,
             isAdmin: data.is_admin,
-            isDonor: data.is_donor
+            isDonor: data.is_donor,
+            isPublic: data.is_public
         };
     },
 

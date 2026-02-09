@@ -104,7 +104,8 @@ const App: React.FC = () => {
           id: userId,
           username: profile.username || prev?.username || 'Seeker',
           avatarUrl: profile.avatar_url || prev?.avatarUrl || undefined,
-          isPremium: true, // Auto-grant premium
+          isPremium: profile.is_premium || prev?.isPremium || false,
+          isPublic: profile.is_public !== undefined ? profile.is_public : true,
           isGuest: false
         }));
       }
@@ -240,7 +241,8 @@ const App: React.FC = () => {
         await supabase.from('profiles').update({
           username: data.username || user.username,
           avatar_url: data.avatarUrl || user.avatarUrl,
-          is_premium: data.isPremium !== undefined ? data.isPremium : user.isPremium
+          is_premium: data.isPremium !== undefined ? data.isPremium : user.isPremium,
+          is_public: data.isPublic !== undefined ? data.isPublic : user.isPublic
         }).eq('id', user.id);
       } catch (e) { console.error("Update sync error:", e); }
     }

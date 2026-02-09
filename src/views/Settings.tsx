@@ -126,6 +126,25 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                 <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`}></div>
               </button>
             </div>
+
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">visibility</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-slate-700 dark:text-white/80">Discoverable</span>
+                  <span className="text-[9px] text-slate-400 dark:text-white/40 font-bold uppercase tracking-wider">Show profile in search</span>
+                </div>
+              </div>
+              <button
+                onClick={() => onUpdateUser({ isPublic: !user.isPublic })}
+                aria-label="Toggle public profile"
+                className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 ${user.isPublic !== false ? 'bg-primary' : 'bg-slate-200'}`}
+              >
+                <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${user.isPublic !== false ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              </button>
+            </div>
           </div>
         </section>
 

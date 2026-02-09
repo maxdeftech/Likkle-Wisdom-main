@@ -7,6 +7,7 @@ export interface User {
   isPremium: boolean;
   isAdmin?: boolean;
   isDonor?: boolean;
+  isPublic?: boolean;
 }
 
 export interface FriendRequest {
