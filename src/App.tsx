@@ -19,6 +19,8 @@ import BottomNav from './components/BottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
 import LegalView from './views/LegalView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import Messages from './views/Messages';
+import FriendRequestList from './components/FriendRequestList';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
@@ -34,6 +36,9 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [showMessages, setShowMessages] = useState(false);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [messagesTargetUser, setMessagesTargetUser] = useState<string | null>(null);
 
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [iconicQuotes, setIconicQuotes] = useState<IconicQuote[]>(ICONIC_QUOTES);
@@ -312,12 +317,12 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} />;
+      case 'home': return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={setActiveCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => setShowPremium(true)} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={() => setShowSettings(true)} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} />;
-      default: return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={() => setShowSettings(true)} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={() => setShowFriendRequests(true)} />;
+      default: return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
     }
   };
 
@@ -361,6 +366,12 @@ const App: React.FC = () => {
       )}
       {showPremium && (
         <PremiumUpgrade onClose={() => setShowPremium(false)} onPurchaseSuccess={() => { setShowPremium(false); setNotification("Thanks fi di support!"); }} />
+      )}
+      {showMessages && user && (
+        <Messages currentUser={user} onClose={() => setShowMessages(false)} onOpenProfile={(id) => { console.log("Open profile", id); /* TODO: Implement friend profile view */ }} />
+      )}
+      {showFriendRequests && user && (
+        <FriendRequestList userId={user.id} onClose={() => setShowFriendRequests(false)} onRequestsChanged={() => { /* maybe refresh profile badge */ }} />
       )}
       {view === 'main' && <BottomNav activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} />}
       <PWAInstallPrompt />

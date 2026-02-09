@@ -5,6 +5,35 @@ export interface User {
   avatarUrl?: string;
   isGuest: boolean;
   isPremium: boolean;
+  isAdmin?: boolean;
+}
+
+export interface FriendRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterAvatar?: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  timestamp: number;
+}
+
+export interface Friendship {
+  id: string;
+  friendId: string;
+  friendName: string;
+  friendAvatar?: string;
+  status: 'accepted' | 'blocked';
+  since: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string; // 'group' or userId
+  content: string;
+  timestamp: number;
+  read: boolean;
+  type: 'text' | 'system' | 'admin-broadcast';
 }
 
 export interface Quote {

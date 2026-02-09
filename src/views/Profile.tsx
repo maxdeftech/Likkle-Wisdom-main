@@ -13,11 +13,23 @@ interface ProfileProps {
   onStatClick: (tab: Tab) => void;
   onUpdateUser: (data: Partial<User>) => void;
   onRemoveBookmark: (id: string, type: string) => void;
+  onOpenFriendRequests: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
+
+  // Todo: Fetch real request count to show badge
+  const [requestCount, setRequestCount] = useState(0);
+
+  // Simple fetch effect for badge
+  React.useEffect(() => {
+    import('../services/social').then(({ SocialService }) => {
+      SocialService.getFriendRequests(user.id).then(reqs => setRequestCount(reqs.length));
+    });
+  }, [user.id]);
+
 
   const savedWisdom = quotes.filter(q => q.isFavorite);
   const savedIconic = iconic.filter(q => q.isFavorite);
@@ -62,9 +74,15 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">My profile</span>
           <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Wise One</h2>
         </div>
-        <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
-          <span className="material-symbols-outlined">settings</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
+            <span className="material-symbols-outlined">group_add</span>
+            {requestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{requestCount}</span>}
+          </button>
+          <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
+            <span className="material-symbols-outlined">settings</span>
+          </button>
+        </div>
       </header>
 
       <div className="glass rounded-[3rem] p-10 flex flex-col items-center text-center relative overflow-hidden mb-10 shadow-2xl border-white/5 bg-gradient-to-br from-primary/5 via-transparent to-jamaican-gold/5">
@@ -107,10 +125,10 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
       <div className="mb-8 pt-4" ref={cabinetRef}>
         <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-900/30 dark:text-white/30 mb-8 px-4 flex items-center gap-2">
-           <span className="size-1.5 rounded-full bg-primary animate-pulse"></span>
-           Saved Wisdom Cabinet
+          <span className="size-1.5 rounded-full bg-primary animate-pulse"></span>
+          Saved Wisdom Cabinet
         </h3>
-        
+
         <div className="space-y-6">
           {combinedFeed.map((item) => (
             <div key={`${item.type}-${item.id}`} className="glass p-8 rounded-[2.5rem] border-white/5 shadow-xl animate-fade-in group hover:border-primary/30 transition-all relative overflow-hidden">
@@ -120,17 +138,17 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
                     {item.label}
                   </span>
                   <p className="text-[10px] font-bold text-slate-900/20 dark:text-white/20 uppercase tracking-widest flex items-center gap-1">
-                     Added to Likkle Book <span className="material-symbols-outlined text-[10px]">auto_stories</span>
+                    Added to Likkle Book <span className="material-symbols-outlined text-[10px]">auto_stories</span>
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => onRemoveBookmark(item.id, item.type)}
                   className="size-12 rounded-2xl glass text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/20 transition-all flex items-center justify-center group/btn"
                 >
                   <span className="material-symbols-outlined text-2xl group-hover/btn:scale-110 transition-transform">delete_forever</span>
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <p className="text-slate-900 dark:text-white text-2xl font-black leading-tight tracking-tight">
                   "{item.type === 'kjv' ? (item.data as any).text : (item.data as any).patois || (item.data as any).text}"
@@ -146,19 +164,19 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
               </div>
             </div>
           ))}
-          
+
           {combinedFeed.length === 0 && (
             <div className="text-center py-24 flex flex-col items-center glass rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 mx-2">
-               <div className="size-24 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-6">
-                  <span className="material-symbols-outlined text-6xl text-slate-900/10 dark:text-white/10">bookmark_add</span>
-               </div>
-               <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">Your cabinet is empty.</p>
-               <button onClick={() => onStatClick('discover')} className="mt-6 text-primary font-black uppercase tracking-widest text-xs hover:underline">Find some vibes →</button>
+              <div className="size-24 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-6xl text-slate-900/10 dark:text-white/10">bookmark_add</span>
+              </div>
+              <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">Your cabinet is empty.</p>
+              <button onClick={() => onStatClick('discover')} className="mt-6 text-primary font-black uppercase tracking-widest text-xs hover:underline">Find some vibes →</button>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

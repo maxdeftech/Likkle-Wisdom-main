@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
+import OnlineCount from '../components/OnlineCount';
 import { CATEGORIES } from '../constants';
 import { presentPaywall } from '../services/revenueCat';
 import { Capacitor } from '@capacitor/core';
@@ -13,9 +14,10 @@ interface HomeProps {
   onOpenAI: () => void;
   onTabChange: (tab: Tab) => void;
   onCategoryClick: (id: string) => void;
+  onOpenMessages: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onOpenAI, onTabChange, onCategoryClick }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
 
@@ -34,8 +36,13 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onO
         <div className="flex flex-col">
           <span className="text-sm font-medium opacity-70 text-slate-900 dark:text-white/70">Wha Gwan,</span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{firstName}</h1>
+          <OnlineCount />
         </div>
         <div className="flex gap-3">
+          <button onClick={onOpenMessages} className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white active:scale-95 transition-all relative">
+            <span className="material-symbols-outlined text-xl sm:text-2xl">forum</span>
+            {/* We could add an unread badge here if we pass count prop */}
+          </button>
           <button onClick={() => onTabChange('discover')} aria-label="Search" className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white">
             <span className="material-symbols-outlined text-xl sm:text-2xl">search</span>
           </button>
