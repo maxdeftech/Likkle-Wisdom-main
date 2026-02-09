@@ -128,8 +128,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!supabase) return;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn("Session error:", error);
+        if (error.message && (error.message.includes("refresh_token_not_found") || error.message.includes("json_token"))) {
+          supabase?.auth.signOut();
+          setUser(null);
+          setView('auth');
+        }
+      } else if (session) {
         syncUserContent(session.user.id);
         if (view === 'splash' || view === 'auth') setView('main');
       }
