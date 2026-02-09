@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
+import { useTTS } from '../hooks/useTTS';
 import OnlineCount from '../components/OnlineCount';
 import { CATEGORIES } from '../constants';
 import { presentPaywall } from '../services/revenueCat';
@@ -17,12 +18,67 @@ interface HomeProps {
   onOpenMessages: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
+  const [localDaily, setLocalDaily] = useState<{ quote: Quote | null; wisdom: Quote | null; verse: BibleAffirmation | null }>({
+    quote: null, wisdom: null, verse: null
+  });
+  const { speak, stop, isSpeaking } = useTTS();
+
+  // Load from constants to select random items
+  const loadRandom = useCallback((type: 'quote' | 'wisdom' | 'verse') => {
+    const { INITIAL_QUOTES, BIBLE_AFFIRMATIONS } = require('../constants');
+    if (type === 'quote' || type === 'wisdom') {
+      const idx = Math.floor(Math.random() * INITIAL_QUOTES.length);
+      return INITIAL_QUOTES[idx];
+    } else {
+      const idx = Math.floor(Math.random() * BIBLE_AFFIRMATIONS.length);
+      return BIBLE_AFFIRMATIONS[idx];
+    }
+  }, []);
+
+  useEffect(() => {
+    const lastUpdate = localStorage.getItem('likkle_last_daily_update');
+    const storedDaily = localStorage.getItem('likkle_daily_items');
+    const now = Date.now();
+
+    if (lastUpdate && storedDaily && (now - parseInt(lastUpdate)) < 86400000) {
+      try {
+        setLocalDaily(JSON.parse(storedDaily));
+      } catch {
+        refreshAllContent();
+      }
+    } else {
+      refreshAllContent();
+    }
+  }, []);
+
+  const refreshAllContent = () => {
+    const newDaily = {
+      quote: loadRandom('quote'),
+      wisdom: loadRandom('wisdom'),
+      verse: loadRandom('verse')
+    };
+    setLocalDaily(newDaily);
+    localStorage.setItem('likkle_daily_items', JSON.stringify(newDaily));
+    localStorage.setItem('likkle_last_daily_update', Date.now().toString());
+  };
+
+  const refreshSingle = (type: 'quote' | 'wisdom' | 'verse') => {
+    const newItem = loadRandom(type);
+    setLocalDaily(prev => {
+      const updated = { ...prev, [type]: newItem };
+      localStorage.setItem('likkle_daily_items', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const firstName = user?.username?.split(' ')[0] || 'Seeker';
-  const currentItem = activeDaily === 'quote' ? dailyItems.quote : activeDaily === 'wisdom' ? dailyItems.wisdom : dailyItems.verse;
+  const currentItem = activeDaily === 'quote' ? localDaily.quote : activeDaily === 'wisdom' ? localDaily.wisdom : localDaily.verse;
+
+  const isVerse = (item: any): item is BibleAffirmation => item && 'kjv' in item;
+  const isQuote = (item: any): item is Quote => item && 'english' in item;
 
   if (!currentItem) return (
     <div className="flex items-center justify-center h-full opacity-20">
@@ -85,18 +141,31 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onO
             </span>
           </div>
 
+          <button
+            onClick={(e) => { e.stopPropagation(); refreshSingle(activeDaily); setReveal(false); }}
+            className="absolute top-6 right-6 size-10 rounded-full glass border border-white/10 flex items-center justify-center text-white/40 active:scale-95 transition-all z-20 hover:text-primary hover:border-primary/20"
+            title="Refresh this card"
+          >
+            <span className="material-symbols-outlined text-lg">refresh</span>
+          </button>
+
           <span className="material-symbols-outlined text-primary text-5xl sm:text-7xl opacity-40">
             format_quote
           </span>
 
           <div className="space-y-4 max-w-lg">
             <h2 className="text-3xl sm:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white px-2">
-              "{currentItem.patois}"
+              "{currentItem?.patois}"
             </h2>
-            {activeDaily === 'verse' && (
-              <p className="text-primary text-[10px] sm:text-[12px] font-black uppercase tracking-[0.3em]">
-                {(dailyItems.verse as any).reference}
-              </p>
+            {activeDaily === 'verse' && isVerse(currentItem) && (
+              <div className="space-y-1">
+                <p className="text-primary text-[10px] sm:text-[12px] font-black uppercase tracking-[0.3em]">
+                  {currentItem.reference}
+                </p>
+                <p className="text-white/40 text-[9px] font-bold italic">
+                  "{currentItem.kjv}"
+                </p>
+              </div>
             )}
           </div>
 
@@ -113,12 +182,26 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, dailyItems, onFavorite, onO
               <div className="space-y-6 animate-fade-in w-full">
                 <div className="glass border-white/10 p-6 sm:p-8 rounded-2xl sm:rounded-3xl">
                   <p className="text-slate-900/70 dark:text-white/70 italic text-lg sm:text-2xl leading-snug">
-                    "{activeDaily === 'verse' ? (dailyItems.verse as any).kjv : (currentItem as Quote).english}"
+                    "{isVerse(currentItem) ? currentItem.kjv : (isQuote(currentItem) ? currentItem.english : '')}"
                   </p>
                 </div>
                 <div className="flex gap-3">
-                  <button className="flex-1 glass py-4 sm:py-6 rounded-2xl sm:rounded-3xl text-[10px] sm:text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1 hover:bg-white/10 transition-colors text-slate-900 dark:text-white">
-                    <span className="material-symbols-outlined text-lg sm:text-2xl">volume_up</span> Listen
+                  <button
+                    onClick={() => {
+                      if (isSpeaking) stop();
+                      else {
+                        const textToSpeak = isVerse(currentItem)
+                          ? `${currentItem.patois}. ${currentItem.kjv}`
+                          : (isQuote(currentItem) ? (currentItem as Quote).english : '');
+                        speak(textToSpeak);
+                      }
+                    }}
+                    className={`flex-1 glass py-4 sm:py-6 rounded-2xl sm:rounded-3xl text-[10px] sm:text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-colors ${isSpeaking ? 'text-primary' : 'text-slate-900 dark:text-white'}`}
+                  >
+                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${isSpeaking ? 'animate-pulse' : ''}`}>
+                      {isSpeaking ? 'stop_circle' : 'volume_up'}
+                    </span>
+                    {isSpeaking ? 'Stop' : 'Listen'}
                   </button>
                   <button
                     onClick={() => onFavorite(currentItem.id, activeDaily === 'verse' ? 'bible' : 'quote')}

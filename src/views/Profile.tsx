@@ -20,15 +20,36 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
-  // Todo: Fetch real request count to show badge
+  // Social stats
   const [requestCount, setRequestCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [joinedAt, setJoinedAt] = useState<string | null>(null);
 
-  // Simple fetch effect for badge
+  // Fetch stats
   React.useEffect(() => {
     import('../services/social').then(({ SocialService }) => {
       SocialService.getFriendRequests(user.id).then(reqs => setRequestCount(reqs.length));
+      SocialService.getUserStats(user.id).then(stats => {
+        setFriendsCount(stats.friendsCount);
+        setJoinedAt(stats.createdAt);
+      });
     });
   }, [user.id]);
+
+  const memberSinceText = useMemo(() => {
+    if (!joinedAt) return "Joining...";
+    const start = new Date(joinedAt);
+    const now = new Date();
+    const diff = now.getTime() - start.getTime();
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const months = Math.floor(days / 30.44);
+    const years = Math.floor(months / 12);
+
+    if (years > 0) return `${years}y ${months % 12}m in wisdom`;
+    if (months > 0) return `${months}m ${days % 30}d in wisdom`;
+    return `${days} days in wisdom`;
+  }, [joinedAt]);
 
 
   const savedWisdom = quotes.filter(q => q.isFavorite);
@@ -104,20 +125,24 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
         </div>
 
         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">{user.username}</h1>
-        <p className="text-primary/60 text-[10px] font-black uppercase tracking-[0.4em] mb-8">Level: Growth Seeker</p>
+        <p className="text-primary/60 text-[10px] font-black uppercase tracking-[0.4em] mb-8">{memberSinceText}</p>
 
-        <div className="grid grid-cols-3 gap-3 w-full">
+        <div className="grid grid-cols-4 gap-2 w-full">
           <button onClick={scrollToCabinet} className="glass py-5 rounded-3xl active:scale-95 transition-all border-white/5 hover:border-primary/20">
-            <p className="text-primary font-black text-2xl">{combinedFeed.length}</p>
-            <p className="text-[8px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Saved</p>
+            <p className="text-primary font-black text-xl">{combinedFeed.length}</p>
+            <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Saved</p>
           </button>
           <button onClick={() => onStatClick('book')} className="glass py-5 rounded-3xl border-x border-white/5 active:scale-95 transition-all hover:border-jamaican-gold/20">
-            <p className="text-jamaican-gold font-black text-2xl">{entries.length}</p>
-            <p className="text-[8px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Journals</p>
+            <p className="text-jamaican-gold font-black text-xl">{entries.length}</p>
+            <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Journals</p>
           </button>
           <div className="glass py-5 rounded-3xl border-white/5 relative overflow-hidden">
-            <p className="text-primary font-black text-2xl">{activeDaysThisMonth}</p>
-            <p className="text-[8px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Active Days</p>
+            <p className="text-primary font-black text-xl">{friendsCount}</p>
+            <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Friends</p>
+          </div>
+          <div className="glass py-5 rounded-3xl border-white/5 relative overflow-hidden">
+            <p className="text-primary font-black text-xl">{activeDaysThisMonth}</p>
+            <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Active</p>
             {activeDaysThisMonth > 0 && <div className="absolute top-1 right-1"><span className="material-symbols-outlined text-[10px] text-primary animate-pulse">local_fire_department</span></div>}
           </div>
         </div>

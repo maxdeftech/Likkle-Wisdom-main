@@ -143,6 +143,47 @@ export const SocialService = {
                 }
             });
 
-        return channel;
+    },
+
+    async deleteFriendship(friendshipId: string) {
+        if (!supabase) return { error: 'Offline' };
+        const { error } = await supabase.from('friendships').delete().eq('id', friendshipId);
+        return { error };
+    },
+
+    async getFriendshipStatus(userId: string, targetUserId: string): Promise<'pending' | 'accepted' | 'none'> {
+        if (!supabase) return 'none';
+        const { data, error } = await supabase
+            .from('friendships')
+            .select('status')
+            .or(`and(requester_id.eq.${userId},receiver_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},receiver_id.eq.${userId})`)
+            .single();
+
+        if (error || !data) return 'none';
+        return data.status;
+    },
+
+    async getUserStats(userId: string) {
+        if (!supabase) return { friendsCount: 0, createdAt: null };
+
+        // 1. Get friends count
+        const { count, error: e1 } = await supabase
+            .from('friendships')
+            .select('*', { count: 'exact', head: true })
+            .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
+            .eq('status', 'accepted');
+
+        // 2. Get join date
+        const { data: profile, error: e2 } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', userId)
+            .single();
+
+        return {
+            friendsCount: count || 0,
+            createdAt: profile?.created_at || null,
+            error: e1 || e2
+        };
     }
 };

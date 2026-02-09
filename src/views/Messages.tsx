@@ -20,6 +20,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+    const [friendshipStatus, setFriendshipStatus] = useState<'pending' | 'accepted' | 'none'>('none');
 
     useEffect(() => {
         loadFriends();
@@ -42,8 +43,10 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             MessagingService.getMessages(activeChatUser.id, currentUser.id).then(setMessages);
             setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
             MessagingService.markAsRead(activeChatUser.id);
+            // Check friendship status
+            SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus);
         }
-    }, [activeChatUser]);
+    }, [activeChatUser, currentUser.id]);
 
     const loadFriends = async () => {
         const f = await SocialService.getFriends(currentUser.id);
@@ -51,7 +54,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     };
 
     const handleSendMessage = async () => {
-        if (!inputText.trim() || !activeChatUser) return;
+        if (!inputText.trim() || !activeChatUser || friendshipStatus === 'pending') return;
         const text = inputText;
         setInputText('');
 
@@ -63,15 +66,34 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         }
     };
 
+    const handleDeleteChat = async (friendshipId: string) => {
+        if (!confirm("Are you sure you want to delete this chat?")) return;
+        const { error } = await SocialService.deleteFriendship(friendshipId);
+        if (!error) {
+            setFriends(prev => prev.filter(f => f.id !== friendshipId));
+            setViewState('inbox');
+            setActiveChatUser(null);
+        } else {
+            const msg = typeof error === 'string' ? error : error.message;
+            alert("Failed to delete chat: " + msg);
+        }
+    };
+
     // --- RENDERERS ---
 
     const renderInbox = () => (
         <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
+            <div className="flex items-center justify-between p-6 border-b border-white/5 relative">
                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">Messages</h2>
-                <button onClick={() => setViewState('search')} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all">
-                    <span className="material-symbols-outlined">person_add</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setViewState('search')} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all">
+                        <span className="material-symbols-outlined">person_add</span>
+                    </button>
+                    {/* Inbox close button moved here for better layout */}
+                    <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -130,9 +152,24 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                     </div>
                     <div>
                         <h3 className="text-white font-bold text-sm">{activeChatUser?.username}</h3>
-                        <p className="text-white/40 text-[10px] uppercase font-bold tracking-wider">Online</p>
+                        <p className="text-white/40 text-[10px] uppercase font-bold tracking-wider">
+                            {friendshipStatus === 'pending' ? 'Waiting for Approval' : 'Online'}
+                        </p>
                     </div>
                 </div>
+                {/* Delete Chat Button */}
+                {friends.find(f => f.friendId === activeChatUser?.id) && (
+                    <button
+                        onClick={() => {
+                            const friendship = friends.find(f => f.friendId === activeChatUser?.id);
+                            if (friendship) handleDeleteChat(friendship.id);
+                        }}
+                        className="text-red-400/60 p-2 hover:bg-red-400/10 rounded-full transition-colors"
+                        title="Delete Chat"
+                    >
+                        <span className="material-symbols-outlined">delete</span>
+                    </button>
+                )}
             </div>
 
             {/* Messages List */}
@@ -144,8 +181,8 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                     return (
                         <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                             <div className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed ${isMe
-                                    ? 'bg-primary text-background-dark rounded-tr-sm font-medium shadow-lg'
-                                    : 'glass text-white rounded-tl-sm border border-white/10'
+                                ? 'bg-primary text-background-dark rounded-tr-sm font-medium shadow-lg'
+                                : 'glass text-white rounded-tl-sm border border-white/10'
                                 }`}>
                                 {msg.content}
                             </div>
@@ -162,23 +199,29 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
 
             {/* Input Area */}
             <div className="p-4 glass border-t border-white/5 z-10">
-                <div className="flex items-center gap-2 bg-background-dark/50 rounded-full p-1 pl-4 border border-white/10 focus-within:border-primary/50 transition-colors">
-                    <input
-                        type="text"
-                        value={inputText}
-                        onChange={e => setInputText(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                        placeholder="Type a vibes..."
-                        className="flex-1 bg-transparent text-white text-sm placeholder:text-white/30 focus:outline-none py-3"
-                    />
-                    <button
-                        onClick={handleSendMessage}
-                        disabled={!inputText.trim()}
-                        className="size-10 rounded-full bg-primary flex items-center justify-center text-background-dark disabled:opacity-50 disabled:bg-white/10 disabled:text-white/20 transition-all shadow-lg active:scale-95"
-                    >
-                        <span className="material-symbols-outlined text-lg">send</span>
-                    </button>
-                </div>
+                {friendshipStatus === 'pending' ? (
+                    <div className="flex items-center justify-center p-4 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-white/40 text-xs font-bold uppercase tracking-widest">Waiting for approval to send more messages</p>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 bg-background-dark/50 rounded-full p-1 pl-4 border border-white/10 focus-within:border-primary/50 transition-colors">
+                        <input
+                            type="text"
+                            value={inputText}
+                            onChange={e => setInputText(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                            placeholder="Type a vibes..."
+                            className="flex-1 bg-transparent text-white text-base placeholder:text-white/30 focus:outline-none py-3"
+                        />
+                        <button
+                            onClick={handleSendMessage}
+                            disabled={!inputText.trim()}
+                            className="size-10 rounded-full bg-primary flex items-center justify-center text-background-dark disabled:opacity-50 disabled:bg-white/10 disabled:text-white/20 transition-all shadow-lg active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-lg">send</span>
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -197,12 +240,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             {viewState === 'chat' && renderChat()}
             {viewState === 'search' && renderSearch()}
 
-            {/* Close Button (Only on Inbox) */}
-            {viewState === 'inbox' && (
-                <button onClick={onClose} className="absolute top-6 right-6 text-white/40 p-2 hover:bg-white/5 rounded-full">
-                    <span className="material-symbols-outlined">close</span>
-                </button>
-            )}
+            {/* Close buttons are now handled inside the specific view headers to prevent overlapping */}
         </div>
     );
 };

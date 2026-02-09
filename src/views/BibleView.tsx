@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
+import { useTTS } from '../hooks/useTTS';
 
 interface BibleViewProps {
   user: User;
@@ -37,6 +38,8 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
   const [selectorStage, setSelectorStage] = useState<'book' | 'chapter'>('book');
   const [downloading, setDownloading] = useState(false);
   const [isServingCache, setIsServingCache] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const { speak, stop, isSpeaking } = useTTS();
 
   const books = Object.keys(BOOK_CHAPTERS);
   const filteredBooks = useMemo(() => books.filter(b => b.toLowerCase().includes(searchQuery.toLowerCase())), [searchQuery, books]);
@@ -54,7 +57,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
     setLoading(true);
     setError(null);
     setIsServingCache(false);
-    
+
     const cached = localStorage.getItem(getCacheKey(book, chapter));
     if (cached) {
       try {
@@ -92,6 +95,48 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
     }
   };
 
+  const playChapter = () => {
+    if (isPlayingAudio) {
+      stop();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    if (verses.length === 0) return;
+    setIsPlayingAudio(true);
+
+    let verseIndex = 0;
+    const playNextVerse = () => {
+      if (verseIndex < verses.length) {
+        speak(verses[verseIndex].text, () => {
+          verseIndex++;
+          playNextVerse();
+        });
+      } else {
+        // Next Chapter Auto-play
+        if (chapter < maxChapters) {
+          setChapter(prev => prev + 1);
+        } else {
+          // Next Book Auto-play
+          const currentIndex = books.indexOf(book);
+          if (currentIndex < books.length - 1) {
+            setBook(books[currentIndex + 1]);
+            setChapter(1);
+          } else {
+            setIsPlayingAudio(false);
+          }
+        }
+      }
+    };
+    playNextVerse();
+  };
+
+  useEffect(() => {
+    if (isPlayingAudio && !loading && verses.length > 0) {
+      playChapter(); // Re-trigger for next chapter
+    }
+  }, [verses, loading]);
+
   useEffect(() => { fetchBible(); }, [book, chapter]);
 
   const handleDownloadBook = async () => {
@@ -122,7 +167,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
         </div>
         <div className="flex gap-2">
           {user.isPremium && (
-            <button 
+            <button
               onClick={handleDownloadBook}
               disabled={downloading || isBookDownloaded(book) || !isOnline}
               className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isBookDownloaded(book) ? 'bg-primary/20 text-primary' : 'glass text-slate-900/40 dark:text-white/40'} ${!isOnline && !isBookDownloaded(book) ? 'opacity-20 cursor-not-allowed' : ''}`}
@@ -132,6 +177,14 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
               </span>
             </button>
           )}
+          <button
+            onClick={playChapter}
+            className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isPlayingAudio ? 'bg-primary text-background-dark' : 'glass text-primary'}`}
+          >
+            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">
+              {isPlayingAudio ? 'stop_circle' : 'play_circle'}
+            </span>
+          </button>
           <button onClick={() => { setShowSelector(true); setSelectorStage('book'); }} className="size-14 sm:size-16 rounded-2xl bg-primary text-background-dark flex items-center justify-center shadow-xl">
             <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">search</span>
           </button>
@@ -174,13 +227,13 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
 
       {isServingCache && (
         <div className="flex justify-center mb-6 animate-fade-in">
-           <div className="bg-primary/10 border border-primary/20 px-6 py-2 rounded-full flex items-center gap-3 shadow-lg">
-              <span className="material-symbols-outlined text-primary text-sm animate-pulse">offline_pin</span>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black uppercase text-primary tracking-widest leading-none">Vibe Vault Access</span>
-                <span className="text-[7px] font-bold uppercase text-primary/60 tracking-widest">Stashed fi offline readin'</span>
-              </div>
-           </div>
+          <div className="bg-primary/10 border border-primary/20 px-6 py-2 rounded-full flex items-center gap-3 shadow-lg">
+            <span className="material-symbols-outlined text-primary text-sm animate-pulse">offline_pin</span>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black uppercase text-primary tracking-widest leading-none">Vibe Vault Access</span>
+              <span className="text-[7px] font-bold uppercase text-primary/60 tracking-widest">Stashed fi offline readin'</span>
+            </div>
+          </div>
         </div>
       )}
 
