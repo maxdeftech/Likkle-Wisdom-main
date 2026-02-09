@@ -31,6 +31,7 @@ type NavigationSnapshot = {
   showAuthGate: boolean;
   activeCategory: string | null;
   showMessages: boolean;
+  showMessagesInSearchMode: boolean;
   showFriendRequests: boolean;
   publicProfileId: string | null;
 };
@@ -50,6 +51,7 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [showMessages, setShowMessages] = useState(false);
+  const [showMessagesInSearchMode, setShowMessagesInSearchMode] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
 
@@ -256,6 +258,7 @@ const App: React.FC = () => {
         showAuthGate,
         activeCategory,
         showMessages,
+        showMessagesInSearchMode,
         showFriendRequests,
         publicProfileId
       }
@@ -269,6 +272,7 @@ const App: React.FC = () => {
     showAuthGate,
     activeCategory,
     showMessages,
+    showMessagesInSearchMode,
     showFriendRequests,
     publicProfileId
   ]);
@@ -287,6 +291,7 @@ const App: React.FC = () => {
       setShowAuthGate(last.showAuthGate);
       setActiveCategory(last.activeCategory);
       setShowMessages(last.showMessages);
+      setShowMessagesInSearchMode(last.showMessagesInSearchMode);
       setShowFriendRequests(last.showFriendRequests);
       setPublicProfileId(last.publicProfileId);
 
@@ -407,9 +412,10 @@ const App: React.FC = () => {
     setShowPremium(true);
   };
 
-  const handleOpenMessages = () => {
+  const handleOpenMessages = (searchMode: boolean = false) => {
     pushHistory();
     setShowMessages(true);
+    setShowMessagesInSearchMode(searchMode);
   };
 
   const handleOpenFriendRequests = () => {
@@ -442,7 +448,7 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} requestCount={pendingRequestCount} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} />;
     }
   };
@@ -532,7 +538,7 @@ const App: React.FC = () => {
         />
       )}
       {showMessages && user && (
-        <Messages currentUser={user} onClose={handleBack} onOpenProfile={handleOpenPublicProfile} />
+        <Messages currentUser={user} onClose={handleBack} onOpenProfile={handleOpenPublicProfile} initialSearch={showMessagesInSearchMode} />
       )}
       {publicProfileId && user && (
         <Profile

@@ -15,13 +15,14 @@ interface ProfileProps {
   onUpdateUser: (data: Partial<User>) => void;
   onRemoveBookmark: (id: string, type: string) => void;
   onOpenFriendRequests: () => void;
+  onFindFriends?: () => void;
   viewingUserId?: string | null;
   onClose?: () => void;
   requestCount?: number;
   unreadCount?: number;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0 }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -257,6 +258,16 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
         </div>
 
         <p className="text-primary/60 text-[10px] font-black uppercase tracking-[0.4em] mb-8">{memberSinceText}</p>
+
+        {isOwnProfile && onFindFriends && (
+          <button
+            onClick={onFindFriends}
+            className="w-full mb-8 glass py-4 rounded-2xl flex items-center justify-center gap-2 text-primary border-primary/20 active:scale-[0.98] transition-all group"
+          >
+            <span className="material-symbols-outlined text-lg group-hover:animate-bounce">person_add</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Find More Wise Ones</span>
+          </button>
+        )}
 
         <div className="grid grid-cols-4 gap-2 w-full">
           <button onClick={scrollToCabinet} className="glass py-5 rounded-3xl active:scale-95 transition-all border-white/5 hover:border-primary/20">

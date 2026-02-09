@@ -10,12 +10,13 @@ interface MessagesProps {
     currentUser: User;
     onClose: () => void;
     onOpenProfile: (userId: string) => void;
+    initialSearch?: boolean;
 }
 
 type ViewState = 'inbox' | 'chat' | 'search';
 
-const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile }) => {
-    const [viewState, setViewState] = useState<ViewState>('inbox');
+const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile, initialSearch = false }) => {
+    const [viewState, setViewState] = useState<ViewState>(initialSearch ? 'search' : 'inbox');
     const [activeChatUser, setActiveChatUser] = useState<User | null>(null);
     const [friends, setFriends] = useState<Friendship[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
