@@ -231,7 +231,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         <UserSearch
             currentUser={currentUser}
             onClose={() => setViewState('inbox')}
-            onFriendAdded={() => { loadFriends(); setViewState('inbox'); }}
+            onFriendAdded={() => { loadFriends(); }}
             onOpenProfile={onOpenProfile}
         />
     );
@@ -252,16 +252,30 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
+    const [friendshipMap, setFriendshipMap] = useState<Record<string, 'accepted' | 'pending_outgoing' | 'pending_incoming'>>({});
+    const [offset, setOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const PAGE_SIZE = 50;
 
     useEffect(() => {
         // Load discovery list on mount
-        loadDiscoveryList();
+        refreshFriendshipMap();
+        loadDiscoveryList(true);
     }, []);
 
-    const loadDiscoveryList = async () => {
+    const refreshFriendshipMap = async () => {
+        const map = await SocialService.getMyFriendshipMap(currentUser.id);
+        setFriendshipMap(map);
+    };
+
+    const loadDiscoveryList = async (reset = false) => {
         setLoading(true);
-        const res = await SocialService.getAllUsers(currentUser.id);
-        setResults(res);
+        const nextOffset = reset ? 0 : offset;
+        const res = await SocialService.getAllUsers(currentUser.id, { offset: nextOffset, limit: PAGE_SIZE });
+
+        setResults(prev => reset ? res : [...prev, ...res]);
+        setOffset(nextOffset + res.length);
+        setHasMore(res.length === PAGE_SIZE);
         setLoading(false);
     };
 
@@ -271,17 +285,32 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
             setLoading(true);
             const res = await SocialService.searchUsers(val, currentUser.id);
             setResults(res);
+            setHasMore(false);
             setLoading(false);
         } else if (val.length === 0) {
-            loadDiscoveryList();
+            setHasMore(true);
+            setOffset(0);
+            loadDiscoveryList(true);
         } else {
             setResults([]);
+            setHasMore(false);
         }
     };
 
     const handleAddFriend = async (userId: string) => {
-        await SocialService.sendFriendRequest(currentUser.id, userId);
-        alert("Request Sent!"); // Simple feedback
+        // Optimistic UI update
+        setFriendshipMap(prev => ({ ...prev, [userId]: 'pending_outgoing' }));
+
+        const res = await SocialService.sendFriendRequest(currentUser.id, userId);
+        if ((res as any)?.error) {
+            // Re-sync statuses (in case state was wrong)
+            await refreshFriendshipMap();
+            const msg = (res as any)?.error;
+            alert(typeof msg === 'string' ? msg : 'Failed to send request');
+            return;
+        }
+
+        alert("Request Sent!");
         onFriendAdded();
     };
 
@@ -322,15 +351,43 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
                                 {u.isPremium && <span className="text-[10px] bg-jamaican-gold/20 text-jamaican-gold px-1.5 py-0.5 rounded font-black">PREMIUM</span>}
                             </div>
                         </div>
-                        <button
-                            onClick={() => handleAddFriend(u.id)}
-                            className="bg-primary/20 hover:bg-primary text-primary hover:text-background-dark px-4 py-2 rounded-lg text-xs font-black uppercase transition-colors"
-                        >
-                            Add
-                        </button>
+                        {(() => {
+                            const status = friendshipMap[u.id];
+                            const isDisabled = status === 'accepted' || status === 'pending_outgoing' || status === 'pending_incoming';
+                            const label =
+                                status === 'accepted'
+                                    ? 'Friends'
+                                    : status === 'pending_outgoing'
+                                        ? 'Waiting for approval'
+                                        : status === 'pending_incoming'
+                                            ? 'Requested you'
+                                            : 'Add';
+
+                            return (
+                                <button
+                                    disabled={isDisabled}
+                                    onClick={() => handleAddFriend(u.id)}
+                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-colors ${isDisabled
+                                        ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                                        : 'bg-primary/20 hover:bg-primary text-primary hover:text-background-dark'
+                                        }`}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })()}
                     </div>
                 ))}
                 {loading && <div className="text-center text-white/30 text-xs uppercase mt-8 animate-pulse">Searching global archive...</div>}
+
+                {!loading && query.length === 0 && hasMore && results.length > 0 && (
+                    <button
+                        onClick={() => loadDiscoveryList(false)}
+                        className="w-full glass rounded-xl py-4 text-primary text-xs font-black uppercase tracking-widest active:scale-[0.99] transition-all"
+                    >
+                        Load more
+                    </button>
+                )}
             </div>
         </div>
     );

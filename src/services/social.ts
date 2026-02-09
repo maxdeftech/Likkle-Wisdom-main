@@ -12,7 +12,7 @@ export const SocialService = {
             .select('id, username, avatar_url, is_premium, is_admin, is_donor')
             .ilike('username', `%${query}%`)
             .neq('id', currentUserId)
-            .limit(20);
+            .limit(50);
 
         if (error) {
             console.error('Search error:', error);
@@ -30,14 +30,18 @@ export const SocialService = {
         }));
     },
 
-    async getAllUsers(currentUserId: string): Promise<User[]> {
+    async getAllUsers(currentUserId: string, options?: { offset?: number; limit?: number }): Promise<User[]> {
         if (!supabase) return [];
+
+        const offset = options?.offset ?? 0;
+        const limit = options?.limit ?? 50;
 
         const { data, error } = await supabase
             .from('profiles')
             .select('id, username, avatar_url, is_premium, is_admin, is_donor')
             .neq('id', currentUserId)
-            .limit(50);
+            .order('username', { ascending: true })
+            .range(offset, offset + limit - 1);
 
         if (error) {
             console.error('Fetch all users error:', error);
@@ -53,6 +57,35 @@ export const SocialService = {
             isAdmin: p.is_admin,
             isDonor: p.is_donor
         }));
+    },
+
+    async getMyFriendshipMap(userId: string): Promise<Record<string, 'accepted' | 'pending_outgoing' | 'pending_incoming'>> {
+        if (!supabase) return {};
+
+        const { data, error } = await supabase
+            .from('friendships')
+            .select('requester_id, receiver_id, status')
+            .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
+            .in('status', ['pending', 'accepted']);
+
+        if (error || !data) {
+            console.error('Fetch friendships error:', error);
+            return {};
+        }
+
+        const map: Record<string, 'accepted' | 'pending_outgoing' | 'pending_incoming'> = {};
+        data.forEach((row: any) => {
+            const otherUserId = row.requester_id === userId ? row.receiver_id : row.requester_id;
+            if (!otherUserId) return;
+            if (row.status === 'accepted') {
+                map[otherUserId] = 'accepted';
+                return;
+            }
+            // pending
+            map[otherUserId] = row.requester_id === userId ? 'pending_outgoing' : 'pending_incoming';
+        });
+
+        return map;
     },
 
     async getPublicProfile(userId: string): Promise<User | null> {
