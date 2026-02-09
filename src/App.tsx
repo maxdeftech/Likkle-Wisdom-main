@@ -74,17 +74,7 @@ const App: React.FC = () => {
     }
   }, [notification]);
 
-  const dailyWisdom = useMemo(() => {
-    const today = new Date().toDateString();
-    const seed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const fallbackQuote = quotes[0] || INITIAL_QUOTES[0];
-    const fallbackVerse = bibleAffirmations[0] || BIBLE_AFFIRMATIONS[0];
-    return {
-      quote: quotes.length > 0 ? quotes[seed % quotes.length] : fallbackQuote,
-      wisdom: quotes.length > 0 ? quotes[(seed + 7) % quotes.length] : fallbackQuote,
-      verse: bibleAffirmations.length > 0 ? bibleAffirmations[seed % bibleAffirmations.length] : fallbackVerse
-    };
-  }, [quotes, bibleAffirmations]);
+
 
   const syncUserContent = useCallback(async (userId: string) => {
     if (!supabase || userId === 'guest' || !navigator.onLine) return;
@@ -317,12 +307,12 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
+      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={setActiveCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => setShowPremium(true)} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={() => setShowSettings(true)} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={() => setShowFriendRequests(true)} />;
-      default: return <Home user={user} isOnline={isOnline} dailyItems={dailyWisdom} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
+      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={setActiveCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={() => setShowMessages(true)} />;
     }
   };
 

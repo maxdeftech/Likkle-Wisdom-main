@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
+import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, CATEGORIES } from '../constants';
 import { useTTS } from '../hooks/useTTS';
 import OnlineCount from '../components/OnlineCount';
-import { CATEGORIES } from '../constants';
 import { presentPaywall } from '../services/revenueCat';
 import { Capacitor } from '@capacitor/core';
 
 interface HomeProps {
   user: User;
   isOnline: boolean;
-  dailyItems: { quote: Quote; wisdom: Quote; verse: BibleAffirmation };
   onFavorite: (id: string, type: 'quote' | 'iconic' | 'bible') => void;
   onOpenAI: () => void;
   onTabChange: (tab: Tab) => void;
@@ -28,7 +27,6 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
   // Load from constants to select random items
   const loadRandom = useCallback((type: 'quote' | 'wisdom' | 'verse') => {
-    const { INITIAL_QUOTES, BIBLE_AFFIRMATIONS } = require('../constants');
     if (type === 'quote' || type === 'wisdom') {
       const idx = Math.floor(Math.random() * INITIAL_QUOTES.length);
       return INITIAL_QUOTES[idx];
