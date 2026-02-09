@@ -225,7 +225,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
         {/* 24h Note Area */}
         <div className="mb-4 w-full px-4">
-          {isEditingNote ? (
+          {isOwnProfile && isEditingNote ? (
             <div className="flex gap-2">
               <input
                 autoFocus
@@ -246,13 +246,13 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             </div>
           ) : (
             <div
-              onClick={() => setIsEditingNote(true)}
-              className="group flex flex-col items-center cursor-pointer"
+              onClick={() => isOwnProfile && setIsEditingNote(true)}
+              className={`group flex flex-col items-center ${isOwnProfile ? 'cursor-pointer' : ''}`}
             >
               <p className="text-slate-900/60 dark:text-white/60 text-[11px] font-bold italic line-clamp-2 max-w-[200px]">
-                {statusNote ? `"${statusNote}"` : "Tap to add a vibe note..."}
+                {statusNote ? `"${statusNote}"` : (isOwnProfile ? "Tap to add a vibe note..." : "")}
               </p>
-              <span className="text-[7px] text-primary/40 uppercase font-black tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Expires in 24h • Tap to edit</span>
+              {isOwnProfile && <span className="text-[7px] text-primary/40 uppercase font-black tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Expires in 24h • Tap to edit</span>}
             </div>
           )}
         </div>
@@ -305,15 +305,17 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
                     {item.label}
                   </span>
                   <p className="text-[10px] font-bold text-slate-900/20 dark:text-white/20 uppercase tracking-widest flex items-center gap-1">
-                    Added to Likkle Book <span className="material-symbols-outlined text-[10px]">auto_stories</span>
+                    {isOwnProfile ? 'Added to Likkle Book' : 'Saved in Cabinet'} <span className="material-symbols-outlined text-[10px]">auto_stories</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => onRemoveBookmark(item.id, item.type)}
-                  className="size-12 rounded-2xl glass text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/20 transition-all flex items-center justify-center group/btn"
-                >
-                  <span className="material-symbols-outlined text-2xl group-hover/btn:scale-110 transition-transform">delete_forever</span>
-                </button>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => onRemoveBookmark(item.id, item.type)}
+                    className="size-12 rounded-2xl glass text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/20 transition-all flex items-center justify-center group/btn"
+                  >
+                    <span className="material-symbols-outlined text-2xl group-hover/btn:scale-110 transition-transform">delete_forever</span>
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4">
