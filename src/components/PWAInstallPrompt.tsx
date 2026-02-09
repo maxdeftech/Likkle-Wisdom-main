@@ -108,7 +108,7 @@ const PWAInstallPrompt: React.FC = () => {
                             className="py-3 px-4 rounded-xl bg-primary text-background-dark text-xs font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-sm">download</span>
-                            {isIOS || /android/.test(window.navigator.userAgent.toLowerCase()) ? 'Show How' : 'Install'}
+                            Install App
                         </button>
                     </div>
                 </div>
