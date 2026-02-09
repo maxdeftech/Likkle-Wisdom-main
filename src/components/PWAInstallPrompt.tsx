@@ -41,16 +41,18 @@ const PWAInstallPrompt: React.FC = () => {
     }, []);
 
     const handleInstallClick = async () => {
-        if (isIOS || /android/.test(window.navigator.userAgent.toLowerCase())) {
-            setShowIOSInstructions(true);
-            // Don't set showPrompt(false) yet, or rely on showIOSInstructions to keep component mounted
-        } else if (deferredPrompt) {
+        // Prioritize native install prompt (Android/Chrome/Desktop)
+        if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             if (outcome === 'accepted') {
                 setDeferredPrompt(null);
                 setShowPrompt(false);
             }
+        }
+        // Fallback to manual instructions (iOS or if native prompt unavailable)
+        else {
+            setShowIOSInstructions(true);
         }
     };
 
@@ -79,7 +81,7 @@ const PWAInstallPrompt: React.FC = () => {
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-sm bg-background-dark/95 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
                 <div className="absolute inset-0 jamaica-gradient opacity-10 pointer-events-none"></div>
 
