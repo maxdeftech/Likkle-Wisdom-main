@@ -9,7 +9,7 @@ export const SocialService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_premium, is_admin')
+            .select('id, username, avatar_url, is_premium, is_admin, is_donor')
             .ilike('username', `%${query}%`)
             .neq('id', currentUserId)
             .limit(20);
@@ -25,7 +25,8 @@ export const SocialService = {
             avatarUrl: p.avatar_url,
             isPremium: p.is_premium,
             isGuest: false,
-            isAdmin: p.is_admin
+            isAdmin: p.is_admin,
+            isDonor: p.is_donor
         }));
     },
 
@@ -34,7 +35,7 @@ export const SocialService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_premium, is_admin')
+            .select('id, username, avatar_url, is_premium, is_admin, is_donor')
             .neq('id', currentUserId)
             .limit(50);
 
@@ -49,7 +50,8 @@ export const SocialService = {
             avatarUrl: p.avatar_url,
             isPremium: p.is_premium,
             isGuest: false,
-            isAdmin: p.is_admin
+            isAdmin: p.is_admin,
+            isDonor: p.is_donor
         }));
     },
 
@@ -57,7 +59,7 @@ export const SocialService = {
         if (!supabase) return null;
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, username, avatar_url, is_premium, is_admin')
+            .select('id, username, avatar_url, is_premium, is_admin, is_donor')
             .eq('id', userId)
             .single();
 
@@ -69,7 +71,8 @@ export const SocialService = {
             avatarUrl: data.avatar_url,
             isPremium: data.is_premium,
             isGuest: false,
-            isAdmin: data.is_admin
+            isAdmin: data.is_admin,
+            isDonor: data.is_donor
         };
     },
 
@@ -244,6 +247,7 @@ export const SocialService = {
                 }
             });
 
+        return channel;
     },
 
     async deleteFriendship(friendshipId: string) {

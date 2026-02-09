@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation } from '../types';
+import UserBadge from '../components/UserBadge';
 
 interface ProfileProps {
   user: User;
@@ -63,11 +64,15 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       if (!isOwnProfile) {
         SocialService.getPublicProfile(targetUserId).then(setPublicUser);
         SocialService.getPublicCabinet(targetUserId).then(cab => {
+          const quoteIds = cab.quoteIds || [];
+          const iconicIds = cab.iconicIds || [];
+          const bibleIds = cab.bibleIds || [];
+          const kjvItems = cab.kjv || [];
           const combined: any[] = [
-            ...quotes.filter(q => cab.quoteIds.includes(q.id)).map(q => ({ id: q.id, type: 'wisdom', label: 'Old Wisdom', data: q, timestamp: 1 })),
-            ...iconic.filter(q => cab.iconicIds.includes(q.id)).map(q => ({ id: q.id, type: 'legend', label: 'Iconic Soul', data: q, timestamp: 2 })),
-            ...bible.filter(q => cab.bibleIds.includes(q.id)).map(q => ({ id: q.id, type: 'verse', label: 'Scripture Flow', data: q, timestamp: 3 })),
-            ...cab.kjv.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
+            ...quotes.filter(q => quoteIds.includes(q.id)).map(q => ({ id: q.id, type: 'wisdom', label: 'Old Wisdom', data: q, timestamp: 1 })),
+            ...iconic.filter(q => iconicIds.includes(q.id)).map(q => ({ id: q.id, type: 'legend', label: 'Iconic Soul', data: q, timestamp: 2 })),
+            ...bible.filter(q => bibleIds.includes(q.id)).map(q => ({ id: q.id, type: 'verse', label: 'Scripture Flow', data: q, timestamp: 3 })),
+            ...kjvItems.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
           ];
           setPublicCabinet(combined.sort((a, b) => b.timestamp - a.timestamp));
         });
@@ -144,36 +149,60 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   return (
     <div className="p-6 pb-24 animate-fade-in relative min-h-full font-display">
       <header className="flex items-center justify-between py-12">
-        <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">My profile</span>
-          <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Wise One</h2>
+        <div className="flex items-center gap-4">
+          {!isOwnProfile && onClose && (
+            <button
+              onClick={onClose}
+              className="size-11 rounded-full glass flex items-center justify-center text-white/60 shadow-lg active:scale-90 transition-transform"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+          )}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+              {isOwnProfile ? 'My profile' : 'Viewing profile'}
+            </span>
+            <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+              {isOwnProfile ? 'Wise One' : displayUser.username}
+            </h2>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.location.reload()}
-            className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
-            title="Refresh App"
-          >
-            <span className="material-symbols-outlined">refresh</span>
-          </button>
-          <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
-            <span className="material-symbols-outlined">group_add</span>
-            {requestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{requestCount}</span>}
-          </button>
-          <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
-            <span className="material-symbols-outlined">settings</span>
-          </button>
-        </div>
+        {isOwnProfile && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
+              title="Refresh App"
+            >
+              <span className="material-symbols-outlined">refresh</span>
+            </button>
+            <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
+              <span className="material-symbols-outlined">group_add</span>
+              {requestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{requestCount}</span>}
+            </button>
+            <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
+              <span className="material-symbols-outlined">settings</span>
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="glass rounded-[3rem] p-10 flex flex-col items-center text-center relative overflow-hidden mb-10 shadow-2xl border-white/5 bg-gradient-to-br from-primary/5 via-transparent to-jamaican-gold/5">
-        <div className="relative mb-8 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+        <div className="relative mb-8 group cursor-pointer" onClick={() => isOwnProfile && fileInputRef.current?.click()}>
           <div className="size-32 rounded-[2.5rem] border-4 border-primary/20 overflow-hidden shadow-2xl bg-background-dark rotate-3 group-hover:rotate-0 transition-all duration-700">
-            <img className="w-full h-full object-cover" src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/200`} alt="Avatar" />
+            <img className="w-full h-full object-cover" src={displayUser.avatarUrl || `https://picsum.photos/seed/${displayUser.id}/200`} alt="Avatar" />
           </div>
-          <button className="absolute -bottom-2 -right-2 size-12 rounded-2xl bg-primary text-background-dark flex items-center justify-center border-4 border-[#0a1a0f] shadow-2xl group-hover:scale-110 transition-transform">
-            <span className="material-symbols-outlined text-xl">photo_camera</span>
-          </button>
+          {/* Badge for Admin/Donor */}
+          {(displayUser.isAdmin || displayUser.isDonor) && (
+            <div className="absolute -bottom-1 -right-1">
+              <UserBadge user={displayUser} size="lg" />
+            </div>
+          )}
+          {isOwnProfile && (
+            <button className="absolute -bottom-2 -left-2 size-12 rounded-2xl bg-primary text-background-dark flex items-center justify-center border-4 border-[#0a1a0f] shadow-2xl group-hover:scale-110 transition-transform">
+              <span className="material-symbols-outlined text-xl">photo_camera</span>
+            </button>
+          )}
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
@@ -184,7 +213,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           }} />
         </div>
 
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-1">{user.username}</h1>
+        <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{displayUser.username}</h1>
+        </div>
 
         {/* 24h Note Area */}
         <div className="mb-4 w-full px-4">

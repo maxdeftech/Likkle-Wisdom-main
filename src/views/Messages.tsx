@@ -4,6 +4,7 @@ import { User, Friendship, ChatMessage } from '../types';
 import { SocialService } from '../services/social';
 import { MessagingService } from '../services/messaging';
 import { supabase } from '../services/supabase';
+import UserBadge from '../components/UserBadge';
 
 interface MessagesProps {
     currentUser: User;
@@ -119,7 +120,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                                         </div>
                                     )}
                                 </div>
-                                {/* Online Indicator could go here */}
+                                {/* Badge indicator - would need to fetch user data to show badge here */}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-white font-bold text-sm truncate">{f.friendName}</h3>
@@ -231,6 +232,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             currentUser={currentUser}
             onClose={() => setViewState('inbox')}
             onFriendAdded={() => { loadFriends(); setViewState('inbox'); }}
+            onOpenProfile={onOpenProfile}
         />
     );
 
@@ -246,7 +248,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
 };
 
 // Sub-component for Search
-const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdded: () => void }> = ({ currentUser, onClose, onFriendAdded }) => {
+const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdded: () => void, onOpenProfile: (userId: string) => void }> = ({ currentUser, onClose, onFriendAdded, onOpenProfile }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
@@ -303,12 +305,21 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
                 {results.map(u => (
                     <div key={u.id} className="glass p-4 rounded-xl flex items-center justify-between">
                         <div className="flex items-center gap-3 cursor-pointer" onClick={() => onOpenProfile(u.id)}>
-                            <div className="size-10 rounded-full bg-white/10 overflow-hidden">
-                                {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-white">{u.username[0]}</span>}
+                            <div className="relative">
+                                <div className="size-10 rounded-full bg-white/10 overflow-hidden">
+                                    {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-white">{u.username[0]}</span>}
+                                </div>
+                                {(u.isAdmin || u.isDonor) && (
+                                    <div className="absolute -bottom-1 -right-1">
+                                        <UserBadge user={u} size="sm" />
+                                    </div>
+                                )}
                             </div>
                             <div>
-                                <h3 className="text-white font-bold">{u.username}</h3>
-                                {u.isPremium && <span className="text-[10px] bg-jamaican-gold text-black px-1.5 py-0.5 rounded font-black">PREMIUM</span>}
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-white font-bold">{u.username}</h3>
+                                </div>
+                                {u.isPremium && <span className="text-[10px] bg-jamaican-gold/20 text-jamaican-gold px-1.5 py-0.5 rounded font-black">PREMIUM</span>}
                             </div>
                         </div>
                         <button

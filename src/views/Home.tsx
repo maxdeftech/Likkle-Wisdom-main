@@ -26,14 +26,14 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
   const { speak, stop, isSpeaking } = useTTS();
 
   // Load from constants to select random items
-  const loadRandom = useCallback((type: 'quote' | 'wisdom' | 'verse') => {
-    if (type === 'quote' || type === 'wisdom') {
-      const idx = Math.floor(Math.random() * INITIAL_QUOTES.length);
-      return INITIAL_QUOTES[idx];
-    } else {
-      const idx = Math.floor(Math.random() * BIBLE_AFFIRMATIONS.length);
-      return BIBLE_AFFIRMATIONS[idx];
-    }
+  const loadRandomQuote = useCallback((): Quote => {
+    const idx = Math.floor(Math.random() * INITIAL_QUOTES.length);
+    return INITIAL_QUOTES[idx];
+  }, []);
+
+  const loadRandomVerse = useCallback((): BibleAffirmation => {
+    const idx = Math.floor(Math.random() * BIBLE_AFFIRMATIONS.length);
+    return BIBLE_AFFIRMATIONS[idx];
   }, []);
 
   useEffect(() => {
@@ -54,9 +54,9 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
   const refreshAllContent = () => {
     const newDaily = {
-      quote: loadRandom('quote'),
-      wisdom: loadRandom('wisdom'),
-      verse: loadRandom('verse')
+      quote: loadRandomQuote(),
+      wisdom: loadRandomQuote(),
+      verse: loadRandomVerse()
     };
     setLocalDaily(newDaily);
     localStorage.setItem('likkle_daily_items', JSON.stringify(newDaily));
@@ -64,7 +64,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
   };
 
   const refreshSingle = (type: 'quote' | 'wisdom' | 'verse') => {
-    const newItem = loadRandom(type);
+    const newItem = type === 'verse' ? loadRandomVerse() : loadRandomQuote();
     setLocalDaily(prev => {
       const updated = { ...prev, [type]: newItem };
       localStorage.setItem('likkle_daily_items', JSON.stringify(updated));
