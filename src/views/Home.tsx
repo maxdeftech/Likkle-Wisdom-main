@@ -129,48 +129,27 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           </div>
 
           {/* User Info */}
-          <div className="flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0">
             <span className="text-sm font-black uppercase tracking-widest opacity-40 text-slate-900 dark:text-white/40">Wha Gwan,</span>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-[300px]">
               {firstName}
             </h1>
             <OnlineCount />
           </div>
-        </div>
 
-        {/* Centered Navigation Tabs */}
-        <div className="flex justify-center items-center gap-6 sm:gap-12 py-4 glass rounded-[2.5rem] border-white/5 mx-2">
-          <div className="flex flex-col items-center gap-1.5 group cursor-pointer" onClick={() => onTabChange('discover')}>
-            <div className="size-12 rounded-2xl flex items-center justify-center text-slate-900 dark:text-white group-active:scale-90 transition-all">
-              <span className="material-symbols-outlined text-2xl opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all">search</span>
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 group-hover:opacity-100 transition-opacity whitespace-nowrap">Search</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-1.5 group cursor-pointer" onClick={() => onOpenMessages()}>
-            <div className="size-12 rounded-2xl flex items-center justify-center text-slate-900 dark:text-white group-active:scale-90 transition-all relative">
-              <span className="material-symbols-outlined text-2xl opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all">forum</span>
+          {/* Header Icons */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => onTabChange('discover')} aria-label="Explore" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform">
+              <span className="material-symbols-outlined text-xl">explore</span>
+            </button>
+            <button onClick={() => onOpenMessages()} aria-label="Messages" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
+              <span className="material-symbols-outlined text-xl">forum</span>
               {unreadCount > 0 && (
-                <span className="absolute top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
-                  {unreadCount}
+                <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 group-hover:opacity-100 transition-opacity whitespace-nowrap">Inbox</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-1.5 group cursor-pointer" onClick={() => (onTabChange as any)('friends')}>
-            <div className="size-12 rounded-2xl flex items-center justify-center text-slate-900 dark:text-white group-active:scale-90 transition-all">
-              <span className="material-symbols-outlined text-2xl opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all">group</span>
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 group-hover:opacity-100 transition-opacity whitespace-nowrap">Friends</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-1.5 group cursor-pointer" onClick={() => (onTabChange as any)('pen_wisdom')}>
-            <div className="size-12 rounded-2xl flex items-center justify-center text-slate-900 dark:text-white group-active:scale-90 transition-all">
-              <span className="material-symbols-outlined text-2xl opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all">edit_note</span>
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-30 group-hover:opacity-100 transition-opacity whitespace-nowrap">Write</span>
+            </button>
           </div>
         </div>
       </header>

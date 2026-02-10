@@ -434,9 +434,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       </div>
 
       {isAddingWisdom && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-background-dark/80 backdrop-blur-md" onClick={() => setIsAddingWisdom(false)}></div>
-          <div className="relative w-full max-w-md glass p-8 rounded-[3rem] border-white/10 shadow-2xl animate-scale-up">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto glass p-8 rounded-[3rem] border-white/10 shadow-2xl animate-scale-up">
             <h3 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Pen New Wisdom</h3>
             <div className="space-y-6">
               <div>

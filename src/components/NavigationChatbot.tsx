@@ -29,6 +29,62 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const windowRef = useRef<HTMLDivElement>(null);
+    const [speakingId, setSpeakingId] = useState<string | null>(null);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+
+    // TTS: Speak a message
+    const speakText = (text: string, msgId: string) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            if (speakingId === msgId) { setSpeakingId(null); return; }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            utterance.onend = () => setSpeakingId(null);
+            utterance.onerror = () => setSpeakingId(null);
+            setSpeakingId(msgId);
+            window.speechSynthesis.speak(utterance);
+        }
+    };
+
+    // STT: Start/stop speech recognition
+    const toggleListening = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) { alert('Speech recognition not supported in this browser.'); return; }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setInput(prev => prev + transcript);
+            setIsListening(false);
+        };
+
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        setIsListening(true);
+    };
+
+    // Cleanup TTS on close
+    useEffect(() => {
+        if (!isOpen && 'speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            setSpeakingId(null);
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -165,6 +221,15 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                                 : 'bg-slate-900/5 dark:bg-white/5 text-slate-900/90 dark:text-white/90 rounded-tl-none border border-slate-900/5 dark:border-white/5'
                                 }`}>
                                 {msg.text}
+                                {msg.sender === 'ai' && (
+                                    <button
+                                        onClick={() => speakText(msg.text, msg.id)}
+                                        className={`mt-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider transition-colors ${speakingId === msg.id ? 'text-primary' : 'text-slate-900/30 dark:text-white/30 hover:text-primary/70'}`}
+                                    >
+                                        <span className="material-symbols-outlined text-sm">{speakingId === msg.id ? 'stop_circle' : 'volume_up'}</span>
+                                        {speakingId === msg.id ? 'Stop' : 'Listen'}
+                                    </button>
+                                )}
                                 {msg.action && (
                                     <button
                                         onClick={() => handleActionClick(msg.action)}
@@ -182,6 +247,13 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                 {/* Input */}
                 <div className="p-4 bg-slate-900/5 dark:bg-white/5 border-t border-slate-900/5 dark:border-white/5">
                     <div className="flex gap-2">
+                        <button
+                            onClick={toggleListening}
+                            className={`size-12 shrink-0 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'glass text-slate-900/60 dark:text-white/40'}`}
+                            title={isListening ? 'Stop listening' : 'Voice input'}
+                        >
+                            <span className="material-symbols-outlined text-xl">{isListening ? 'mic_off' : 'mic'}</span>
+                        </button>
                         <input
                             ref={inputRef}
                             autoFocus
@@ -190,12 +262,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSend()}
                             onFocus={() => {
-                                // Ensure component handles mobile keyboard push-up correctly
                                 setTimeout(() => {
                                     windowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
                                 }, 300);
                             }}
-                            placeholder="Ask 'bout di Bible, upgrade..."
+                            placeholder={isListening ? "Listening..." : "Ask 'bout di Bible, upgrade..."}
                             inputMode="text"
                             enterKeyHint="send"
                             autoComplete="off"
@@ -203,7 +274,7 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                         />
                         <button
                             onClick={handleSend}
-                            className="size-12 rounded-2xl bg-primary text-slate-950 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                            className="size-12 shrink-0 rounded-2xl bg-primary text-slate-950 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                         >
                             <span className="material-symbols-outlined text-xl">send</span>
                         </button>

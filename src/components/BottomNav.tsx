@@ -14,7 +14,7 @@ interface BottomNavProps {
 const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenFriends, onOpenWisdomCreator, unreadMessageCount = 0, pendingRequestCount = 0 }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
-    { id: 'discover', label: 'Explore', icon: 'explore' },
+    { id: 'feed', label: 'Feed', icon: 'dynamic_feed' },
     { id: 'bible', label: 'Bible', icon: 'auto_stories' },
     { id: 'book', label: 'Journal', icon: 'edit_note' },
     { id: 'me', label: 'Profile', icon: 'person' },

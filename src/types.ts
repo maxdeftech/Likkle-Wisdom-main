@@ -103,6 +103,19 @@ export interface UserWisdom {
   timestamp: number;
 }
 
+export interface Post {
+  id: string;
+  userId: string;
+  username: string;
+  avatarUrl?: string;
+  contentType: 'text' | 'image' | 'video' | 'scripture' | 'wisdom';
+  textContent?: string;
+  mediaUrl?: string;
+  scriptureRef?: { book: string; chapter: number; verse: number; text: string };
+  wisdomRef?: { patois: string; english: string };
+  createdAt: number;
+}
+
 export type View = 'splash' | 'onboarding' | 'auth' | 'main' | 'privacy' | 'terms';
-export type Tab = 'home' | 'discover' | 'bible' | 'book' | 'me';
+export type Tab = 'home' | 'feed' | 'discover' | 'bible' | 'book' | 'me';
 export type Mood = 'Peace' | 'Hustle' | 'Joy' | 'Healing';

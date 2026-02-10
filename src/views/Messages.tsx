@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Friendship, ChatMessage } from '../types';
 import { SocialService } from '../services/social';
 import { MessagingService } from '../services/messaging';
@@ -68,18 +68,17 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     };
 
     useEffect(() => {
-        // Load history when entering chat and mark as read
+        // Load history when entering chat and always mark as read
         if (activeChatUser) {
             MessagingService.getMessages(activeChatUser.id, currentUser.id).then(setMessages);
 
-            // Mark as read in DB and update local state
-            const prevCount = unreadCounts[activeChatUser.id] || 0;
-            if (prevCount > 0) {
-                setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
-                MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(() => {
-                    if (onUnreadUpdate) onUnreadUpdate();
-                });
-            }
+            // Always mark as read in DB (even if local count is 0, DB may have unread)
+            setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
+            MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(() => {
+                // Refresh counts from DB to stay in sync, then update global badge
+                loadUnreadCounts();
+                if (onUnreadUpdate) onUnreadUpdate();
+            });
 
             SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus);
         }
@@ -116,6 +115,64 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         }
     };
 
+    // --- LONG-PRESS CONTEXT MENU ---
+    const [contextMenuFriend, setContextMenuFriend] = useState<Friendship | null>(null);
+    const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+    const longPressTimerRef = useRef<number | null>(null);
+    const [pinnedChats, setPinnedChats] = useState<string[]>(() => {
+        try { return JSON.parse(localStorage.getItem(`pinned_chats_${currentUser.id}`) || '[]'); } catch { return []; }
+    });
+
+    const handleLongPressStart = useCallback((e: React.TouchEvent | React.MouseEvent, friend: Friendship) => {
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        longPressTimerRef.current = window.setTimeout(() => {
+            setContextMenuFriend(friend);
+            setContextMenuPos({ x: clientX, y: clientY });
+        }, 500);
+    }, []);
+
+    const handleLongPressEnd = useCallback(() => {
+        if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    }, []);
+
+    const handlePinChat = (friendId: string) => {
+        setPinnedChats(prev => {
+            const next = prev.includes(friendId) ? prev.filter(id => id !== friendId) : [...prev, friendId];
+            localStorage.setItem(`pinned_chats_${currentUser.id}`, JSON.stringify(next));
+            return next;
+        });
+        setContextMenuFriend(null);
+    };
+
+    const handleRemoveFriend = async (friendshipId: string) => {
+        setContextMenuFriend(null);
+        if (!confirm("Remove this friend?")) return;
+        const { error } = await SocialService.deleteFriendship(friendshipId);
+        if (!error) {
+            setFriends(prev => prev.filter(f => f.id !== friendshipId));
+        }
+    };
+
+    const handleDeleteChatFromMenu = async (friendshipId: string) => {
+        setContextMenuFriend(null);
+        handleDeleteChat(friendshipId);
+    };
+
+    // Sort friends: pinned first, then by last message time
+    const sortedFriends = [...friends].sort((a, b) => {
+        const aPinned = pinnedChats.includes(a.friendId);
+        const bPinned = pinnedChats.includes(b.friendId);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        const aTime = a.lastMessage?.timestamp || 0;
+        const bTime = b.lastMessage?.timestamp || 0;
+        return bTime - aTime;
+    });
+
     // --- RENDERERS ---
 
     const renderInbox = () => (
@@ -141,11 +198,22 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                         <button onClick={() => setViewState('search')} className="mt-4 text-primary text-xs font-black uppercase underline">Find People</button>
                     </div>
                 ) : (
-                    friends.map(f => (
-                        <div key={f.id} onClick={() => {
-                            setActiveChatUser({ id: f.friendId, username: f.friendName, avatarUrl: f.friendAvatar, isGuest: false, isPremium: false }); // Mock full user
-                            setViewState('chat');
-                        }} className="glass p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer group">
+                    sortedFriends.map(f => (
+                        <div
+                            key={f.id}
+                            onClick={() => {
+                                if (contextMenuFriend) { setContextMenuFriend(null); return; }
+                                setActiveChatUser({ id: f.friendId, username: f.friendName, avatarUrl: f.friendAvatar, isGuest: false, isPremium: false });
+                                setViewState('chat');
+                            }}
+                            onTouchStart={(e) => handleLongPressStart(e, f)}
+                            onTouchEnd={handleLongPressEnd}
+                            onTouchMove={handleLongPressEnd}
+                            onMouseDown={(e) => handleLongPressStart(e, f)}
+                            onMouseUp={handleLongPressEnd}
+                            onMouseLeave={handleLongPressEnd}
+                            className="glass p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer select-none"
+                        >
                             <div className="relative" onClick={(e) => { e.stopPropagation(); onOpenProfile(f.friendId); }}>
                                 <div className="size-12 rounded-full bg-white/10 overflow-hidden">
                                     {f.friendAvatar ? (
@@ -156,7 +224,9 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                                         </div>
                                     )}
                                 </div>
-                                {/* Badge indicator - would need to fetch user data to show badge here */}
+                                {pinnedChats.includes(f.friendId) && (
+                                    <span className="absolute -top-1 -left-1 material-symbols-outlined text-jamaican-gold text-[14px] drop-shadow">push_pin</span>
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-white font-bold text-sm truncate">{f.friendName}</h3>
@@ -174,28 +244,51 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                                         {new Date(f.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 )}
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteChat(f.id);
-                                        }}
-                                        className="size-8 rounded-full glass flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Remove Friend"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">person_remove</span>
-                                    </button>
-                                    {unreadCounts[f.friendId] > 0 && (
-                                        <div className="size-5 bg-primary rounded-full flex items-center justify-center animate-pop shadow-lg shadow-primary/20">
-                                            <span className="text-background-dark font-black text-[9px]">{unreadCounts[f.friendId]}</span>
-                                        </div>
-                                    )}
-                                </div>
+                                {unreadCounts[f.friendId] > 0 && (
+                                    <div className="size-5 bg-primary rounded-full flex items-center justify-center animate-pop shadow-lg shadow-primary/20">
+                                        <span className="text-background-dark font-black text-[9px]">{unreadCounts[f.friendId]}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* Long-press context menu */}
+            {contextMenuFriend && (
+                <>
+                    <div className="fixed inset-0 z-[300]" onClick={() => setContextMenuFriend(null)}></div>
+                    <div
+                        className="fixed z-[301] glass rounded-2xl p-2 shadow-2xl border border-white/10 min-w-[180px] animate-scale-up"
+                        style={{ top: Math.min(contextMenuPos.y, window.innerHeight - 180), left: Math.min(contextMenuPos.x, window.innerWidth - 200) }}
+                    >
+                        <button
+                            onClick={() => handleDeleteChatFromMenu(contextMenuFriend.id)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-red-400 text-lg">delete</span>
+                            <span className="text-xs font-black uppercase tracking-wider">Delete Chat</span>
+                        </button>
+                        <button
+                            onClick={() => handleRemoveFriend(contextMenuFriend.id)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-orange-400 text-lg">person_remove</span>
+                            <span className="text-xs font-black uppercase tracking-wider">Remove Friend</span>
+                        </button>
+                        <button
+                            onClick={() => handlePinChat(contextMenuFriend.friendId)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-jamaican-gold text-lg">push_pin</span>
+                            <span className="text-xs font-black uppercase tracking-wider">
+                                {pinnedChats.includes(contextMenuFriend.friendId) ? 'Unpin Chat' : 'Pin Chat'}
+                            </span>
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 

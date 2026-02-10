@@ -24,6 +24,7 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Messages from './views/Messages';
 import FriendRequestList from './components/FriendRequestList';
 import NavigationChatbot from './components/NavigationChatbot';
+import Feed from './views/Feed';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
@@ -543,11 +544,47 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
-      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
+      case 'feed': return <Feed user={user} isOnline={isOnline} userWisdoms={userWisdoms} />;
+      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
+    }
+  };
+
+  // Swipe navigation
+  const TAB_ORDER: Tab[] = ['home', 'feed', 'bible', 'book', 'me'];
+  const touchStartX = React.useRef(0);
+  const touchStartY = React.useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Ignore swipes when overlays are open
+    if (showSettings || showAI || showPremium || showMessages || showFriendRequests || showFriendsList || publicProfileId || activeCategory) return;
+    if (view !== 'main') return;
+
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Only trigger for horizontal swipes (more horizontal than vertical)
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+
+    const currentIdx = TAB_ORDER.indexOf(activeTab);
+    if (currentIdx === -1) return;
+
+    if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
+      // Swipe left -> next tab
+      setActiveTab(TAB_ORDER[currentIdx + 1]);
+      setActiveCategory(null);
+    } else if (dx > 0 && currentIdx > 0) {
+      // Swipe right -> previous tab
+      setActiveTab(TAB_ORDER[currentIdx - 1]);
+      setActiveCategory(null);
     }
   };
 
@@ -577,7 +614,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe">{renderContent()}</main>
+      <main className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>{renderContent()}</main>
 
       {showAuthGate && (
         <GuestAuthModal onClose={() => setShowAuthGate(false)} onSignUp={() => { setShowAuthGate(false); setView('auth'); }} />
