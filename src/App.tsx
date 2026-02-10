@@ -4,6 +4,7 @@ import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote } f
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
 import { initializePurchases } from './services/revenueCat';
+import { EncryptionService } from './services/encryption';
 import SplashScreen from './views/SplashScreen';
 import Onboarding from './views/Onboarding';
 import Auth from './views/Auth';
@@ -156,7 +157,14 @@ const App: React.FC = () => {
       }
 
       const { data: entries } = await supabase.from('journal_entries').select('*').eq('user_id', userId).order('timestamp', { ascending: false });
-      if (entries) setJournalEntries(entries);
+      if (entries) {
+        const decryptedEntries = await Promise.all(entries.map(async (e: any) => ({
+          ...e,
+          title: await EncryptionService.decrypt(e.title, userId),
+          text: await EncryptionService.decrypt(e.text, userId)
+        })));
+        setJournalEntries(decryptedEntries);
+      }
     } catch (e) {
       console.error("Sync failed:", e);
     }
@@ -374,7 +382,11 @@ const App: React.FC = () => {
     const newEntry: JournalEntry = { id: Date.now().toString(), title, text, mood, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase(), timestamp: Date.now() };
     setJournalEntries(prev => [newEntry, ...prev]);
     if (user && !user.isGuest && supabase && navigator.onLine) {
-      try { await supabase.from('journal_entries').insert({ user_id: user.id, title, text, mood, date: newEntry.date, timestamp: newEntry.timestamp }); }
+      try {
+        const encryptedTitle = await EncryptionService.encrypt(title, user.id);
+        const encryptedText = await EncryptionService.encrypt(text, user.id);
+        await supabase.from('journal_entries').insert({ user_id: user.id, title: encryptedTitle, text: encryptedText, mood, date: newEntry.date, timestamp: newEntry.timestamp });
+      }
       catch (e) { console.error("Journal error:", e); }
     }
     setNotification('Journal saved! ✍️');

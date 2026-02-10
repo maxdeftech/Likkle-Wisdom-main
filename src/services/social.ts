@@ -1,6 +1,7 @@
 
 import { supabase } from './supabase';
 import { FriendRequest, Friendship, User } from '../types';
+import { EncryptionService } from './encryption';
 
 export const SocialService = {
 
@@ -143,10 +144,15 @@ export const SocialService = {
     async updateProfileNote(userId: string, note: string) {
         if (!supabase) return { error: 'Offline' };
 
+        let processedNote = note;
+        if (note && note.trim()) {
+            processedNote = await EncryptionService.encrypt(note, userId);
+        }
+
         const { error } = await supabase
             .from('profiles')
             .update({
-                status_note: note,
+                status_note: processedNote,
                 status_note_at: new Date().toISOString()
             })
             .eq('id', userId);
@@ -339,10 +345,15 @@ export const SocialService = {
             .eq('id', userId)
             .single();
 
+        let decryptedNote = profile?.status_note || null;
+        if (decryptedNote) {
+            decryptedNote = await EncryptionService.decrypt(decryptedNote, userId);
+        }
+
         return {
             friendsCount: count || 0,
             createdAt: profile?.created_at || null,
-            statusNote: profile?.status_note || null,
+            statusNote: decryptedNote,
             statusNoteAt: profile?.status_note_at || null,
             error: e1 || e2
         };
