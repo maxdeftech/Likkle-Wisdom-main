@@ -100,6 +100,21 @@ const App: React.FC = () => {
     // Initialize RevenueCat
     initializePurchases();
 
+    // Load cached content from localStorage for immediate display
+    const cachedQuotes = localStorage.getItem('lkkle_quotes');
+    const cachedIconic = localStorage.getItem('lkkle_iconic');
+    const cachedBible = localStorage.getItem('lkkle_bible');
+    const cachedEntries = localStorage.getItem('lkkle_journal');
+    const cachedVerses = localStorage.getItem('lkkle_verses');
+    const cachedUserWisdoms = localStorage.getItem('lkkle_user_wisdoms');
+
+    if (cachedQuotes) setQuotes(JSON.parse(cachedQuotes));
+    if (cachedIconic) setIconicQuotes(JSON.parse(cachedIconic));
+    if (cachedBible) setBibleAffirmations(JSON.parse(cachedBible));
+    if (cachedEntries) setJournalEntries(JSON.parse(cachedEntries));
+    if (cachedVerses) setBookmarkedVerses(JSON.parse(cachedVerses));
+    if (cachedUserWisdoms) setUserWisdoms(JSON.parse(cachedUserWisdoms));
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -161,6 +176,12 @@ const App: React.FC = () => {
             };
           });
         setBookmarkedVerses(kjvBookmarks);
+
+        // Cache to localStorage
+        localStorage.setItem('lkkle_quotes', JSON.stringify(quotes));
+        localStorage.setItem('lkkle_iconic', JSON.stringify(iconicQuotes));
+        localStorage.setItem('lkkle_bible', JSON.stringify(bibleAffirmations));
+        localStorage.setItem('lkkle_verses', JSON.stringify(kjvBookmarks));
       }
 
       const { data: entries } = await supabase.from('journal_entries').select('*').eq('user_id', userId).order('timestamp', { ascending: false });
@@ -171,8 +192,11 @@ const App: React.FC = () => {
           text: await EncryptionService.decrypt(e.text, userId)
         })));
         setJournalEntries(decryptedEntries);
+        localStorage.setItem('lkkle_journal', JSON.stringify(decryptedEntries));
       }
-      setUserWisdoms(await WisdomService.getUserWisdoms(userId));
+      const wisdoms = await WisdomService.getUserWisdoms(userId);
+      setUserWisdoms(wisdoms);
+      localStorage.setItem('lkkle_user_wisdoms', JSON.stringify(wisdoms));
     } catch (e) {
       console.error("Sync failed:", e);
     }
@@ -344,9 +368,33 @@ const App: React.FC = () => {
 
     if (user && !user.isGuest && supabase && navigator.onLine) {
       try {
-        if (newState) await supabase.from('bookmarks').insert({ user_id: user.id, item_id: id, item_type: type });
-        else await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('item_id', id);
-      } catch (e) { console.error("Bookmark error:", e); }
+        if (newState) {
+          // Collect metadata for better sync/display
+          let metadata = {};
+          if (type === 'quote') {
+            const q = quotes.find(q => q.id === id);
+            if (q) metadata = { patois: q.patois, english: q.english, category: q.category };
+          } else if (type === 'iconic') {
+            const q = iconicQuotes.find(q => q.id === id);
+            if (q) metadata = { text: q.text, author: q.author };
+          } else if (type === 'bible') {
+            const q = bibleAffirmations.find(q => q.id === id);
+            if (q) metadata = { patois: q.patois, reference: q.reference };
+          }
+
+          await supabase.from('bookmarks').insert({
+            user_id: user.id,
+            item_id: id,
+            item_type: type,
+            metadata
+          });
+        } else {
+          await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('item_id', id);
+        }
+      } catch (e) {
+        console.error("Bookmark error:", e);
+        setNotification("Couldn't sync to cloud.");
+      }
     }
     setNotification(newState ? 'Saved to cabinet! ✨' : 'Removed from cabinet.');
   };
@@ -545,12 +593,12 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />;
+      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} />;
-      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />;
+      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
   };
 

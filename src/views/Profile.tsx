@@ -186,20 +186,31 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
         </div>
         {isOwnProfile && (
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => onRefresh ? onRefresh() : window.location.reload()}
-              className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
-              title="Refresh App"
-            >
-              <span className="material-symbols-outlined">refresh</span>
-            </button>
-            <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
-              <span className="material-symbols-outlined">group_add</span>
-              {displayRequestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{displayRequestCount}</span>}
-            </button>
-            <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
-              <span className="material-symbols-outlined">settings</span>
-            </button>
+            <div className="flex flex-col items-center gap-1.5">
+              <button
+                onClick={() => onRefresh ? onRefresh() : window.location.reload()}
+                className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
+                title="Refresh App"
+              >
+                <span className="material-symbols-outlined">refresh</span>
+              </button>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Sync</span>
+            </div>
+
+            <div className="flex flex-col items-center gap-1.5">
+              <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
+                <span className="material-symbols-outlined">group_add</span>
+                {displayRequestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{displayRequestCount}</span>}
+              </button>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Friends</span>
+            </div>
+
+            <div className="flex flex-col items-center gap-1.5">
+              <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
+                <span className="material-symbols-outlined">settings</span>
+              </button>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Settings</span>
+            </div>
           </div>
         )}
       </header>

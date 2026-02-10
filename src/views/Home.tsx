@@ -18,9 +18,11 @@ interface HomeProps {
   unreadCount?: number;
   isDarkMode: boolean;
   onToggleTheme: () => void;
+  quotes: Quote[];
+  bibleAffirmations: BibleAffirmation[];
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0, isDarkMode, onToggleTheme }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0, isDarkMode, onToggleTheme, quotes, bibleAffirmations }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
   const [localDaily, setLocalDaily] = useState<{ quote: Quote | null; wisdom: Quote | null; verse: BibleAffirmation | null }>({
@@ -81,6 +83,15 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
   const isVerse = (item: any): item is BibleAffirmation => item && 'kjv' in item;
   const isQuote = (item: any): item is Quote => item && 'english' in item;
 
+  // Derive favorite status from the live state passed from App
+  const isItemFavored = (item: any) => {
+    if (!item) return false;
+    if (isVerse(item)) {
+      return bibleAffirmations.find(b => b.id === item.id)?.isFavorite || false;
+    }
+    return quotes.find(q => q.id === item.id)?.isFavorite || false;
+  };
+
   if (!currentItem) return (
     <div className="flex items-center justify-center h-full opacity-20">
       <span className="material-symbols-outlined animate-spin text-4xl">sync</span>
@@ -95,19 +106,27 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{firstName}</h1>
           <OnlineCount />
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => onOpenMessages()} className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white active:scale-95 transition-all relative">
-            <span className="material-symbols-outlined text-xl sm:text-2xl">forum</span>
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-          <button onClick={() => onTabChange('discover')} aria-label="Search" className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white">
-            <span className="material-symbols-outlined text-xl sm:text-2xl">search</span>
-          </button>
-          <div className="flex flex-col items-center gap-2">
+        <div className="flex gap-4">
+          <div className="flex flex-col items-center gap-1.5">
+            <button onClick={() => onOpenMessages()} className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white active:scale-95 transition-all relative">
+              <span className="material-symbols-outlined text-xl sm:text-2xl">forum</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">InBox</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1.5">
+            <button onClick={() => onTabChange('discover')} aria-label="Search" className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white">
+              <span className="material-symbols-outlined text-xl sm:text-2xl">search</span>
+            </button>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Search</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-1.5">
             <button
               onClick={() => onTabChange('me')}
               aria-label="View Profile"
@@ -119,6 +138,10 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
                 alt="Profile"
               />
             </button>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Me</span>
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-2">
             <button
               onClick={onToggleTheme}
               aria-label="Toggle theme"
@@ -130,6 +153,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
                 </span>
               </div>
             </button>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Mood</span>
           </div>
         </div>
       </header>
@@ -223,10 +247,10 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
                   </button>
                   <button
                     onClick={() => onFavorite(currentItem.id, activeDaily === 'verse' ? 'bible' : 'quote')}
-                    className={`flex-1 py-4 sm:py-6 rounded-2xl sm:rounded-3xl text-[10px] sm:text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${'isFavorite' in currentItem && currentItem.isFavorite ? 'bg-primary text-background-dark' : 'glass text-slate-900 dark:text-white'}`}
+                    className={`flex-1 py-4 sm:py-6 rounded-2xl sm:rounded-3xl text-[10px] sm:text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${isItemFavored(currentItem) ? 'bg-primary text-background-dark' : 'glass text-slate-900 dark:text-white'}`}
                   >
-                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${'isFavorite' in currentItem && currentItem.isFavorite ? 'fill-1 animate-pop' : ''}`}>favorite</span>
-                    {'isFavorite' in currentItem && currentItem.isFavorite ? 'Saved' : 'Save'}
+                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${isItemFavored(currentItem) ? 'fill-1 animate-pop' : ''}`}>favorite</span>
+                    {isItemFavored(currentItem) ? 'Saved' : 'Save'}
                   </button>
                 </div>
               </div>
