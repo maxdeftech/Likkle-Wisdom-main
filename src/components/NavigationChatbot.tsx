@@ -27,6 +27,8 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     ]);
     const [input, setInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const windowRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -76,7 +78,7 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
             {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`size-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 ${isOpen ? 'bg-background-dark text-primary rotate-90' : 'bg-primary text-background-dark'}`}
+                className={`size-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 ${isOpen ? 'bg-slate-900 dark:bg-background-dark text-primary rotate-90' : 'bg-primary text-slate-950'}`}
             >
                 <span className="material-symbols-outlined text-3xl">
                     {isOpen ? 'close' : 'smart_toy'}
@@ -85,15 +87,18 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="absolute bottom-16 right-0 w-80 h-[450px] glass rounded-[2.5rem] flex flex-col shadow-2xl animate-fade-in overflow-hidden border border-white/10 bg-background-dark/95 backdrop-blur-xl">
+                <div
+                    ref={windowRef}
+                    className="absolute bottom-16 right-0 w-80 h-[450px] glass rounded-[2.5rem] flex flex-col shadow-2xl animate-fade-in overflow-hidden border border-slate-900/10 dark:border-white/10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl"
+                >
                     {/* Header */}
                     <div className="p-6 pb-4 border-b border-white/5 bg-gradient-to-r from-primary/10 to-transparent">
                         <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-background-dark">
+                            <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-slate-950">
                                 <span className="material-symbols-outlined text-2xl">support_agent</span>
                             </div>
                             <div>
-                                <h3 className="text-white font-black text-sm uppercase tracking-widest leading-none">Likkle Guide</h3>
+                                <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase tracking-widest leading-none">Likkle Guide</h3>
                                 <span className="text-[9px] text-primary font-bold uppercase tracking-widest animate-pulse">Online fi help</span>
                             </div>
                         </div>
@@ -107,8 +112,8 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                         {messages.map(msg => (
                             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] rounded-2xl p-4 text-xs font-medium leading-relaxed ${msg.sender === 'user'
-                                        ? 'bg-primary text-background-dark rounded-tr-none shadow-lg'
-                                        : 'bg-white/5 text-white/90 rounded-tl-none border border-white/5'
+                                    ? 'bg-primary text-slate-950 rounded-tr-none shadow-lg'
+                                    : 'bg-slate-900/5 dark:bg-white/5 text-slate-900/90 dark:text-white/90 rounded-tl-none border border-slate-900/5 dark:border-white/5'
                                     }`}>
                                     {msg.text}
                                     {msg.action && (
@@ -126,20 +131,27 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                     </div>
 
                     {/* Input */}
-                    <div className="p-4 bg-white/5 border-t border-white/5">
+                    <div className="p-4 bg-slate-900/5 dark:bg-white/5 border-t border-slate-900/5 dark:border-white/5">
                         <div className="flex gap-2">
                             <input
+                                ref={inputRef}
                                 autoFocus
                                 type="text"
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleSend()}
+                                onFocus={() => {
+                                    // Ensure component handles mobile keyboard push-up correctly
+                                    setTimeout(() => {
+                                        windowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                    }, 300);
+                                }}
                                 placeholder="Ask 'bout di Bible, upgrade..."
-                                className="flex-1 bg-white/5 border border-white/10 rounded-2xl h-12 px-4 text-xs font-bold text-white placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
+                                className="flex-1 bg-white/5 dark:bg-slate-900/5 border border-slate-900/10 dark:border-white/10 rounded-2xl h-12 px-4 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-900/40 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
                             />
                             <button
                                 onClick={handleSend}
-                                className="size-12 rounded-2xl bg-primary text-background-dark flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                                className="size-12 rounded-2xl bg-primary text-slate-950 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                             >
                                 <span className="material-symbols-outlined text-xl">send</span>
                             </button>
