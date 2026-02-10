@@ -24,9 +24,11 @@ interface ProfileProps {
   requestCount?: number;
   unreadCount?: number;
   onRefresh?: () => void;
+  initialTab?: 'cabinet' | 'wisdoms';
+  startAdding?: boolean;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onAddWisdom, onDeleteWisdom, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onAddWisdom, onDeleteWisdom, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh, initialTab = 'cabinet', startAdding = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -45,9 +47,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteInput, setNoteInput] = useState('');
-  const [profileTab, setProfileTab] = useState<'cabinet' | 'wisdoms'>('cabinet');
+  const [profileTab, setProfileTab] = useState<'cabinet' | 'wisdoms'>(initialTab);
   const [publicWisdoms, setPublicWisdoms] = useState<UserWisdom[]>([]);
-  const [isAddingWisdom, setIsAddingWisdom] = useState(false);
+  const [isAddingWisdom, setIsAddingWisdom] = useState(startAdding);
   const [newWisdom, setNewWisdom] = useState({ patois: '', english: '' });
 
   const displayRequestCount = isOwnProfile ? (passedRequestCount > 0 ? passedRequestCount : localRequestCount) : 0;

@@ -5,9 +5,13 @@ import { Tab } from '../types';
 interface BottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  onOpenFriends: () => void;
+  onOpenWisdomCreator: () => void;
+  unreadMessageCount?: number;
+  pendingRequestCount?: number;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenFriends, onOpenWisdomCreator, unreadMessageCount = 0, pendingRequestCount = 0 }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'discover', label: 'Explore', icon: 'explore' },
@@ -34,6 +38,36 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
           <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">{tab.label}</span>
         </button>
       ))}
+
+      {/* Divider */}
+      <div className="w-px h-8 bg-white/10 mx-0.5"></div>
+
+      {/* Friends List */}
+      <button
+        onClick={onOpenFriends}
+        aria-label="My Friends"
+        className="flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 text-slate-900/40 dark:text-white/40 relative"
+      >
+        <div className="relative">
+          <span className="material-symbols-outlined text-[24px]">group</span>
+          {pendingRequestCount > 0 && (
+            <span className="absolute -top-1.5 -right-2 size-4 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-lg">
+              {pendingRequestCount > 9 ? '9+' : pendingRequestCount}
+            </span>
+          )}
+        </div>
+        <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">Friends</span>
+      </button>
+
+      {/* Wisdom Creator */}
+      <button
+        onClick={onOpenWisdomCreator}
+        aria-label="Create Wisdom"
+        className="flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 text-slate-900/40 dark:text-white/40"
+      >
+        <span className="material-symbols-outlined text-[24px]">edit_square</span>
+        <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">Create</span>
+      </button>
     </nav>
   );
 };

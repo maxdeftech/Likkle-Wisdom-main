@@ -26,6 +26,11 @@ export interface Friendship {
   friendAvatar?: string;
   status: 'accepted' | 'blocked';
   since: number;
+  lastMessage?: {
+    content: string;
+    timestamp: number;
+    senderId: string;
+  };
 }
 
 export interface ChatMessage {

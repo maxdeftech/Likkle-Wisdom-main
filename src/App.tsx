@@ -25,20 +25,6 @@ import Messages from './views/Messages';
 import FriendRequestList from './components/FriendRequestList';
 import NavigationChatbot from './components/NavigationChatbot';
 
-type NavigationSnapshot = {
-  view: View;
-  activeTab: Tab;
-  showSettings: boolean;
-  showAI: boolean;
-  showPremium: boolean;
-  showAuthGate: boolean;
-  activeCategory: string | null;
-  showMessages: boolean;
-  showMessagesInSearchMode: boolean;
-  showFriendRequests: boolean;
-  publicProfileId: string | null;
-};
-
 const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
   const [user, setUser] = useState<User | null>(null);
@@ -76,7 +62,10 @@ const App: React.FC = () => {
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
-  const [navHistory, setNavHistory] = useState<NavigationSnapshot[]>([]);
+  const [showFriendsList, setShowFriendsList] = useState(false);
+
+  const [profileInitialTab, setProfileInitialTab] = useState<'cabinet' | 'wisdoms'>('cabinet');
+  const [profileStartAdding, setProfileStartAdding] = useState(false);
 
   const [quotes, setQuotes] = useState<Quote[]>(INITIAL_QUOTES);
   const [iconicQuotes, setIconicQuotes] = useState<IconicQuote[]>(ICONIC_QUOTES);
@@ -84,6 +73,14 @@ const App: React.FC = () => {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [bookmarkedVerses, setBookmarkedVerses] = useState<any[]>([]);
   const [userWisdoms, setUserWisdoms] = useState<UserWisdom[]>([]);
+
+  const syncUnreadCount = useCallback(() => {
+    if (user && !user.isGuest && supabase) {
+      import('./services/messaging').then(({ MessagingService }) => {
+        MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -303,58 +300,6 @@ const App: React.FC = () => {
     }
   };
 
-  const pushHistory = useCallback(() => {
-    setNavHistory(prev => [
-      ...prev,
-      {
-        view,
-        activeTab,
-        showSettings,
-        showAI,
-        showPremium,
-        showAuthGate,
-        activeCategory,
-        showMessages,
-        showMessagesInSearchMode,
-        showFriendRequests,
-        publicProfileId
-      }
-    ]);
-  }, [
-    view,
-    activeTab,
-    showSettings,
-    showAI,
-    showPremium,
-    showAuthGate,
-    activeCategory,
-    showMessages,
-    showMessagesInSearchMode,
-    showFriendRequests,
-    publicProfileId
-  ]);
-
-  const handleBack = useCallback(() => {
-    setNavHistory(prev => {
-      if (prev.length === 0) return prev;
-      const next = [...prev];
-      const last = next.pop()!;
-
-      setView(last.view);
-      setActiveTab(last.activeTab);
-      setShowSettings(last.showSettings);
-      setShowAI(last.showAI);
-      setShowPremium(last.showPremium);
-      setShowAuthGate(last.showAuthGate);
-      setActiveCategory(last.activeCategory);
-      setShowMessages(last.showMessages);
-      setShowMessagesInSearchMode(last.showMessagesInSearchMode);
-      setShowFriendRequests(last.showFriendRequests);
-      setPublicProfileId(last.publicProfileId);
-
-      return next;
-    });
-  }, []);
 
   const handleToggleFavorite = async (id: string, type: 'quote' | 'iconic' | 'bible') => {
     if (user?.isGuest) {
@@ -519,40 +464,44 @@ const App: React.FC = () => {
     if (user?.isGuest) {
       setShowAuthGate(true);
     } else {
-      pushHistory();
       setShowAI(true);
     }
   };
 
   const handleOpenSettings = () => {
-    pushHistory();
     setShowSettings(true);
   };
 
   const handleOpenPremium = () => {
-    pushHistory();
     setShowPremium(true);
   };
 
   const handleOpenMessages = (searchMode: boolean = false) => {
-    pushHistory();
     setShowMessages(true);
     setShowMessagesInSearchMode(searchMode);
   };
 
   const handleOpenFriendRequests = () => {
-    pushHistory();
     setShowFriendRequests(true);
   };
 
   const handleOpenPublicProfile = (id: string) => {
-    pushHistory();
     setPublicProfileId(id);
   };
 
   const handleOpenCategory = (categoryId: string) => {
-    pushHistory();
     setActiveCategory(categoryId);
+  };
+
+  const handleOpenFriendsList = () => {
+    setShowFriendsList(true);
+  };
+
+  const handleGoToWisdomCreator = () => {
+    setProfileInitialTab('wisdoms');
+    setProfileStartAdding(true);
+    setActiveTab('me');
+    setActiveCategory(null);
   };
 
   const handleRefreshApp = () => {
@@ -583,9 +532,9 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (view === 'privacy') return <LegalView type="privacy" onClose={handleBack} />;
-    if (view === 'terms') return <LegalView type="terms" onClose={handleBack} />;
-    if (activeCategory) return <CategoryResultsView categoryId={activeCategory} onClose={handleBack} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} onFavorite={handleToggleFavorite} />;
+    if (view === 'privacy') return <LegalView type="privacy" onClose={() => setView('main')} />;
+    if (view === 'terms') return <LegalView type="terms" onClose={() => setView('main')} />;
+    if (activeCategory) return <CategoryResultsView categoryId={activeCategory} onClose={() => setActiveCategory(null)} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} onFavorite={handleToggleFavorite} />;
 
     if (!user) {
       if (view === 'onboarding') return <Onboarding onFinish={() => setView('auth')} />;
@@ -597,7 +546,7 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
   };
@@ -607,16 +556,6 @@ const App: React.FC = () => {
   return (
     <div className="relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300">
       <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0"></div>
-
-      {navHistory.length > 0 && (
-        <button
-          onClick={handleBack}
-          className="fixed top-safe left-5 z-overlay size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-95 transition-transform mt-5"
-          aria-label="Go back"
-        >
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-      )}
 
       {!isOnline && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none">
@@ -649,17 +588,15 @@ const App: React.FC = () => {
           user={user}
           isDarkMode={isDarkMode}
           onToggleTheme={handleToggleTheme}
-          onClose={handleBack}
+          onClose={() => setShowSettings(false)}
           onUpgrade={handleOpenPremium}
           onSignOut={handleSignOut}
           onUpdateUser={handleUpdateUser}
           onOpenPrivacy={() => {
-            pushHistory();
             setShowSettings(false);
             setView('privacy');
           }}
           onOpenTerms={() => {
-            pushHistory();
             setShowSettings(false);
             setView('terms');
           }}
@@ -669,7 +606,7 @@ const App: React.FC = () => {
         <AIWisdom
           user={user}
           isOnline={isOnline}
-          onClose={handleBack}
+          onClose={() => setShowAI(false)}
           onUpgrade={handleOpenPremium}
           onGuestRestricted={() => {
             setShowAI(false);
@@ -679,15 +616,33 @@ const App: React.FC = () => {
       )}
       {showPremium && (
         <PremiumUpgrade
-          onClose={handleBack}
+          onClose={() => setShowPremium(false)}
           onPurchaseSuccess={() => {
-            handleBack();
+            setShowPremium(false);
             setNotification("Thanks fi di support!");
           }}
         />
       )}
       {showMessages && user && (
-        <Messages currentUser={user} onClose={handleBack} onOpenProfile={handleOpenPublicProfile} initialSearch={showMessagesInSearchMode} />
+        <Messages
+          currentUser={user}
+          onClose={() => { setShowMessages(false); setShowMessagesInSearchMode(false); }}
+          onOpenProfile={handleOpenPublicProfile}
+          initialSearch={showMessagesInSearchMode}
+          onUnreadUpdate={syncUnreadCount}
+        />
+      )}
+      {showFriendsList && user && (
+        <FriendsListOverlay
+          currentUser={user}
+          onClose={() => setShowFriendsList(false)}
+          onOpenChat={(friendUser) => {
+            setShowFriendsList(false);
+            setShowMessages(true);
+            setShowMessagesInSearchMode(false);
+          }}
+          onOpenProfile={handleOpenPublicProfile}
+        />
       )}
       {publicProfileId && user && (
         <Profile
@@ -697,9 +652,9 @@ const App: React.FC = () => {
           iconic={iconicQuotes}
           bible={bibleAffirmations}
           bookmarkedVerses={bookmarkedVerses}
-          userWisdoms={[]} // We'll fetch this inside Profile for other users
+          userWisdoms={[]}
           viewingUserId={publicProfileId}
-          onClose={handleBack}
+          onClose={() => setPublicProfileId(null)}
           onOpenSettings={() => { }}
           onStatClick={() => { }}
           onUpdateUser={() => { }}
@@ -724,8 +679,107 @@ const App: React.FC = () => {
           }}
         />
       )}
-      {view === 'main' && <BottomNav activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} />}
+      {view === 'main' && (
+        <BottomNav
+          activeTab={activeTab}
+          onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
+          onOpenFriends={handleOpenFriendsList}
+          onOpenWisdomCreator={handleGoToWisdomCreator}
+          unreadMessageCount={unreadMessageCount}
+          pendingRequestCount={pendingRequestCount}
+        />
+      )}
       <PWAInstallPrompt />
+    </div>
+  );
+};
+
+const FriendsListOverlay: React.FC<{
+  currentUser: User;
+  onClose: () => void;
+  onOpenChat: (friend: User) => void;
+  onOpenProfile: (userId: string) => void;
+}> = ({ currentUser, onClose, onOpenChat, onOpenProfile }) => {
+  const [friends, setFriends] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    import('./services/social').then(({ SocialService }) => {
+      SocialService.getFriends(currentUser.id).then(f => {
+        setFriends(f);
+        setLoading(false);
+      });
+    });
+  }, [currentUser.id]);
+
+  const handleRemoveFriend = async (friendshipId: string, friendName: string) => {
+    if (!confirm(`Remove ${friendName} from your friends?`)) return;
+    const { SocialService } = await import('./services/social');
+    const { error } = await SocialService.deleteFriendship(friendshipId);
+    if (!error) {
+      setFriends(prev => prev.filter(f => f.id !== friendshipId));
+    } else {
+      alert('Failed to remove friend.');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-modal bg-background-dark flex flex-col pt-safe animate-slide-up">
+      <div className="flex items-center justify-between p-6 border-b border-white/5">
+        <h2 className="text-2xl font-black text-white uppercase tracking-tight">My Friends</h2>
+        <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all">
+          <span className="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {loading && (
+          <div className="text-center text-white/30 text-xs uppercase mt-8 animate-pulse">Loading friends...</div>
+        )}
+        {!loading && friends.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-48 text-white/30 text-center">
+            <span className="material-symbols-outlined text-4xl mb-2">group</span>
+            <p className="text-xs font-bold uppercase tracking-wider">No friends yet</p>
+          </div>
+        )}
+        {friends.map((f: any) => (
+          <div key={f.id} className="glass p-4 rounded-2xl flex items-center gap-4 group">
+            <div className="relative cursor-pointer" onClick={() => onOpenProfile(f.friendId)}>
+              <div className="size-12 rounded-full bg-white/10 overflow-hidden">
+                {f.friendAvatar ? (
+                  <img src={f.friendAvatar} className="w-full h-full object-cover" alt="" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white font-black text-lg">
+                    {f.friendName?.[0]?.toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-bold text-sm truncate">{f.friendName}</h3>
+              <p className="text-white/30 text-[10px] uppercase tracking-widest font-bold">
+                Friends since {new Date(f.since).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onOpenChat({ id: f.friendId, username: f.friendName, avatarUrl: f.friendAvatar, isGuest: false, isPremium: false })}
+                className="size-9 rounded-full glass flex items-center justify-center text-primary active:scale-90 transition-transform"
+                title="Message"
+              >
+                <span className="material-symbols-outlined text-lg">chat</span>
+              </button>
+              <button
+                onClick={() => handleRemoveFriend(f.id, f.friendName)}
+                className="size-9 rounded-full glass flex items-center justify-center text-red-400/60 hover:text-red-400 active:scale-90 transition-all"
+                title="Remove Friend"
+              >
+                <span className="material-symbols-outlined text-lg">person_remove</span>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

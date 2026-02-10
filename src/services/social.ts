@@ -234,19 +234,15 @@ export const SocialService = {
     async getFriends(userId: string): Promise<Friendship[]> {
         if (!supabase) return [];
 
-        // Detailed query to get friends where I am requester OR receiver
-        // Supabase OR syntax is tricky with joins. We might need two queries or a view.
-        // Simpler: Two queries and merge.
-
         // 1. Where I added them
-        const { data: sent, error: e1 } = await supabase
+        const { data: sent } = await supabase
             .from('friendships')
             .select(`friend:profiles!receiver_id(id, username, avatar_url), id, status, created_at`)
             .eq('requester_id', userId)
             .eq('status', 'accepted');
 
         // 2. Where they added me
-        const { data: received, error: e2 } = await supabase
+        const { data: received } = await supabase
             .from('friendships')
             .select(`friend:profiles!requester_id(id, username, avatar_url), id, status, created_at`)
             .eq('receiver_id', userId)
@@ -277,14 +273,50 @@ export const SocialService = {
         }
 
         // Deduplicate by friendId
-        const unique = new Map();
+        const unique = new Map<string, Friendship>();
         friends.forEach(f => {
             if (!unique.has(f.friendId)) {
                 unique.set(f.friendId, f);
             }
         });
 
-        return Array.from(unique.values());
+        // 3. Fetch last messages for previews
+        const friendIds = Array.from(unique.keys());
+        if (friendIds.length > 0) {
+            // We want the most recent message for each friend pair
+            // Simpler: Fetch recent messages for the user and map them
+            const { data: lastMsgs } = await supabase
+                .from('messages')
+                .select('*')
+                .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+                .order('created_at', { ascending: false })
+                .limit(100);
+
+            if (lastMsgs) {
+                friendIds.forEach(fId => {
+                    const msg = lastMsgs.find(m =>
+                        (m.sender_id === userId && m.receiver_id === fId) ||
+                        (m.sender_id === fId && m.receiver_id === userId)
+                    );
+                    if (msg) {
+                        const friendship = unique.get(fId);
+                        if (friendship) {
+                            friendship.lastMessage = {
+                                content: msg.content,
+                                timestamp: new Date(msg.created_at).getTime(),
+                                senderId: msg.sender_id
+                            };
+                        }
+                    }
+                });
+            }
+        }
+
+        return Array.from(unique.values()).sort((a, b) => {
+            const timeA = a.lastMessage?.timestamp || 0;
+            const timeB = b.lastMessage?.timestamp || 0;
+            return timeB - timeA; // Most recent first
+        });
     },
 
     // Realtime Presence for "Online Users" count

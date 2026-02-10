@@ -11,11 +11,12 @@ interface MessagesProps {
     onClose: () => void;
     onOpenProfile: (userId: string) => void;
     initialSearch?: boolean;
+    onUnreadUpdate?: () => void;
 }
 
 type ViewState = 'inbox' | 'chat' | 'search';
 
-const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile, initialSearch = false }) => {
+const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile, initialSearch = false, onUnreadUpdate }) => {
     const [viewState, setViewState] = useState<ViewState>(initialSearch ? 'search' : 'inbox');
     const [activeChatUser, setActiveChatUser] = useState<User | null>(null);
     const [friends, setFriends] = useState<Friendship[]>([]);
@@ -24,28 +25,62 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [friendshipStatus, setFriendshipStatus] = useState<'pending' | 'accepted' | 'none'>('none');
 
+    // Load unread counts from DB on mount
     useEffect(() => {
         loadFriends();
-        const interval = setInterval(loadFriends, 30000); // Refresh friends list periodically
+        loadUnreadCounts();
+        const interval = setInterval(loadFriends, 30000);
 
         // Subscribe to all incoming messages
         const channel = MessagingService.subscribeToMessages(currentUser.id, (msg) => {
-            setMessages(prev => [...prev, msg]);
+            setMessages(prev => {
+                // Prevent duplicates
+                if (prev.find(m => m.id === msg.id)) return prev;
+                return [...prev, msg];
+            });
+            // Only increment if not currently viewing that chat
             if (msg.senderId !== activeChatUser?.id) {
                 setUnreadCounts(prev => ({ ...prev, [msg.senderId]: (prev[msg.senderId] || 0) + 1 }));
+            } else {
+                // Auto-mark as read since we're in the chat
+                MessagingService.markAsRead(msg.senderId, currentUser.id);
             }
         });
 
         return () => { channel?.unsubscribe(); clearInterval(interval); };
     }, [currentUser.id]);
 
+    const loadUnreadCounts = async () => {
+        if (!supabase) return;
+        const { data } = await supabase
+            .from('messages')
+            .select('sender_id')
+            .eq('receiver_id', currentUser.id)
+            .eq('read', false);
+
+        if (data) {
+            const counts: Record<string, number> = {};
+            data.forEach((m: any) => {
+                counts[m.sender_id] = (counts[m.sender_id] || 0) + 1;
+            });
+            setUnreadCounts(counts);
+        }
+    };
+
     useEffect(() => {
-        // Load history when entering chat
+        // Load history when entering chat and mark as read
         if (activeChatUser) {
             MessagingService.getMessages(activeChatUser.id, currentUser.id).then(setMessages);
-            setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
-            MessagingService.markAsRead(activeChatUser.id, currentUser.id);
-            // Check friendship status
+
+            // Mark as read in DB and update local state
+            const prevCount = unreadCounts[activeChatUser.id] || 0;
+            if (prevCount > 0) {
+                setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
+                MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(() => {
+                    if (onUnreadUpdate) onUnreadUpdate();
+                });
+            }
+
             SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus);
         }
     }, [activeChatUser, currentUser.id]);
@@ -110,7 +145,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                         <div key={f.id} onClick={() => {
                             setActiveChatUser({ id: f.friendId, username: f.friendName, avatarUrl: f.friendAvatar, isGuest: false, isPremium: false }); // Mock full user
                             setViewState('chat');
-                        }} className="glass p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer">
+                        }} className="glass p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer group">
                             <div className="relative" onClick={(e) => { e.stopPropagation(); onOpenProfile(f.friendId); }}>
                                 <div className="size-12 rounded-full bg-white/10 overflow-hidden">
                                     {f.friendAvatar ? (
@@ -125,13 +160,38 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-white font-bold text-sm truncate">{f.friendName}</h3>
-                                <p className="text-white/40 text-xs truncate">Tap to chat with {f.friendName}</p>
+                                {f.lastMessage ? (
+                                    <p className={`text-xs truncate ${unreadCounts[f.friendId] > 0 ? 'text-primary font-black' : 'text-white/40'}`}>
+                                        {f.lastMessage.senderId === currentUser.id ? 'You: ' : ''}{f.lastMessage.content}
+                                    </p>
+                                ) : (
+                                    <p className="text-white/40 text-xs truncate">Tap to chat with {f.friendName}</p>
+                                )}
                             </div>
-                            {unreadCounts[f.friendId] > 0 && (
-                                <div className="size-6 bg-primary rounded-full flex items-center justify-center">
-                                    <span className="text-background-dark font-black text-[10px]">{unreadCounts[f.friendId]}</span>
+                            <div className="flex flex-col items-end gap-1">
+                                {f.lastMessage && (
+                                    <span className="text-[8px] font-black text-white/20 uppercase">
+                                        {new Date(f.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                )}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteChat(f.id);
+                                        }}
+                                        className="size-8 rounded-full glass flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Remove Friend"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">person_remove</span>
+                                    </button>
+                                    {unreadCounts[f.friendId] > 0 && (
+                                        <div className="size-5 bg-primary rounded-full flex items-center justify-center animate-pop shadow-lg shadow-primary/20">
+                                            <span className="text-background-dark font-black text-[9px]">{unreadCounts[f.friendId]}</span>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ))
                 )}
