@@ -15,7 +15,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onClose }) => {
     <div className="space-y-6 text-white/80 leading-relaxed font-medium">
       <h1 className="text-3xl font-black text-white tracking-tight">Privacy Policy</h1>
       <p className="text-xs uppercase font-black text-primary/60 tracking-widest">Last updated: {todayDate}</p>
-      
+
       <p>{appName} (“we”, “our”, or “us”) respects your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, store, and protect your information when you use the {appName} app or website.</p>
 
       <div className="space-y-4">
@@ -79,7 +79,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onClose }) => {
 
       <div className="space-y-4 pb-12">
         <h2 className="text-xl font-black text-white">9. Contact Us</h2>
-        <p>If you have questions about this Privacy Policy, contact us at: <br/><span className="text-primary font-black">{contactEmail}</span></p>
+        <p>If you have questions about this Privacy Policy, contact us at: <br /><span className="text-primary font-black">{contactEmail}</span></p>
       </div>
     </div>
   );
@@ -88,7 +88,7 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onClose }) => {
     <div className="space-y-6 text-white/80 leading-relaxed font-medium">
       <h1 className="text-3xl font-black text-white tracking-tight">Terms & Conditions</h1>
       <p className="text-xs uppercase font-black text-primary/60 tracking-widest">Last updated: {todayDate}</p>
-      
+
       <p>Welcome to {appName}. By accessing or using our app or website, you agree to these Terms & Conditions. If you do not agree, please do not use {appName}.</p>
 
       <div className="space-y-4">
@@ -149,13 +149,13 @@ const LegalView: React.FC<LegalViewProps> = ({ type, onClose }) => {
 
       <div className="space-y-4 pb-12">
         <h2 className="text-xl font-black text-white">10. Contact Information</h2>
-        <p>For questions or concerns, contact us at: <br/><span className="text-primary font-black">{contactEmail}</span></p>
+        <p>For questions or concerns, contact us at: <br /><span className="text-primary font-black">{contactEmail}</span></p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-full flex flex-col bg-background-dark p-6 animate-fade-in overflow-y-auto no-scrollbar">
+    <div className="min-h-full flex flex-col bg-background-dark p-6 pt-safe animate-fade-in overflow-y-auto no-scrollbar">
       <header className="sticky top-0 z-50 flex items-center py-6 bg-background-dark/80 backdrop-blur-md mb-4">
         <button onClick={onClose} className="size-11 rounded-full glass flex items-center justify-center text-primary">
           <span className="material-symbols-outlined">arrow_back</span>

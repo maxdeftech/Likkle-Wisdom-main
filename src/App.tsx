@@ -539,7 +539,7 @@ const App: React.FC = () => {
       {navHistory.length > 0 && (
         <button
           onClick={handleBack}
-          className="fixed top-5 left-5 z-overlay size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-95 transition-transform"
+          className="fixed top-safe left-5 z-overlay size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-95 transition-transform mt-5"
           aria-label="Go back"
         >
           <span className="material-symbols-outlined">arrow_back</span>
@@ -566,7 +566,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth">{renderContent()}</main>
+      <main className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe">{renderContent()}</main>
 
       {showAuthGate && (
         <GuestAuthModal onClose={() => setShowAuthGate(false)} onSignUp={() => { setShowAuthGate(false); setView('auth'); }} />

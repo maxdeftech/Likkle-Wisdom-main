@@ -120,7 +120,7 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     };
 
     return (
-        <div className="fixed bottom-24 right-6 z-[1000] font-display">
+        <div className="fixed bottom-24 right-6 z-[1000] font-display mb-safe">
             {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}

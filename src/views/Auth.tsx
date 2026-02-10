@@ -146,7 +146,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col bg-white dark:bg-background-dark overflow-y-auto font-display p-6 pb-12 transition-colors duration-300">
+    <div className="relative flex h-[100dvh] w-full flex-col bg-white dark:bg-background-dark overflow-y-auto font-display p-6 pt-safe pb-12 transition-colors duration-300">
       <header className="py-12 text-center space-y-2 relative z-10">
         <h1 className="text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-white">
           {mode === 'signup' ? 'Join di' : 'Back to'} <br />

@@ -238,7 +238,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     );
 
     return (
-        <div className="fixed inset-0 z-modal bg-background-dark flex flex-col animate-slide-up">
+        <div className="fixed inset-0 z-modal bg-background-dark flex flex-col pt-safe animate-slide-up">
             {viewState === 'inbox' && renderInbox()}
             {viewState === 'chat' && renderChat()}
             {viewState === 'search' && renderSearch()}

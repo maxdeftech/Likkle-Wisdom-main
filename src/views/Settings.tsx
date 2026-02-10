@@ -32,8 +32,8 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   };
 
   return (
-    <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 transition-colors duration-300">
-      <header className="sticky top-0 z-sticky flex items-center glass backdrop-blur-md px-6 py-6 justify-between">
+    <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 pt-safe transition-colors duration-300">
+      <header className="sticky top-0 z-sticky flex items-center glass backdrop-blur-md px-6 py-4 justify-between">
         <div className="flex items-center gap-2">
           <button onClick={onClose} aria-label="Go back" className="text-primary material-symbols-outlined text-3xl">chevron_left</button>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>

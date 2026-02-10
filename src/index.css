@@ -2,15 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .mt-safe {
+    margin-top: env(safe-area-inset-top);
+  }
+
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 @layer base {
   body {
     @apply font-body transition-colors duration-300;
   }
-  
+
   .dark body {
     @apply bg-background-dark text-white;
   }
-  
+
   html:not(.dark) body {
     @apply bg-slate-50 text-slate-900;
   }
@@ -20,27 +46,27 @@
   .glass {
     @apply bg-white/5 backdrop-blur-[16px] border border-white/10;
   }
-  
+
   html:not(.dark) .glass {
     @apply bg-slate-900/[0.03] border-slate-900/10;
   }
-  
+
   .glass-gold {
     @apply bg-[#f4d125]/10 backdrop-blur-[8px] border border-[#f4d125]/30;
   }
-  
+
   .jamaica-gradient {
     background: linear-gradient(135deg, #102216 0%, #000000 40%, #c4a000 85%, #13ec5b 100%);
   }
-  
+
   html:not(.dark) .jamaica-gradient {
     background: linear-gradient(135deg, #f0fdf4 0%, #fefce8 40%, #d9f99d 85%, #bbf7d0 100%);
   }
-  
+
   .cosmic-bg {
     background: radial-gradient(circle at top right, #1a2e10, #0a1205 60%);
   }
-  
+
   html:not(.dark) .cosmic-bg {
     background: radial-gradient(circle at top right, #f0fdf4, #f8fafc 60%);
   }
@@ -48,7 +74,7 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
