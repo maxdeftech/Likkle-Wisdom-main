@@ -22,6 +22,7 @@ import LegalView from './views/LegalView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Messages from './views/Messages';
 import FriendRequestList from './components/FriendRequestList';
+import NavigationChatbot from './components/NavigationChatbot';
 
 type NavigationSnapshot = {
   view: View;
@@ -487,6 +488,25 @@ const App: React.FC = () => {
     }, 1200);
   };
 
+  const handleBotNavigate = (type: string, value: string) => {
+    if (type === 'tab') {
+      setActiveTab(value as Tab);
+      setActiveCategory(null);
+      setView('main');
+      // Reset other modals
+      setShowSettings(false);
+      setShowAI(false);
+      setShowPremium(false);
+      setShowMessages(false);
+      setPublicProfileId(null);
+    } else if (type === 'setting') {
+      if (value === 'settings') handleOpenSettings();
+      if (value === 'premium') handleOpenPremium();
+      if (value === 'ai') handleOpenAI();
+      if (value === 'messages') handleOpenMessages();
+    }
+  };
+
   const renderContent = () => {
     if (view === 'privacy') return <LegalView type="privacy" onClose={handleBack} />;
     if (view === 'terms') return <LegalView type="terms" onClose={handleBack} />;
@@ -610,6 +630,10 @@ const App: React.FC = () => {
           onRemoveBookmark={() => { }}
           onOpenFriendRequests={() => { }}
         />
+      )}
+
+      {user && (
+        <NavigationChatbot onNavigate={handleBotNavigate} />
       )}
       {showFriendRequests && user && (
         <FriendRequestList userId={user.id} onClose={() => setShowFriendRequests(false)} onRequestsChanged={() => { /* maybe refresh profile badge */ }} />
