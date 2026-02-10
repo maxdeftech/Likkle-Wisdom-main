@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote } from './types';
+import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, UserWisdom } from './types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
 import { initializePurchases } from './services/revenueCat';
 import { EncryptionService } from './services/encryption';
+import { WisdomService } from './services/wisdomService';
 import SplashScreen from './views/SplashScreen';
 import Onboarding from './views/Onboarding';
 import Auth from './views/Auth';
@@ -82,6 +83,7 @@ const App: React.FC = () => {
   const [bibleAffirmations, setBibleAffirmations] = useState<BibleAffirmation[]>(BIBLE_AFFIRMATIONS);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [bookmarkedVerses, setBookmarkedVerses] = useState<any[]>([]);
+  const [userWisdoms, setUserWisdoms] = useState<UserWisdom[]>([]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -170,6 +172,7 @@ const App: React.FC = () => {
         })));
         setJournalEntries(decryptedEntries);
       }
+      setUserWisdoms(await WisdomService.getUserWisdoms(userId));
     } catch (e) {
       console.error("Sync failed:", e);
     }
@@ -443,6 +446,25 @@ const App: React.FC = () => {
     setView('auth');
   };
 
+  const handleAddWisdom = async (patois: string, english: string) => {
+    if (!user) return;
+    const { data, error } = await WisdomService.createUserWisdom(user.id, patois, english);
+    if (data) {
+      setUserWisdoms(prev => [data, ...prev]);
+      setNotification("Wisdom planted in yuh garden! 🌱");
+    } else if (error) {
+      setNotification(`Could not plant wisdom: ${error}`);
+    }
+  };
+
+  const handleDeleteWisdom = async (id: string) => {
+    const { error } = await WisdomService.deleteWisdom(id);
+    if (!error) {
+      setUserWisdoms(prev => prev.filter(w => w.id !== id));
+      setNotification("Wisdom returned to di stars. ✨");
+    }
+  };
+
   const handleOpenAI = () => {
     if (user?.isGuest) {
       setShowAuthGate(true);
@@ -525,7 +547,7 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />;
     }
   };
@@ -625,6 +647,7 @@ const App: React.FC = () => {
           iconic={iconicQuotes}
           bible={bibleAffirmations}
           bookmarkedVerses={bookmarkedVerses}
+          userWisdoms={[]} // We'll fetch this inside Profile for other users
           viewingUserId={publicProfileId}
           onClose={handleBack}
           onOpenSettings={() => { }}
@@ -632,6 +655,8 @@ const App: React.FC = () => {
           onUpdateUser={() => { }}
           onRemoveBookmark={() => { }}
           onOpenFriendRequests={() => { }}
+          onAddWisdom={() => { }}
+          onDeleteWisdom={() => { }}
         />
       )}
 

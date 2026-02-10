@@ -90,6 +90,14 @@ export interface JournalEntry {
   timestamp: number;
 }
 
+export interface UserWisdom {
+  id: string;
+  userId: string;
+  patois: string;
+  english: string;
+  timestamp: number;
+}
+
 export type View = 'splash' | 'onboarding' | 'auth' | 'main' | 'privacy' | 'terms';
 export type Tab = 'home' | 'discover' | 'bible' | 'book' | 'me';
 export type Mood = 'Peace' | 'Hustle' | 'Joy' | 'Healing';

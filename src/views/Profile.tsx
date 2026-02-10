@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useMemo } from 'react';
-import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation } from '../types';
+import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation, UserWisdom } from '../types';
 import UserBadge from '../components/UserBadge';
 
 interface ProfileProps {
@@ -10,11 +10,14 @@ interface ProfileProps {
   iconic: IconicQuote[];
   bible: BibleAffirmation[];
   bookmarkedVerses: any[];
+  userWisdoms: UserWisdom[]; // New
   onOpenSettings: () => void;
   onStatClick: (tab: Tab) => void;
   onUpdateUser: (data: Partial<User>) => void;
   onRemoveBookmark: (id: string, type: string) => void;
   onOpenFriendRequests: () => void;
+  onAddWisdom: (patois: string, english: string) => void; // New
+  onDeleteWisdom: (id: string) => void; // New
   onFindFriends?: () => void;
   viewingUserId?: string | null;
   onClose?: () => void;
@@ -23,7 +26,7 @@ interface ProfileProps {
   onRefresh?: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onAddWisdom, onDeleteWisdom, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +45,10 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteInput, setNoteInput] = useState('');
+  const [profileTab, setProfileTab] = useState<'cabinet' | 'wisdoms'>('cabinet');
+  const [publicWisdoms, setPublicWisdoms] = useState<UserWisdom[]>([]);
+  const [isAddingWisdom, setIsAddingWisdom] = useState(false);
+  const [newWisdom, setNewWisdom] = useState({ patois: '', english: '' });
 
   const displayRequestCount = isOwnProfile ? (passedRequestCount > 0 ? passedRequestCount : localRequestCount) : 0;
 
@@ -70,6 +77,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
       if (!isOwnProfile) {
         SocialService.getPublicProfile(targetUserId).then(setPublicUser);
+        import('../services/wisdomService').then(({ WisdomService }) => {
+          WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms);
+        });
         SocialService.getPublicCabinet(targetUserId).then(cab => {
           const quoteIds = cab.quoteIds || [];
           const iconicIds = cab.iconicIds || [];
@@ -297,55 +307,167 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           Saved Wisdom Cabinet
         </h3>
 
-        <div className="space-y-6">
-          {combinedFeed.map((item) => (
-            <div key={`${item.type}-${item.id}`} className="glass p-8 rounded-[2.5rem] border-white/5 shadow-xl animate-fade-in group hover:border-primary/30 transition-all relative overflow-hidden">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-primary uppercase tracking-[0.3em] bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-2 w-fit">
-                    {item.label}
-                  </span>
-                  <p className="text-[10px] font-bold text-slate-900/20 dark:text-white/20 uppercase tracking-widest flex items-center gap-1">
-                    {isOwnProfile ? 'Added to Likkle Book' : 'Saved in Cabinet'} <span className="material-symbols-outlined text-[10px]">auto_stories</span>
+        <div className="flex gap-4 mb-8">
+          <button
+            onClick={() => setProfileTab('cabinet')}
+            className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${profileTab === 'cabinet' ? 'bg-primary text-background-dark shadow-lg ring-4 ring-primary/20' : 'glass text-slate-900/40 dark:text-white/40'}`}
+          >
+            Cabinet
+          </button>
+          <button
+            onClick={() => setProfileTab('wisdoms')}
+            className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${profileTab === 'wisdoms' ? 'bg-jamaican-gold text-background-dark shadow-lg ring-4 ring-jamaican-gold/20' : 'glass text-slate-900/40 dark:text-white/40'}`}
+          >
+            My Wisdom
+          </button>
+        </div>
+
+        {profileTab === 'cabinet' ? (
+          <div className="space-y-6">
+            {combinedFeed.map((item) => (
+              <div key={`${item.type}-${item.id}`} className="glass p-8 rounded-[2.5rem] border-white/5 shadow-xl animate-fade-in group hover:border-primary/30 transition-all relative overflow-hidden">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.3em] bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-2 w-fit">
+                      {item.label}
+                    </span>
+                    <p className="text-[10px] font-bold text-slate-900/20 dark:text-white/20 uppercase tracking-widest flex items-center gap-1">
+                      {isOwnProfile ? 'Added to Likkle Book' : 'Saved in Cabinet'} <span className="material-symbols-outlined text-[10px]">auto_stories</span>
+                    </p>
+                  </div>
+                  {isOwnProfile && (
+                    <button
+                      onClick={() => onRemoveBookmark(item.id, item.type)}
+                      className="size-12 rounded-2xl glass text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/20 transition-all flex items-center justify-center group/btn"
+                    >
+                      <span className="material-symbols-outlined text-2xl group-hover/btn:scale-110 transition-transform">delete_forever</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-slate-900 dark:text-white text-2xl font-black leading-tight tracking-tight">
+                    "{item.type === 'kjv' ? (item.data as any).text : (item.data as any).patois || (item.data as any).text}"
+                  </p>
+                  <div className="h-px w-12 bg-primary/20"></div>
+                  <p className="text-sm text-slate-900/40 dark:text-white/40 italic font-medium leading-relaxed">
+                    {item.type === 'kjv' ? (item.data as any).reference : (item.data as any).english || `Author: ${(item.data as any).author}`}
                   </p>
                 </div>
-                {isOwnProfile && (
-                  <button
-                    onClick={() => onRemoveBookmark(item.id, item.type)}
-                    className="size-12 rounded-2xl glass text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 hover:border-red-400/20 transition-all flex items-center justify-center group/btn"
-                  >
-                    <span className="material-symbols-outlined text-2xl group-hover/btn:scale-110 transition-transform">delete_forever</span>
-                  </button>
-                )}
-              </div>
 
-              <div className="space-y-4">
-                <p className="text-slate-900 dark:text-white text-2xl font-black leading-tight tracking-tight">
-                  "{item.type === 'kjv' ? (item.data as any).text : (item.data as any).patois || (item.data as any).text}"
-                </p>
-                <div className="h-px w-12 bg-primary/20"></div>
-                <p className="text-sm text-slate-900/40 dark:text-white/40 italic font-medium leading-relaxed">
-                  {item.type === 'kjv' ? (item.data as any).reference : (item.data as any).english || `Author: ${(item.data as any).author}`}
-                </p>
+                <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
+                  <span className="material-symbols-outlined text-[100px]">{item.type === 'kjv' || item.type === 'verse' ? 'menu_book' : 'spa'}</span>
+                </div>
               </div>
+            ))}
 
-              <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-[100px]">{item.type === 'kjv' || item.type === 'verse' ? 'menu_book' : 'spa'}</span>
+            {combinedFeed.length === 0 && (
+              <div className="text-center py-24 flex flex-col items-center glass rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 mx-2">
+                <div className="size-24 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-6">
+                  <span className="material-symbols-outlined text-6xl text-slate-900/10 dark:text-white/10">bookmark_add</span>
+                </div>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">Your cabinet is empty.</p>
+                <button onClick={() => onStatClick('discover')} className="mt-6 text-primary font-black uppercase tracking-widest text-xs hover:underline">Find some vibes →</button>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {isOwnProfile && (
+              <div className="glass p-8 rounded-[2.5rem] border-dashed border-primary/30 flex flex-col items-center justify-center text-center group cursor-pointer hover:border-primary transition-all mb-8" onClick={() => setIsAddingWisdom(true)}>
+                <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-3xl text-primary">edit_note</span>
+                </div>
+                <p className="text-xs font-black uppercase tracking-widest text-primary">Pen yuh own wisdom</p>
+              </div>
+            )}
 
-          {combinedFeed.length === 0 && (
-            <div className="text-center py-24 flex flex-col items-center glass rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 mx-2">
-              <div className="size-24 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-6">
-                <span className="material-symbols-outlined text-6xl text-slate-900/10 dark:text-white/10">bookmark_add</span>
+            {(isOwnProfile ? userWisdoms : publicWisdoms).map((wisdom) => (
+              <div key={wisdom.id} className="glass p-8 rounded-[2.5rem] border-white/5 shadow-xl animate-fade-in group hover:border-jamaican-gold/30 transition-all relative overflow-hidden">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-jamaican-gold uppercase tracking-[0.3em] bg-jamaican-gold/10 px-3 py-1 rounded-full border border-jamaican-gold/20 mb-2 w-fit">
+                      Soul Wisdom
+                    </span>
+                    <p className="text-[10px] font-bold text-slate-900/20 dark:text-white/20 uppercase tracking-widest flex items-center gap-1">
+                      Penned by {isOwnProfile ? 'You' : (publicUser?.username || 'Seeker')} <span className="material-symbols-outlined text-[10px]">history_edu</span>
+                    </p>
+                  </div>
+                  {isOwnProfile && (
+                    <button
+                      onClick={() => onDeleteWisdom(wisdom.id)}
+                      className="size-10 rounded-xl glass text-red-400/30 hover:text-red-400 hover:bg-red-400/10 transition-all flex items-center justify-center"
+                    >
+                      <span className="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  <p className="text-slate-900 dark:text-white text-2xl font-black leading-tight tracking-tight">"{wisdom.patois}"</p>
+                  <div className="h-px w-12 bg-jamaican-gold/20"></div>
+                  <p className="text-sm text-slate-900/40 dark:text-white/40 italic font-medium leading-relaxed">"{wisdom.english}"</p>
+                </div>
               </div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">Your cabinet is empty.</p>
-              <button onClick={() => onStatClick('discover')} className="mt-6 text-primary font-black uppercase tracking-widest text-xs hover:underline">Find some vibes →</button>
-            </div>
-          )}
-        </div>
+            ))}
+
+            {(isOwnProfile ? userWisdoms : publicWisdoms).length === 0 && (
+              <div className="text-center py-24 flex flex-col items-center glass rounded-[3rem] border-dashed border-slate-200 dark:border-white/10">
+                <span className="material-symbols-outlined text-6xl text-slate-900/10 dark:text-white/10 mb-6">ink_pen</span>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">No proverbs penned yet.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {isAddingWisdom && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-fade-in">
+          <div className="absolute inset-0 bg-background-dark/80 backdrop-blur-md" onClick={() => setIsAddingWisdom(false)}></div>
+          <div className="relative w-full max-w-md glass p-8 rounded-[3rem] border-white/10 shadow-2xl animate-scale-up">
+            <h3 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Pen New Wisdom</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">Patois (Di Real Vibe)</label>
+                <textarea
+                  value={newWisdom.patois}
+                  onChange={(e) => setNewWisdom({ ...newWisdom, patois: e.target.value })}
+                  placeholder="e.g. Life sweet like cane juice..."
+                  className="w-full h-32 glass rounded-2xl p-4 text-white placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5 active:bg-white/10"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">English Translation</label>
+                <input
+                  value={newWisdom.english}
+                  onChange={(e) => setNewWisdom({ ...newWisdom, english: e.target.value })}
+                  placeholder="The meaning dem..."
+                  className="w-full glass rounded-2xl p-4 text-white placeholder:text-white/10 focus:border-primary/50 transition-colors bg-white/5"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={() => setIsAddingWisdom(false)}
+                  className="flex-1 py-4 glass rounded-2xl text-white/60 font-black text-xs uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (newWisdom.patois && newWisdom.english) {
+                      onAddWisdom(newWisdom.patois, newWisdom.english);
+                      setIsAddingWisdom(false);
+                      setNewWisdom({ patois: '', english: '' });
+                    }
+                  }}
+                  className="flex-1 py-4 bg-primary text-background-dark rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                >
+                  Save Vibe
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 };

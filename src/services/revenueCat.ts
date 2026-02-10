@@ -3,7 +3,7 @@ import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Capacitor } from '@capacitor/core';
 
-const API_KEY = "test_faNbBjxTKlzslOKjswqEVzadXbH"; // Provided by user
+const API_KEY = (import.meta as any).env?.VITE_REVENUECAT_API_KEY || "test_faNbBjxTKlzslOKjswqEVzadXbH";
 
 export const initializePurchases = async () => {
     try {

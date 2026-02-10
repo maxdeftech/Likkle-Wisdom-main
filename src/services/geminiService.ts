@@ -2,8 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 export async function generatePatoisWisdom(mood: string) {
-  // Use import.meta.env for Vite compatibility and fallback to process.env if available (for tests/node)
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.API_KEY : undefined);
+  // Use import.meta.env for Vite compatibility
+  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
     console.error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your .env file.");
@@ -19,9 +19,16 @@ export async function generatePatoisWisdom(mood: string) {
     // Using gemini-2.0-flash for faster and more reliable generation
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: `Generate a unique, traditional or modern Jamaican Patois proverb/affirmation based on the mood: ${mood}.`,
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `Generate a unique, creative, and rare Jamaican Patois proverb/affirmation based on the mood: ${mood}. Make it different from common ones. Random seed: ${Math.random()}` }]
+        }
+      ],
       config: {
-        systemInstruction: "You are a wise Jamaican elder. Provide authentic Patois and a deep English translation. Response format MUST be JSON: { \"patois\": \"string\", \"english\": \"string\" }",
+        systemInstruction: "You are a wise Jamaican elder and poet. You know thousands of rare proverbs. Provide authentic, deep Patois and a soulful English translation. Response format MUST be JSON: { \"patois\": \"string\", \"english\": \"string\" }",
+        temperature: 0.9,
+        topP: 0.95,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

@@ -4,6 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 // Safely access environment variables to prevent ReferenceErrors
 const getEnv = (key: string): string | undefined => {
   try {
+    // Check Vite's import.meta.env first
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+      const viteKey = `VITE_${key}`;
+      if ((import.meta as any).env[viteKey]) return (import.meta as any).env[viteKey];
+    }
+    // Fallback to process.env (Node environments)
     return typeof process !== 'undefined' && process.env ? process.env[key] : undefined;
   } catch {
     return undefined;
