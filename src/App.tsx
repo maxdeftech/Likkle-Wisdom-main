@@ -385,11 +385,29 @@ const App: React.FC = () => {
       try {
         const encryptedTitle = await EncryptionService.encrypt(title, user.id);
         const encryptedText = await EncryptionService.encrypt(text, user.id);
-        await supabase.from('journal_entries').insert({ user_id: user.id, title: encryptedTitle, text: encryptedText, mood, date: newEntry.date, timestamp: newEntry.timestamp });
+        const { error: insertError } = await supabase.from('journal_entries').insert({
+          user_id: user.id,
+          title: encryptedTitle,
+          text: encryptedText,
+          mood,
+          date: newEntry.date,
+          timestamp: newEntry.timestamp
+        });
+
+        if (insertError) {
+          console.error("Supabase Journal Insert Error:", insertError);
+          setNotification("Failed to sync journal to cloud. ⚠️");
+        } else {
+          setNotification('Journal saved! ✍️');
+        }
       }
-      catch (e) { console.error("Journal error:", e); }
+      catch (e) {
+        console.error("Journal processing error:", e);
+        setNotification("Error processing journal entry.");
+      }
+    } else {
+      setNotification('Journal saved locally! 📝');
     }
-    setNotification('Journal saved! ✍️');
   };
 
   const handleDeleteJournalEntry = async (id: string) => {
