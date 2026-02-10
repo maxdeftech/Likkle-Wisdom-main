@@ -10,7 +10,8 @@ const ENCRYPTION_KEY_PREFIX = 'likkle-wisdom-v1-';
  * Derives a deterministic cryptographic key from a user ID.
  * In a production app, this would ideally be derived from a user's password.
  */
-async function getDerivedKey(userId: string): Promise<CryptoKey> {
+async function getDerivedKey(userId: string): Promise<CryptoKey | null> {
+    if (!crypto?.subtle) return null;
     const encoder = new TextEncoder();
     const baseKey = await crypto.subtle.importKey(
         'raw',
@@ -43,6 +44,7 @@ export const EncryptionService = {
         if (!text || !userId) return text;
         try {
             const key = await getDerivedKey(userId);
+            if (!key) return text;
             const iv = crypto.getRandomValues(new Uint8Array(12));
             const encoder = new TextEncoder();
             const encodedText = encoder.encode(text);
@@ -72,6 +74,7 @@ export const EncryptionService = {
         if (!blob || !userId || blob.length < 16) return blob;
         try {
             const key = await getDerivedKey(userId);
+            if (!key) return blob;
             const combined = new Uint8Array(
                 atob(blob)
                     .split('')
