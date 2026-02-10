@@ -209,33 +209,35 @@ const App: React.FC = () => {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.warn("Session error:", error);
-        if (error.message && (error.message.includes("refresh_token_not_found") || error.message.includes("json_token"))) {
+        if (error.message && error.message.includes("refresh_token_not_found")) {
           supabase?.auth.signOut();
           setUser(null);
-          setView('auth');
+          if (view !== 'splash') setView('auth');
         }
       } else if (session) {
         syncUserContent(session.user.id);
         if (view === 'splash' || view === 'auth') setView('main');
+      } else if (view === 'main') {
+        setView('auth');
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        setUser({
+        // Use functional update to avoid wiping extra user state (like avatarUrl)
+        setUser(prev => ({
+          ...(prev || {}),
           id: session.user.id,
-          username: session.user.user_metadata?.username || 'Seeker',
+          username: session.user.user_metadata?.username || prev?.username || 'Seeker',
+          avatarUrl: session.user.user_metadata?.avatar_url || prev?.avatarUrl,
           isGuest: false,
-          isPremium: true // Auto-grant premium
-        });
+          isPremium: true
+        }));
         syncUserContent(session.user.id);
         if (view === 'auth' || view === 'splash') setView('main');
-      } else {
-        setUser(prev => {
-          if (prev?.isGuest) return prev;
-          if (view === 'main') setView('auth');
-          return null;
-        });
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setView('auth');
       }
     });
 

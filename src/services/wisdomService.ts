@@ -7,7 +7,7 @@ export const WisdomService = {
         if (!supabase) return [];
 
         const { data, error } = await supabase
-            .from('user_wisdoms')
+            .from('my_wisdom')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
@@ -20,8 +20,8 @@ export const WisdomService = {
         return data.map(d => ({
             id: d.id,
             userId: d.user_id,
-            patois: d.patois,
-            english: d.english,
+            patois: d.content?.patois || d.patois,
+            english: d.content?.english || d.english,
             timestamp: new Date(d.created_at).getTime()
         }));
     },
@@ -30,11 +30,10 @@ export const WisdomService = {
         if (!supabase) return { error: 'Offline' };
 
         const { data, error } = await supabase
-            .from('user_wisdoms')
+            .from('my_wisdom')
             .insert({
                 user_id: userId,
-                patois,
-                english
+                content: { patois, english }
             })
             .select()
             .single();
@@ -45,8 +44,8 @@ export const WisdomService = {
             data: {
                 id: data.id,
                 userId: data.user_id,
-                patois: data.patois,
-                english: data.english,
+                patois: data.content?.patois || patois,
+                english: data.content?.english || english,
                 timestamp: new Date(data.created_at).getTime()
             }
         };
@@ -54,7 +53,7 @@ export const WisdomService = {
 
     async deleteWisdom(id: string) {
         if (!supabase) return { error: 'Offline' };
-        const { error } = await supabase.from('user_wisdoms').delete().eq('id', id);
+        const { error } = await supabase.from('my_wisdom').delete().eq('id', id);
         return { error };
     }
 };
