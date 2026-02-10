@@ -23,14 +23,20 @@ interface FeedProps {
   user: User;
   isOnline: boolean;
   userWisdoms: UserWisdom[];
+  onModalChange?: (isOpen: boolean) => void;
 }
 
 type CreateType = 'text' | 'image' | 'video' | 'scripture' | 'wisdom';
 
-const Feed: React.FC<FeedProps> = ({ user, isOnline, userWisdoms }) => {
+const Feed: React.FC<FeedProps> = ({ user, isOnline, userWisdoms, onModalChange }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+
+  // Notify parent when modal state changes
+  useEffect(() => {
+    if (onModalChange) onModalChange(showCreate);
+  }, [showCreate, onModalChange]);
   const [createType, setCreateType] = useState<CreateType>('text');
   const [textContent, setTextContent] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);

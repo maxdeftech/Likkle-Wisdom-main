@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, UserWisdom } from './types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
@@ -58,6 +58,13 @@ const App: React.FC = () => {
   const [showMessagesInSearchMode, setShowMessagesInSearchMode] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
+  const [isFeedModalOpen, setIsFeedModalOpen] = useState(false);
+
+  // Pull-to-refresh state
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const pullStartY = useRef(0);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
 
   // Badge Counts
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
@@ -639,7 +646,7 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
-      case 'feed': return <Feed user={user} isOnline={isOnline} userWisdoms={userWisdoms} />;
+      case 'feed': return <Feed user={user} isOnline={isOnline} userWisdoms={userWisdoms} onModalChange={setIsFeedModalOpen} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
@@ -659,8 +666,8 @@ const App: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // Ignore swipes when overlays are open
-    if (showSettings || showAI || showPremium || showMessages || showFriendRequests || showFriendsList || publicProfileId || activeCategory) return;
+    // Ignore swipes when overlays are open or Feed create modal is open
+    if (showSettings || showAI || showPremium || showMessages || showFriendRequests || showFriendsList || publicProfileId || activeCategory || isFeedModalOpen) return;
     if (view !== 'main') return;
 
     const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -681,6 +688,35 @@ const App: React.FC = () => {
       setActiveTab(TAB_ORDER[currentIdx - 1]);
       setActiveCategory(null);
     }
+  };
+
+  // Pull-to-refresh handlers
+  const handlePullStart = (e: React.TouchEvent) => {
+    const scrollTop = mainScrollRef.current?.scrollTop || 0;
+    if (scrollTop === 0) {
+      pullStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handlePullMove = (e: React.TouchEvent) => {
+    const scrollTop = mainScrollRef.current?.scrollTop || 0;
+    if (scrollTop > 0 || pullStartY.current === 0) return;
+
+    const dy = e.touches[0].clientY - pullStartY.current;
+    if (dy > 0 && dy < 150) {
+      setPullDistance(dy);
+      setIsPulling(true);
+    }
+  };
+
+  const handlePullEnd = async () => {
+    if (pullDistance > 80) {
+      // Trigger refresh
+      await handleRefreshApp();
+    }
+    setIsPulling(false);
+    setPullDistance(0);
+    pullStartY.current = 0;
   };
 
   if (view === 'splash') return <SplashScreen progress={loadingProgress} message={manualRefreshMessage || undefined} />;
@@ -709,7 +745,31 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>{renderContent()}</main>
+      <main 
+        ref={mainScrollRef}
+        className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe" 
+        onTouchStart={(e) => { handleTouchStart(e); handlePullStart(e); }} 
+        onTouchMove={handlePullMove}
+        onTouchEnd={(e) => { handleTouchEnd(e); handlePullEnd(); }}
+      >
+        {/* Pull-to-refresh indicator */}
+        {isPulling && (
+          <div 
+            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50 transition-all duration-200"
+            style={{ height: `${pullDistance}px` }}
+          >
+            <div className={`flex flex-col items-center gap-1 transition-opacity ${pullDistance > 80 ? 'opacity-100' : 'opacity-40'}`}>
+              <span className={`material-symbols-outlined text-primary text-2xl ${pullDistance > 80 ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-primary">
+                {pullDistance > 80 ? 'Release to refresh' : 'Pull down'}
+              </span>
+            </div>
+          </div>
+        )}
+        {renderContent()}
+      </main>
 
       {showAuthGate && (
         <GuestAuthModal onClose={() => setShowAuthGate(false)} onSignUp={() => { setShowAuthGate(false); setView('auth'); }} />

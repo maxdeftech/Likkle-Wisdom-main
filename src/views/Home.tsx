@@ -195,18 +195,24 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           </div>
 
           {/* Header Icons */}
-          <div className="flex items-center gap-2">
-            <button onClick={() => onTabChange('discover')} aria-label="Explore" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform">
-              <span className="material-symbols-outlined text-xl">explore</span>
-            </button>
-            <button onClick={() => onOpenMessages()} aria-label="Messages" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
-              <span className="material-symbols-outlined text-xl">forum</span>
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <button onClick={() => onTabChange('discover')} aria-label="Explore" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform">
+                <span className="material-symbols-outlined text-xl">explore</span>
+              </button>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Explore</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <button onClick={() => onOpenMessages()} aria-label="Messages" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
+                <span className="material-symbols-outlined text-xl">forum</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Messages</span>
+            </div>
           </div>
         </div>
       </header>
