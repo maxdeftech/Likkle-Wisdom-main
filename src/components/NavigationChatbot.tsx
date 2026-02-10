@@ -39,12 +39,10 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     // Auto-focus input when chat opens
     useEffect(() => {
         if (isOpen) {
-            // Sequential focus attempts for maximal reliability across PWA/Mobile
             inputRef.current?.focus();
             const t1 = setTimeout(() => inputRef.current?.focus(), 50);
             const t2 = setTimeout(() => {
                 inputRef.current?.focus();
-                inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 150);
             return () => {
                 clearTimeout(t1);
@@ -52,6 +50,37 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
             };
         }
     }, [isOpen]);
+
+    // Keyboard Awareness for PWA
+    useEffect(() => {
+        const handleVisualViewportResize = () => {
+            if (window.visualViewport && windowRef.current) {
+                const vv = window.visualViewport;
+                const offset = window.innerHeight - vv.height;
+                // If offset is significant (keyboard is likely open)
+                if (offset > 100) {
+                    windowRef.current.style.bottom = `${offset + 20}px`;
+                    windowRef.current.style.height = '350px'; // Shrink slightly to fit
+                } else {
+                    windowRef.current.style.bottom = '64px'; // Default bottom-16
+                    windowRef.current.style.height = '450px';
+                }
+
+                // Ensure scroll to bottom of messages
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                }
+            }
+        };
+
+        window.visualViewport?.addEventListener('resize', handleVisualViewportResize);
+        window.visualViewport?.addEventListener('scroll', handleVisualViewportResize);
+
+        return () => {
+            window.visualViewport?.removeEventListener('resize', handleVisualViewportResize);
+            window.visualViewport?.removeEventListener('scroll', handleVisualViewportResize);
+        };
+    }, []);
 
     const handleSend = () => {
         if (!input.trim()) return;
@@ -105,7 +134,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
             {/* Chat Window */}
             <div
                 ref={windowRef}
-                className={`absolute bottom-16 right-0 w-80 h-[450px] glass rounded-[2.5rem] flex flex-col shadow-2xl transition-all duration-300 overflow-hidden border border-slate-900/10 dark:border-white/10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}
+                style={{
+                    bottom: '64px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                className={`absolute right-0 w-80 h-[450px] glass rounded-[2.5rem] flex flex-col shadow-2xl overflow-hidden border border-slate-900/10 dark:border-white/10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}
             >
                 {/* Header */}
                 <div className="p-6 pb-4 border-b border-white/5 bg-gradient-to-r from-primary/10 to-transparent">
