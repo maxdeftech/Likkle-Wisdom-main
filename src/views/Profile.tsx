@@ -20,9 +20,10 @@ interface ProfileProps {
   onClose?: () => void;
   requestCount?: number;
   unreadCount?: number;
+  onRefresh?: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0 }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -176,7 +177,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
         {isOwnProfile && (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => onRefresh ? onRefresh() : window.location.reload()}
               className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
               title="Refresh App"
             >

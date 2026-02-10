@@ -42,6 +42,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [manualRefreshMessage, setManualRefreshMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
@@ -478,6 +479,14 @@ const App: React.FC = () => {
     setActiveCategory(categoryId);
   };
 
+  const handleRefreshApp = () => {
+    setManualRefreshMessage("we deh cook up the vibes, we soon let yuh back in");
+    setView('splash');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1200);
+  };
+
   const renderContent = () => {
     if (view === 'privacy') return <LegalView type="privacy" onClose={handleBack} />;
     if (view === 'terms') return <LegalView type="terms" onClose={handleBack} />;
@@ -493,12 +502,12 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} />;
     }
   };
 
-  if (view === 'splash') return <SplashScreen progress={loadingProgress} />;
+  if (view === 'splash') return <SplashScreen progress={loadingProgress} message={manualRefreshMessage || undefined} />;
 
   return (
     <div className="relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300">
