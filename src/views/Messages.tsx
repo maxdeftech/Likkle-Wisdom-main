@@ -25,6 +25,10 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [friendshipStatus, setFriendshipStatus] = useState<'pending' | 'accepted' | 'none'>('none');
 
+    // Track active chat user in a ref so subscription callback always has the latest value
+    const activeChatUserRef = useRef<User | null>(null);
+    useEffect(() => { activeChatUserRef.current = activeChatUser; }, [activeChatUser]);
+
     // Load unread counts from DB on mount
     useEffect(() => {
         loadFriends();
@@ -38,13 +42,19 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                 if (prev.find(m => m.id === msg.id)) return prev;
                 return [...prev, msg];
             });
-            // Only increment if not currently viewing that chat
-            if (msg.senderId !== activeChatUser?.id) {
+            // Use ref to get current active chat user (avoids stale closure)
+            const currentChat = activeChatUserRef.current;
+            if (msg.senderId !== currentChat?.id) {
                 setUnreadCounts(prev => ({ ...prev, [msg.senderId]: (prev[msg.senderId] || 0) + 1 }));
+                if (onUnreadUpdate) onUnreadUpdate();
             } else {
                 // Auto-mark as read since we're in the chat
-                MessagingService.markAsRead(msg.senderId, currentUser.id);
+                MessagingService.markAsRead(msg.senderId, currentUser.id).then(() => {
+                    if (onUnreadUpdate) onUnreadUpdate();
+                });
             }
+            // Also refresh friends list to update last message preview
+            loadFriends();
         });
 
         return () => { channel?.unsubscribe(); clearInterval(interval); };
@@ -72,11 +82,17 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         if (activeChatUser) {
             MessagingService.getMessages(activeChatUser.id, currentUser.id).then(setMessages);
 
-            // Always mark as read in DB (even if local count is 0, DB may have unread)
-            setUnreadCounts(prev => ({ ...prev, [activeChatUser.id]: 0 }));
-            MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(() => {
-                // Refresh counts from DB to stay in sync, then update global badge
-                loadUnreadCounts();
+            // Immediately zero out local count for this chat
+            setUnreadCounts(prev => {
+                const updated = { ...prev, [activeChatUser.id]: 0 };
+                return updated;
+            });
+
+            // Mark all messages from this sender as read in DB
+            MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(async () => {
+                // Refresh from DB to ensure sync
+                await loadUnreadCounts();
+                // Notify App.tsx to refresh the global badge immediately
                 if (onUnreadUpdate) onUnreadUpdate();
             });
 

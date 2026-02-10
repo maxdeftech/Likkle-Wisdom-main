@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User } from '../types';
+import { supabase } from '../services/supabase';
 
 interface SettingsProps {
   user: User;
@@ -18,6 +19,31 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [editingUsername, setEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState(user.username);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) { setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters.' }); return; }
+    if (newPassword !== confirmPassword) { setPasswordMsg({ type: 'error', text: 'Passwords nuh match.' }); return; }
+    setPasswordLoading(true);
+    setPasswordMsg(null);
+    try {
+      if (!supabase) throw new Error('No connection');
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordMsg({ type: 'success', text: 'Password updated! Walk good.' });
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => { setShowChangePassword(false); setPasswordMsg(null); }, 2000);
+    } catch (err: any) {
+      setPasswordMsg({ type: 'error', text: err.message || 'Failed to update password.' });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const handleSaveUsername = () => {
     if (tempUsername.trim() && tempUsername !== user.username) {
@@ -98,6 +124,15 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                 </div>
               )}
             </div>
+            {!user.isGuest && (
+              <button
+                onClick={() => setShowChangePassword(true)}
+                className="w-full flex items-center gap-3 p-4 text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+              >
+                <span className="material-symbols-outlined">lock</span>
+                <span className="font-bold uppercase tracking-widest text-xs">Change Password</span>
+              </button>
+            )}
             <button
               onClick={onSignOut}
               className="w-full flex items-center gap-3 p-4 text-red-500 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
@@ -200,6 +235,69 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
           <p className="text-[8px] text-primary/40 uppercase font-black tracking-[0.2em]">made by maxwell definitive technologies</p>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="fixed inset-0 z-modal flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="glass rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10 bg-white dark:bg-background-dark animate-pop">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary text-2xl">lock</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">Change Password</h3>
+                <p className="text-[10px] text-slate-500 dark:text-white/40 uppercase tracking-widest font-bold">Set a new password</p>
+              </div>
+            </div>
+
+            {passwordMsg && (
+              <div className={`mb-4 p-3 rounded-xl text-[10px] font-black uppercase tracking-wider ${passwordMsg.type === 'success' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                {passwordMsg.text}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-white/40 ml-1">New Password</label>
+                <input
+                  type="password"
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-12 px-4 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-white/40 ml-1">Confirm Password</label>
+                <input
+                  type="password"
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-12 px-4 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setShowChangePassword(false); setPasswordMsg(null); setNewPassword(''); setConfirmPassword(''); }}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/80 active:scale-95 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={passwordLoading}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm bg-primary text-background-dark active:scale-95 transition-all shadow-lg disabled:opacity-50"
+                >
+                  {passwordLoading ? 'Updating...' : 'Update'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Feedback Confirmation Modal */}
       {showFeedbackModal && (

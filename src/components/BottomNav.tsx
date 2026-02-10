@@ -48,14 +48,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenFri
         aria-label="My Friends"
         className="flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 text-slate-900/40 dark:text-white/40 relative"
       >
-        <div className="relative">
-          <span className="material-symbols-outlined text-[24px]">group</span>
-          {pendingRequestCount > 0 && (
-            <span className="absolute -top-1.5 -right-2 size-4 bg-red-500 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-lg">
-              {pendingRequestCount > 9 ? '9+' : pendingRequestCount}
-            </span>
-          )}
-        </div>
+        <span className="material-symbols-outlined text-[24px]">group</span>
         <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">Friends</span>
       </button>
 

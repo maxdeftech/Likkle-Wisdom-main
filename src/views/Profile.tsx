@@ -434,49 +434,69 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       </div>
 
       {isAddingWisdom && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-fade-in">
-          <div className="absolute inset-0 bg-background-dark/80 backdrop-blur-md" onClick={() => setIsAddingWisdom(false)}></div>
-          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto glass p-8 rounded-[3rem] border-white/10 shadow-2xl animate-scale-up">
-            <h3 className="text-2xl font-black text-white mb-6 uppercase tracking-tight">Pen New Wisdom</h3>
-            <div className="space-y-6">
+        <div className="fixed inset-0 z-[200] bg-background-dark animate-fade-in flex flex-col overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pt-safe pb-4 border-b border-white/5 shrink-0">
+            <button
+              onClick={() => setIsAddingWisdom(false)}
+              className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <h3 className="text-lg font-black text-white uppercase tracking-widest">Pen New Wisdom</h3>
+            <div className="size-10"></div>
+          </div>
+
+          {/* Full-page Content */}
+          <div className="flex-1 flex flex-col px-6 py-8">
+            <div className="text-center mb-8">
+              <span className="material-symbols-outlined text-primary text-6xl opacity-40 mb-3 block">format_quote</span>
+              <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">Share Yuh Heart</h2>
+              <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em]">Pen wisdom inna Patois wid di English meaning</p>
+            </div>
+
+            <div className="flex-1 space-y-6">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">Patois (Di Real Vibe)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-3">Patois (Di Real Vibe)</label>
                 <textarea
                   value={newWisdom.patois}
                   onChange={(e) => setNewWisdom({ ...newWisdom, patois: e.target.value })}
                   placeholder="e.g. Life sweet like cane juice..."
-                  className="w-full h-32 glass rounded-2xl p-4 text-white placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5 active:bg-white/10"
+                  className="w-full h-44 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
+                  autoFocus
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">English Translation</label>
-                <input
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-3">English Translation</label>
+                <textarea
                   value={newWisdom.english}
                   onChange={(e) => setNewWisdom({ ...newWisdom, english: e.target.value })}
                   placeholder="The meaning dem..."
-                  className="w-full glass rounded-2xl p-4 text-white placeholder:text-white/10 focus:border-primary/50 transition-colors bg-white/5"
+                  rows={4}
+                  className="w-full glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
                 />
               </div>
-              <div className="flex gap-4 pt-4">
-                <button
-                  onClick={() => setIsAddingWisdom(false)}
-                  className="flex-1 py-4 glass rounded-2xl text-white/60 font-black text-xs uppercase tracking-widest"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    if (newWisdom.patois && newWisdom.english) {
-                      onAddWisdom(newWisdom.patois, newWisdom.english);
-                      setIsAddingWisdom(false);
-                      setNewWisdom({ patois: '', english: '' });
-                    }
-                  }}
-                  className="flex-1 py-4 bg-primary text-background-dark rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-                >
-                  Save Vibe
-                </button>
-              </div>
+            </div>
+
+            <div className="flex gap-4 pt-6 pb-safe shrink-0">
+              <button
+                onClick={() => setIsAddingWisdom(false)}
+                className="flex-1 py-5 glass rounded-2xl text-white/60 font-black text-xs uppercase tracking-widest"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (newWisdom.patois && newWisdom.english) {
+                    onAddWisdom(newWisdom.patois, newWisdom.english);
+                    setIsAddingWisdom(false);
+                    setNewWisdom({ patois: '', english: '' });
+                  }
+                }}
+                className="flex-1 py-5 bg-primary text-background-dark rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+              >
+                Save Vibe
+              </button>
             </div>
           </div>
         </div>

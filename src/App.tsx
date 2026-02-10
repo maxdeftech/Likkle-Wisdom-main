@@ -83,6 +83,101 @@ const App: React.FC = () => {
     }
   }, [user]);
 
+  // Realtime subscription for incoming messages — updates badge seamlessly without UI refresh
+  useEffect(() => {
+    if (!user || user.isGuest || !supabase) return;
+    const channel = supabase.channel(`app_msg_badge_${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${user.id}`
+      }, (payload) => {
+        // Increment unread badge silently
+        setUnreadMessageCount(prev => prev + 1);
+        // In-app notification
+        const m = payload.new as any;
+        if (m.sender_id) {
+          supabase!.from('profiles').select('username').eq('id', m.sender_id).single().then(({ data: profile }) => {
+            const senderName = profile?.username || 'Someone';
+            setNotification(`💬 ${senderName}: ${(m.content || '').slice(0, 40)}`);
+            // Browser / device notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Likkle Wisdom', {
+                body: `${senderName}: ${(m.content || '').slice(0, 80)}`,
+                icon: '/icon-192.png',
+                tag: `msg-${m.id}`
+              });
+            }
+          });
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${user.id}`
+      }, () => {
+        // When messages are marked as read, refresh count
+        syncUnreadCount();
+      })
+      .subscribe();
+
+    // Request notification permission once
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => { channel.unsubscribe(); };
+  }, [user, syncUnreadCount]);
+
+  // Daily scheduled push notifications: wisdom/quote at 8am, verse at 12pm
+  useEffect(() => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const checkAndSendDaily = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const todayKey = now.toISOString().split('T')[0];
+
+      // 8:00 AM — Quote/Wisdom of the day
+      if (hour === 8 && minute < 5) {
+        const sentKey = `likkle_notif_quote_${todayKey}`;
+        if (!localStorage.getItem(sentKey)) {
+          const idx = Math.floor(Math.random() * INITIAL_QUOTES.length);
+          const q = INITIAL_QUOTES[idx];
+          new Notification('Likkle Wisdom — Quote of di Day', {
+            body: `"${q.patois}" — ${q.english}`,
+            icon: '/icon-192.png',
+            tag: `daily-quote-${todayKey}`
+          });
+          localStorage.setItem(sentKey, '1');
+        }
+      }
+
+      // 12:00 PM — Verse of the day
+      if (hour === 12 && minute < 5) {
+        const sentKey = `likkle_notif_verse_${todayKey}`;
+        if (!localStorage.getItem(sentKey)) {
+          const idx = Math.floor(Math.random() * BIBLE_AFFIRMATIONS.length);
+          const v = BIBLE_AFFIRMATIONS[idx];
+          new Notification('Likkle Wisdom — Verse of di Day', {
+            body: `${v.reference}: "${v.patois}"`,
+            icon: '/icon-192.png',
+            tag: `daily-verse-${todayKey}`
+          });
+          localStorage.setItem(sentKey, '1');
+        }
+      }
+    };
+
+    // Check immediately and then every minute
+    checkAndSendDaily();
+    const interval = setInterval(checkAndSendDaily, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);

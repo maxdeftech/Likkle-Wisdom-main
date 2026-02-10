@@ -1,11 +1,24 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, CATEGORIES } from '../constants';
 import { useTTS } from '../hooks/useTTS';
 import OnlineCount from '../components/OnlineCount';
 import { presentPaywall } from '../services/revenueCat';
 import { Capacitor } from '@capacitor/core';
+
+const JAMAICA_IMAGES = [
+  { url: 'https://images.unsplash.com/photo-1541410965313-d53b3c16ef17?q=80&w=800&auto=format&fit=crop', caption: 'Blue Mountains, Jamaica' },
+  { url: 'https://images.unsplash.com/photo-1580237072617-771c3ecc4a24?q=80&w=800&auto=format&fit=crop', caption: 'Seven Mile Beach, Negril' },
+  { url: 'https://images.unsplash.com/photo-1570071677470-1544a60da887?q=80&w=800&auto=format&fit=crop', caption: 'Port Antonio, Jamaica' },
+  { url: 'https://images.unsplash.com/photo-1562613838-e7dc94e1c8bd?q=80&w=800&auto=format&fit=crop', caption: 'Jamaican Sunset' },
+  { url: 'https://images.unsplash.com/photo-1596394723269-e3e3db759e10?q=80&w=800&auto=format&fit=crop', caption: 'Tropical Paradise' },
+  { url: 'https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=800&auto=format&fit=crop', caption: 'Caribbean Waters' },
+  { url: 'https://images.unsplash.com/photo-1548282826-dd3e2c2b3f8e?q=80&w=800&auto=format&fit=crop', caption: 'Jamaican Coastline' },
+  { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', caption: 'Island Beach Vibes' },
+  { url: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?q=80&w=800&auto=format&fit=crop', caption: 'Crystal Clear Waters' },
+  { url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=800&auto=format&fit=crop', caption: 'Tropical Sunset' },
+];
 
 interface HomeProps {
   user: User;
@@ -29,6 +42,36 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
     quote: null, wisdom: null, verse: null
   });
   const { speak, stop, isSpeaking } = useTTS();
+
+  // Dynamic image rotation for Craft Wisdom section
+  const [imgIndex, setImgIndex] = useState(0);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setImgIndex(prev => (prev + 1) % JAMAICA_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSaveImage = async () => {
+    const img = JAMAICA_IMAGES[imgIndex];
+    try {
+      const response = await fetch(img.url);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `likkle-wisdom-${img.caption.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: open in new tab
+      window.open(img.url, '_blank');
+    }
+  };
 
   // Load from constants to select random items
   const loadRandomQuote = useCallback((): Quote => {
@@ -58,19 +101,29 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
   }, []);
 
   const refreshAllContent = () => {
-    const newDaily = {
-      quote: loadRandomQuote(),
-      wisdom: loadRandomQuote(),
-      verse: loadRandomVerse()
-    };
+    const q = loadRandomQuote();
+    let w = loadRandomQuote();
+    // Ensure wisdom is different from quote
+    let attempts = 0;
+    while (w.id === q.id && attempts < 10) { w = loadRandomQuote(); attempts++; }
+    const newDaily = { quote: q, wisdom: w, verse: loadRandomVerse() };
     setLocalDaily(newDaily);
     localStorage.setItem('likkle_daily_items', JSON.stringify(newDaily));
     localStorage.setItem('likkle_last_daily_update', Date.now().toString());
   };
 
   const refreshSingle = (type: 'quote' | 'wisdom' | 'verse') => {
-    const newItem = type === 'verse' ? loadRandomVerse() : loadRandomQuote();
     setLocalDaily(prev => {
+      let newItem: any;
+      if (type === 'verse') {
+        newItem = loadRandomVerse();
+      } else {
+        // Pick a quote different from the other tab
+        const otherId = type === 'quote' ? prev.wisdom?.id : prev.quote?.id;
+        newItem = loadRandomQuote();
+        let attempts = 0;
+        while (newItem.id === otherId && attempts < 10) { newItem = loadRandomQuote(); attempts++; }
+      }
       const updated = { ...prev, [type]: newItem };
       localStorage.setItem('likkle_daily_items', JSON.stringify(updated));
       return updated;
@@ -79,6 +132,10 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
   const firstName = user?.username?.split(' ')[0] || 'Seeker';
   const currentItem = activeDaily === 'quote' ? localDaily.quote : activeDaily === 'wisdom' ? localDaily.wisdom : localDaily.verse;
+
+  // Reset reveal whenever the displayed item actually changes
+  const currentItemId = currentItem?.id;
+  useEffect(() => { setReveal(false); }, [currentItemId]);
 
   const isVerse = (item: any): item is BibleAffirmation => item && 'kjv' in item;
   const isQuote = (item: any): item is Quote => item && 'english' in item;
@@ -155,7 +212,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
       </header>
 
       <section className="mb-10">
-        <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex justify-center gap-3 mb-4 pb-1">
           {[
             { id: 'quote', label: 'Quote', icon: 'wb_sunny' },
             { id: 'wisdom', label: 'Wisdom', icon: 'auto_stories' },
@@ -164,7 +221,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
             <button
               key={tab.id}
               onClick={() => { setActiveDaily(tab.id as any); setReveal(false); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all ${activeDaily === tab.id ? 'bg-primary text-background-dark shadow-lg scale-105' : 'glass text-slate-900/40 dark:text-white/40'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all ${activeDaily === tab.id ? 'bg-primary text-background-dark shadow-lg scale-105' : 'glass text-slate-900/40 dark:text-white/40'}`}
             >
               <span className="material-symbols-outlined text-sm sm:text-base">{tab.icon}</span>
               {tab.label}
@@ -255,34 +312,32 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         </div>
       </section>
 
-      <div className="mb-10 px-1">
-        <button
-          onClick={() => {
-            if (Capacitor.getPlatform() === 'web') {
+      {Capacitor.getPlatform() === 'web' && (
+        <div className="mb-10 px-1">
+          <button
+            onClick={() => {
               window.open('https://www.paypal.com/donate/?business=maxwelldefinitivetechnologies@gmail.com&currency_code=USD', '_blank');
-            } else {
-              presentPaywall();
-            }
-          }}
-          className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
-        >
-          <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none"></div>
-          <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
-                <span className="material-symbols-outlined text-xl">volunteer_activism</span>
+            }}
+            className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
+          >
+            <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none"></div>
+            <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
+                  <span className="material-symbols-outlined text-xl">volunteer_activism</span>
+                </div>
+                <div className="text-left">
+                  <h3 className="text-white font-black text-sm uppercase tracking-wide">Support Likkle Wisdom</h3>
+                  <p className="text-white/50 text-[10px] font-bold tracking-wider">Help keep the vibes flowin'</p>
+                </div>
               </div>
-              <div className="text-left">
-                <h3 className="text-white font-black text-sm uppercase tracking-wide">Support Likkle Wisdom</h3>
-                <p className="text-white/50 text-[10px] font-bold tracking-wider">Help keep the vibes flowin'</p>
+              <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
+                <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
               </div>
             </div>
-            <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
-              <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
-            </div>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-6">
@@ -309,11 +364,51 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
       </section>
 
       <section
-        onClick={onOpenAI}
         className={`glass rounded-[2rem] sm:rounded-[3rem] overflow-hidden relative group cursor-pointer mb-10 border-white/5 shadow-2xl h-56 sm:h-72 transition-all ${!isOnline ? 'grayscale-[0.5]' : ''}`}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10"></div>
-        <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" src="https://images.unsplash.com/photo-1541410965313-d53b3c16ef17?q=80&w=800&auto=format&fit=crop" alt="Island" />
+
+        {/* Dynamic rotating images */}
+        {JAMAICA_IMAGES.map((img, i) => (
+          <img
+            key={i}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
+            src={img.url}
+            alt={img.caption}
+          />
+        ))}
+
+        {/* Image caption */}
+        <div className="absolute top-4 left-4 z-20">
+          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">
+            {JAMAICA_IMAGES[imgIndex].caption}
+          </span>
+        </div>
+
+        {/* View / Save buttons */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowImageViewer(true); }}
+            className="size-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white active:scale-90 transition-all"
+            title="View larger"
+          >
+            <span className="material-symbols-outlined text-base">fullscreen</span>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleSaveImage(); }}
+            className="size-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white active:scale-90 transition-all"
+            title="Save image"
+          >
+            <span className="material-symbols-outlined text-base">download</span>
+          </button>
+        </div>
+
+        {/* Dot indicators */}
+        <div className="absolute bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+          {JAMAICA_IMAGES.map((_, i) => (
+            <div key={i} className={`rounded-full transition-all duration-300 ${i === imgIndex ? 'w-5 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-white/30'}`} />
+          ))}
+        </div>
 
         {!isOnline && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-8 text-center bg-background-dark/40 backdrop-blur-[2px]">
@@ -323,7 +418,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           </div>
         )}
 
-        <div className="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 z-20 w-full flex justify-between pr-12 sm:pr-20 items-end">
+        <div onClick={onOpenAI} className="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 z-20 w-full flex justify-between pr-12 sm:pr-20 items-end">
           <div className="space-y-1 sm:space-y-3">
             <p className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-1">
               AI Magic <span className="material-symbols-outlined text-[14px] sm:text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
@@ -335,6 +430,44 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           </div>
         </div>
       </section>
+
+      {/* Image Viewer Lightbox */}
+      {showImageViewer && (
+        <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center animate-fade-in" onClick={() => setShowImageViewer(false)}>
+          <button className="absolute top-6 right-6 size-12 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all z-10">
+            <span className="material-symbols-outlined text-2xl">close</span>
+          </button>
+          <img
+            src={JAMAICA_IMAGES[imgIndex].url.replace('w=800', 'w=1600')}
+            alt={JAMAICA_IMAGES[imgIndex].caption}
+            className="max-w-full max-h-[80vh] object-contain rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex items-center gap-4 mt-6">
+            <p className="text-white/60 text-sm font-bold">{JAMAICA_IMAGES[imgIndex].caption}</p>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSaveImage(); }}
+              className="flex items-center gap-2 px-5 py-3 bg-primary text-background-dark rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg"
+            >
+              <span className="material-symbols-outlined text-sm">download</span>
+              Save
+            </button>
+          </div>
+          {/* Navigation arrows */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex - 1 + JAMAICA_IMAGES.length) % JAMAICA_IMAGES.length); }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">chevron_left</span>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex + 1) % JAMAICA_IMAGES.length); }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all"
+          >
+            <span className="material-symbols-outlined text-2xl">chevron_right</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
