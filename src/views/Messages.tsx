@@ -62,17 +62,19 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
 
     const loadUnreadCounts = async () => {
         if (!supabase) return;
+        // Fetch all messages and filter client-side to handle both text/boolean read column
         const { data } = await supabase
             .from('messages')
-            .select('sender_id')
-            .eq('receiver_id', currentUser.id)
-            .eq('read', false);
+            .select('sender_id, read')
+            .eq('receiver_id', currentUser.id);
 
         if (data) {
             const counts: Record<string, number> = {};
-            data.forEach((m: any) => {
-                counts[m.sender_id] = (counts[m.sender_id] || 0) + 1;
-            });
+            data
+                .filter((m: any) => m.read === false || m.read === 'false')
+                .forEach((m: any) => {
+                    counts[m.sender_id] = (counts[m.sender_id] || 0) + 1;
+                });
             setUnreadCounts(counts);
         }
     };
@@ -89,14 +91,27 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             });
 
             // Mark all messages from this sender as read in DB
-            MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(async () => {
+            const doMarkRead = async () => {
+                await MessagingService.markAsRead(activeChatUser.id, currentUser.id);
                 // Refresh from DB to ensure sync
                 await loadUnreadCounts();
                 // Notify App.tsx to refresh the global badge immediately
                 if (onUnreadUpdate) onUnreadUpdate();
-            });
+            };
+            doMarkRead();
+
+            // Also mark as read again after a brief delay to catch any race conditions
+            const timer = setTimeout(doMarkRead, 2000);
 
             SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus);
+
+            // When leaving chat, mark as read one more time to be safe
+            return () => {
+                clearTimeout(timer);
+                MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(() => {
+                    if (onUnreadUpdate) onUnreadUpdate();
+                });
+            };
         }
     }, [activeChatUser, currentUser.id]);
 
@@ -118,17 +133,23 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         }
     };
 
-    const handleDeleteChat = async (friendshipId: string) => {
-        if (!confirm("Are you sure you want to delete this chat?")) return;
-        const { error } = await SocialService.deleteFriendship(friendshipId);
-        if (!error) {
-            setFriends(prev => prev.filter(f => f.id !== friendshipId));
-            setViewState('inbox');
-            setActiveChatUser(null);
-        } else {
-            const msg = typeof error === 'string' ? error : error.message;
-            alert("Failed to delete chat: " + msg);
+    const handleDeleteChat = async (friendId: string) => {
+        if (!confirm("Are you sure you want to delete this chat? Messages will be removed.")) return;
+        // Only delete messages between the two users, NOT the friendship
+        if (supabase) {
+            await supabase
+                .from('messages')
+                .delete()
+                .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`);
         }
+        // Clear local messages for this chat
+        setMessages([]);
+        // Refresh friends list to clear last message preview
+        await loadFriends();
+        await loadUnreadCounts();
+        if (onUnreadUpdate) onUnreadUpdate();
+        setViewState('inbox');
+        setActiveChatUser(null);
     };
 
     // --- LONG-PRESS CONTEXT MENU ---
@@ -173,9 +194,9 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         }
     };
 
-    const handleDeleteChatFromMenu = async (friendshipId: string) => {
+    const handleDeleteChatFromMenu = async (friendId: string) => {
         setContextMenuFriend(null);
-        handleDeleteChat(friendshipId);
+        handleDeleteChat(friendId);
     };
 
     // Sort friends: pinned first, then by last message time
@@ -280,7 +301,7 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                         style={{ top: Math.min(contextMenuPos.y, window.innerHeight - 180), left: Math.min(contextMenuPos.x, window.innerWidth - 200) }}
                     >
                         <button
-                            onClick={() => handleDeleteChatFromMenu(contextMenuFriend.id)}
+                            onClick={() => handleDeleteChatFromMenu(contextMenuFriend.friendId)}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors"
                         >
                             <span className="material-symbols-outlined text-red-400 text-lg">delete</span>
@@ -328,19 +349,6 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                         </p>
                     </div>
                 </div>
-                {/* Delete Chat Button */}
-                {friends.find(f => f.friendId === activeChatUser?.id) && (
-                    <button
-                        onClick={() => {
-                            const friendship = friends.find(f => f.friendId === activeChatUser?.id);
-                            if (friendship) handleDeleteChat(friendship.id);
-                        }}
-                        className="text-red-400/60 p-2 hover:bg-red-400/10 rounded-full transition-colors"
-                        title="Delete Chat"
-                    >
-                        <span className="material-symbols-outlined">delete</span>
-                    </button>
-                )}
             </div>
 
             {/* Messages List */}

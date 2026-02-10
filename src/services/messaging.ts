@@ -5,6 +5,10 @@ import { ChatMessage } from '../types';
 
 const STORE_KEY = 'likkle_wisdom_messages';
 
+// Helper: the DB 'read' column may be text ('true'/'false') or boolean
+// We handle both cases to be safe
+const toBoolean = (val: any): boolean => val === true || val === 'true';
+
 export const MessagingService = {
     // --- Local Storage (IndexedDB) ---
 
@@ -33,7 +37,7 @@ export const MessagingService = {
                     receiverId: m.receiver_id,
                     content: m.content,
                     timestamp: new Date(m.created_at).getTime(),
-                    read: m.read,
+                    read: toBoolean(m.read),
                     type: m.type || 'text'
                 }));
                 // Sync to local
@@ -66,26 +70,65 @@ export const MessagingService = {
             });
         });
 
-        // Remote update
+        // Remote update - try both string and boolean since column type may vary
         if (supabase) {
-            await supabase
-                .from('messages')
-                .update({ read: true })
-                .eq('sender_id', senderId)
-                .eq('receiver_id', receiverId)
-                .eq('read', false);
+            try {
+                // First, get ALL messages from this sender to this receiver that are unread
+                // We fetch without filtering on read, then check client-side
+                const { data: allMsgs } = await supabase
+                    .from('messages')
+                    .select('id, read')
+                    .eq('sender_id', senderId)
+                    .eq('receiver_id', receiverId);
+
+                if (allMsgs && allMsgs.length > 0) {
+                    // Filter for unread (handle both string 'false' and boolean false)
+                    const unreadIds = allMsgs
+                        .filter(m => m.read === false || m.read === 'false')
+                        .map(m => m.id);
+
+                    if (unreadIds.length > 0) {
+                        // Update each message individually by ID to avoid RLS filter issues
+                        for (const id of unreadIds) {
+                            await supabase
+                                .from('messages')
+                                .update({ read: 'true' })
+                                .eq('id', id);
+                        }
+
+                        // If string didn't work, also try boolean true
+                        const { data: stillUnread } = await supabase
+                            .from('messages')
+                            .select('id, read')
+                            .in('id', unreadIds);
+
+                        if (stillUnread) {
+                            const remaining = stillUnread.filter(m => m.read === false || m.read === 'false');
+                            for (const m of remaining) {
+                                await supabase
+                                    .from('messages')
+                                    .update({ read: true })
+                                    .eq('id', m.id);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('[markAsRead] exception:', err);
+            }
         }
     },
 
     async getUnreadCount(userId: string): Promise<number> {
         if (!supabase) return 0;
-        const { count, error } = await supabase
+        // Fetch all messages for this user and filter client-side to handle both text/boolean
+        const { data, error } = await supabase
             .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('receiver_id', userId)
-            .eq('read', false);
+            .select('id, read')
+            .eq('receiver_id', userId);
 
-        return error ? 0 : (count || 0);
+        if (error || !data) return 0;
+        return data.filter(m => m.read === false || m.read === 'false').length;
     },
 
     // --- Realtime / Network ---
@@ -108,7 +151,7 @@ export const MessagingService = {
                     receiverId: m.receiver_id,
                     content: m.content,
                     timestamp: new Date(m.created_at).getTime(),
-                    read: m.read,
+                    read: toBoolean(m.read),
                     type: m.type || 'text'
                 };
                 onMessage(msg);
@@ -142,14 +185,14 @@ export const MessagingService = {
         // 1. Save locally
         await this.saveMessage(newMessage);
 
-        // 2. Save to DB (Persistence)
+        // 2. Save to DB (Persistence) - read column is text type
         const { error } = await supabase.from('messages').insert({
             id: newMessage.id,
             sender_id: senderId,
             receiver_id: receiverId,
             content: content,
             type: 'text',
-            read: false,
+            read: 'false',
             created_at: new Date(newMessage.timestamp).toISOString()
         });
 

@@ -145,21 +145,34 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const displayUser = isOwnProfile ? user : (publicUser || { ...user, username: 'Searching...', avatarUrl: '' });
   const displayMemberSince = isOwnProfile ? memberSinceText : (user.isGuest ? 'Wisdom Seeker (Guest)' : (loadingStats ? 'Joining...' : (joinedAt ? memberSinceText : 'Lifelong Seeker')));
 
+  // Track actual app usage days (not just journal entries)
   const activeDaysThisMonth = useMemo(() => {
-    if (!entries || entries.length === 0) return 0;
+    const storageKey = `active_days_${user.id}`;
+    const today = new Date().toDateString();
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-    const uniqueDays = new Set(
-      entries
-        .filter(entry => {
-          const entryDate = new Date(entry.timestamp);
-          return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
-        })
-        .map(entry => new Date(entry.timestamp).toDateString())
-    );
-    return uniqueDays.size;
-  }, [entries]);
+
+    // Load stored active days
+    let storedDays: string[] = [];
+    try {
+      storedDays = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    } catch { storedDays = []; }
+
+    // Add today if not already tracked
+    if (!storedDays.includes(today)) {
+      storedDays.push(today);
+      localStorage.setItem(storageKey, JSON.stringify(storedDays));
+    }
+
+    // Filter to only this month's days
+    const thisMonthDays = storedDays.filter(dayStr => {
+      const d = new Date(dayStr);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    return thisMonthDays.length;
+  }, [user.id]);
 
   const scrollToCabinet = () => {
     cabinetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -448,37 +461,36 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           </div>
 
           {/* Full-page Content */}
-          <div className="flex-1 flex flex-col px-6 py-8">
-            <div className="text-center mb-8">
-              <span className="material-symbols-outlined text-primary text-6xl opacity-40 mb-3 block">format_quote</span>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">Share Yuh Heart</h2>
+          <div className="flex-1 flex flex-col px-6 pt-6 pb-safe">
+            <div className="text-center mb-4">
+              <span className="material-symbols-outlined text-primary text-5xl opacity-40 mb-2 block">format_quote</span>
+              <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">Share Yuh Heart</h2>
               <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em]">Pen wisdom inna Patois wid di English meaning</p>
             </div>
 
-            <div className="flex-1 space-y-6">
+            <div className="space-y-4 flex-1">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-3">Patois (Di Real Vibe)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">Patois (Di Real Vibe)</label>
                 <textarea
                   value={newWisdom.patois}
                   onChange={(e) => setNewWisdom({ ...newWisdom, patois: e.target.value })}
                   placeholder="e.g. Life sweet like cane juice..."
-                  className="w-full h-44 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
+                  className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-3">English Translation</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">English Translation</label>
                 <textarea
                   value={newWisdom.english}
                   onChange={(e) => setNewWisdom({ ...newWisdom, english: e.target.value })}
                   placeholder="The meaning dem..."
-                  rows={4}
-                  className="w-full glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
+                  className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
                 />
               </div>
             </div>
 
-            <div className="flex gap-4 pt-6 pb-safe shrink-0">
+            <div className="flex gap-4 pt-4 shrink-0">
               <button
                 onClick={() => setIsAddingWisdom(false)}
                 className="flex-1 py-5 glass rounded-2xl text-white/60 font-black text-xs uppercase tracking-widest"
