@@ -96,7 +96,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           <OnlineCount />
         </div>
         <div className="flex gap-3">
-          <button onClick={onOpenMessages} className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white active:scale-95 transition-all relative">
+          <button onClick={() => onOpenMessages()} className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white active:scale-95 transition-all relative">
             <span className="material-symbols-outlined text-xl sm:text-2xl">forum</span>
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">

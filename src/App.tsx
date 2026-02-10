@@ -639,7 +639,15 @@ const App: React.FC = () => {
         <NavigationChatbot onNavigate={handleBotNavigate} />
       )}
       {showFriendRequests && user && (
-        <FriendRequestList userId={user.id} onClose={() => setShowFriendRequests(false)} onRequestsChanged={() => { /* maybe refresh profile badge */ }} />
+        <FriendRequestList
+          userId={user.id}
+          onClose={() => setShowFriendRequests(false)}
+          onRequestsChanged={() => { /* maybe refresh profile badge */ }}
+          onOpenAddFriend={() => {
+            setShowFriendRequests(false);
+            handleOpenMessages(true);
+          }}
+        />
       )}
       {view === 'main' && <BottomNav activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} />}
       <PWAInstallPrompt />

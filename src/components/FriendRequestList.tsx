@@ -7,9 +7,10 @@ interface FriendRequestListProps {
     userId: string;
     onClose: () => void;
     onRequestsChanged: () => void;
+    onOpenAddFriend: () => void;
 }
 
-const FriendRequestList: React.FC<FriendRequestListProps> = ({ userId, onClose, onRequestsChanged }) => {
+const FriendRequestList: React.FC<FriendRequestListProps> = ({ userId, onClose, onRequestsChanged, onOpenAddFriend }) => {
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -31,12 +32,17 @@ const FriendRequestList: React.FC<FriendRequestListProps> = ({ userId, onClose, 
     };
 
     return (
-        <div className="fixed inset-0 z-modal bg-background-dark/95 backdrop-blur-xl animate-fade-in flex flex-col p-6">
+        <div className="fixed inset-0 z-modal bg-background-dark/95 backdrop-blur-xl animate-fade-in flex flex-col p-6 pt-safe">
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">Friend Requests</h2>
-                <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/50 active:scale-95 transition-all">
-                    <span className="material-symbols-outlined">close</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={onOpenAddFriend} className="size-10 rounded-full glass border-primary/20 flex items-center justify-center text-primary active:scale-95 transition-all">
+                        <span className="material-symbols-outlined">person_add</span>
+                    </button>
+                    <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/50 active:scale-95 transition-all">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4">
