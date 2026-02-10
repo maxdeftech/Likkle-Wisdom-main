@@ -447,9 +447,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       </div>
 
       {isAddingWisdom && (
-        <div className="fixed inset-0 z-[200] bg-background-dark animate-fade-in flex flex-col overflow-y-auto">
+        <div className="fixed inset-0 z-[200] bg-background-dark animate-fade-in overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 pt-safe pb-4 border-b border-white/5 shrink-0">
+          <div className="flex items-center justify-between px-6 pt-safe pb-4 border-b border-white/5">
             <button
               onClick={() => setIsAddingWisdom(false)}
               className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all"
@@ -460,37 +460,31 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             <div className="size-10"></div>
           </div>
 
-          {/* Full-page Content */}
-          <div className="flex-1 flex flex-col px-6 pt-6 pb-safe">
+          <div className="px-6 pt-6 pb-12">
             <div className="text-center mb-4">
               <span className="material-symbols-outlined text-primary text-5xl opacity-40 mb-2 block">format_quote</span>
               <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">Share Yuh Heart</h2>
               <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.3em]">Pen wisdom inna Patois wid di English meaning</p>
             </div>
 
-            <div className="space-y-4 flex-1">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">Patois (Di Real Vibe)</label>
-                <textarea
-                  value={newWisdom.patois}
-                  onChange={(e) => setNewWisdom({ ...newWisdom, patois: e.target.value })}
-                  placeholder="e.g. Life sweet like cane juice..."
-                  className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">English Translation</label>
-                <textarea
-                  value={newWisdom.english}
-                  onChange={(e) => setNewWisdom({ ...newWisdom, english: e.target.value })}
-                  placeholder="The meaning dem..."
-                  className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5"
-                />
-              </div>
-            </div>
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">Patois (Di Real Vibe)</label>
+            <textarea
+              value={newWisdom.patois}
+              onChange={(e) => setNewWisdom({ ...newWisdom, patois: e.target.value })}
+              placeholder="e.g. Life sweet like cane juice..."
+              className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5 mb-4"
+              autoFocus
+            />
 
-            <div className="flex gap-4 pt-4 shrink-0">
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">English Translation</label>
+            <textarea
+              value={newWisdom.english}
+              onChange={(e) => setNewWisdom({ ...newWisdom, english: e.target.value })}
+              placeholder="The meaning dem..."
+              className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5 mb-4"
+            />
+
+            <div className="flex gap-1">
               <button
                 onClick={() => setIsAddingWisdom(false)}
                 className="flex-1 py-5 glass rounded-2xl text-white/60 font-black text-xs uppercase tracking-widest"
