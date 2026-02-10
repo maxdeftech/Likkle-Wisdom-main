@@ -36,6 +36,17 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
         }
     }, [messages, isOpen]);
 
+    // Auto-focus input when chat opens
+    useEffect(() => {
+        if (isOpen) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+                windowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 500); // Give time for opening animation
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
+
     const handleSend = () => {
         if (!input.trim()) return;
 
