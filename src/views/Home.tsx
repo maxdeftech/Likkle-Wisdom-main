@@ -146,7 +146,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
           <button
             onClick={(e) => { e.stopPropagation(); refreshSingle(activeDaily); setReveal(false); }}
-            className="absolute top-6 right-6 size-10 rounded-full glass border border-white/10 flex items-center justify-center text-white/40 active:scale-95 transition-all z-20 hover:text-primary hover:border-primary/20"
+            className="absolute top-6 right-6 size-10 rounded-full glass border border-white/10 flex items-center justify-center text-slate-900/40 dark:text-white/40 active:scale-95 transition-all z-20 hover:text-primary hover:border-primary/20"
             title="Refresh this card"
           >
             <span className="material-symbols-outlined text-lg">refresh</span>
@@ -165,7 +165,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
                 <p className="text-primary text-[10px] sm:text-[12px] font-black uppercase tracking-[0.3em]">
                   {currentItem.reference}
                 </p>
-                <p className="text-white/40 text-[9px] font-bold italic">
+                <p className="text-slate-900/40 dark:text-white/40 text-[9px] font-bold italic">
                   "{currentItem.kjv}"
                 </p>
               </div>

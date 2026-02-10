@@ -12,13 +12,13 @@ const Favorites: React.FC<FavoritesProps> = ({ quotes, onFavorite }) => {
   return (
     <div className="p-6 pb-24 animate-fade-in">
       <header className="flex items-center justify-between py-6">
-        <h2 className="text-2xl font-bold tracking-tight">Your Favorites</h2>
+        <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Your Favorites</h2>
         <span className="material-symbols-outlined text-primary">more_horiz</span>
       </header>
 
       <div className="flex gap-3 mb-6 overflow-x-auto no-scrollbar pb-2">
         {['All', 'Life', 'Success', 'Caution'].map((cat, i) => (
-          <div key={cat} className={`flex h-9 shrink-0 items-center justify-center rounded-full px-5 transition-all ${i === 0 ? 'bg-primary text-background-dark font-bold' : 'glass text-white text-sm font-medium'}`}>
+          <div key={cat} className={`flex h-9 shrink-0 items-center justify-center rounded-full px-5 transition-all ${i === 0 ? 'bg-primary text-background-dark font-black' : 'glass text-slate-900 dark:text-white text-sm font-medium'}`}>
             {cat}
           </div>
         ))}
@@ -34,8 +34,8 @@ const Favorites: React.FC<FavoritesProps> = ({ quotes, onFavorite }) => {
                 <span className="material-symbols-outlined fill-1">favorite</span>
               </button>
             </div>
-            <p className="text-white text-lg font-bold leading-snug mb-3">{quote.patois}</p>
-            <p className="text-white/60 text-sm italic font-medium border-t border-white/5 pt-3 leading-relaxed">
+            <p className="text-slate-900 dark:text-white text-lg font-black leading-snug mb-3">"{quote.patois}"</p>
+            <p className="text-slate-900/60 dark:text-white/60 text-sm italic font-medium border-t border-slate-100 dark:border-white/5 pt-3 leading-relaxed">
               "{quote.english}"
             </p>
             <div className="mt-4 flex gap-2">
@@ -45,9 +45,9 @@ const Favorites: React.FC<FavoritesProps> = ({ quotes, onFavorite }) => {
             </div>
           </div>
         )) : (
-          <div className="text-center py-20">
-            <span className="material-symbols-outlined text-5xl opacity-20 mb-4">favorite_border</span>
-            <p className="text-white/40">No saved wisdom yet. Start explore!</p>
+          <div className="text-center py-20 opacity-30">
+            <span className="material-symbols-outlined text-5xl mb-4 text-slate-900 dark:text-white">favorite_border</span>
+            <p className="text-slate-900 dark:text-white font-black uppercase text-[10px] tracking-widest">No saved wisdom yet. Start explore!</p>
           </div>
         )}
       </div>

@@ -30,12 +30,12 @@ const PremiumUpgrade: React.FC<PremiumUpgradeProps> = ({ onClose, onPurchaseSucc
   };
 
   return (
-    <div className="fixed inset-0 z-modal bg-background-dark flex flex-col font-display overflow-y-auto no-scrollbar pb-12">
+    <div className="fixed inset-0 z-modal bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto no-scrollbar pb-12 transition-colors duration-300">
       <div className="absolute inset-0 cosmic-bg opacity-30 pointer-events-none"></div>
 
       {/* Header */}
       <header className="relative z-10 flex items-center p-6 justify-between">
-        <button onClick={onClose} className="size-11 flex items-center justify-center rounded-full glass text-white/50 hover:bg-white/10 transition-colors">
+        <button onClick={onClose} className="size-11 flex items-center justify-center rounded-full glass text-slate-900/50 dark:text-white/50 hover:bg-primary/10 transition-colors">
           <span className="material-symbols-outlined">close</span>
         </button>
         <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Support</h2>
