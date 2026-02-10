@@ -168,7 +168,7 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                                 {msg.action && (
                                     <button
                                         onClick={() => handleActionClick(msg.action)}
-                                        className="mt-3 w-full bg-primary/20 border border-primary/30 text-primary py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/30 transition-all flex items-center justify-center gap-2"
+                                        className="mt-3 w-full bg-[#13ec5b] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 shadow-emerald-500/20"
                                     >
                                         <span className="material-symbols-outlined text-sm">rocket_launch</span>
                                         Take me deh

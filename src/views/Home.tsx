@@ -16,9 +16,11 @@ interface HomeProps {
   onCategoryClick: (id: string) => void;
   onOpenMessages: () => void;
   unreadCount?: number;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0 }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0, isDarkMode, onToggleTheme }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
   const [localDaily, setLocalDaily] = useState<{ quote: Quote | null; wisdom: Quote | null; verse: BibleAffirmation | null }>({
@@ -105,17 +107,30 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           <button onClick={() => onTabChange('discover')} aria-label="Search" className="size-11 sm:size-14 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white">
             <span className="material-symbols-outlined text-xl sm:text-2xl">search</span>
           </button>
-          <button
-            onClick={() => onTabChange('me')}
-            aria-label="View Profile"
-            className="size-11 sm:size-14 rounded-full border-2 border-primary overflow-hidden active:scale-90 transition-transform"
-          >
-            <img
-              className="w-full h-full object-cover"
-              src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/200`}
-              alt="Profile"
-            />
-          </button>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => onTabChange('me')}
+              aria-label="View Profile"
+              className="size-11 sm:size-14 rounded-full border-2 border-primary overflow-hidden active:scale-90 transition-transform shadow-lg"
+            >
+              <img
+                className="w-full h-full object-cover"
+                src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/200`}
+                alt="Profile"
+              />
+            </button>
+            <button
+              onClick={onToggleTheme}
+              aria-label="Toggle theme"
+              className={`h-5 w-9 rounded-full relative transition-all duration-300 flex items-center px-0.5 shadow-inner ${isDarkMode ? 'bg-primary/40' : 'bg-slate-200'}`}
+            >
+              <div className={`size-3.5 bg-white rounded-full shadow-md transition-transform duration-300 transform ${isDarkMode ? 'translate-x-4' : 'translate-x-0'} flex items-center justify-center`}>
+                <span className="material-symbols-outlined text-[8px] text-slate-900 font-black">
+                  {isDarkMode ? 'dark_mode' : 'light_mode'}
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
       </header>
 
