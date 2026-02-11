@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -8,14 +8,13 @@ interface SettingsProps {
   isDarkMode: boolean;
   onToggleTheme: () => void;
   onClose: () => void;
-  onUpgrade: () => void;
   onSignOut: () => void;
   onUpdateUser: (data: Partial<User>) => void;
   onOpenPrivacy: () => void;
   onOpenTerms: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, onClose, onUpgrade, onSignOut, onUpdateUser, onOpenPrivacy, onOpenTerms }) => {
+const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, onClose, onSignOut, onUpdateUser, onOpenPrivacy, onOpenTerms }) => {
   const [editingUsername, setEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState(user.username);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -24,6 +23,31 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Notification preferences (from profiles)
+  const [notifyMessages, setNotifyMessages] = useState(true);
+  const [quoteTime, setQuoteTime] = useState('08:00');
+  const [verseTime, setVerseTime] = useState('12:00');
+  const [wisdomTime, setWisdomTime] = useState('08:00');
+
+  useEffect(() => {
+    if (user.isGuest || !supabase) return;
+    supabase.from('profiles').select('notify_messages, notify_quote_time, notify_verse_time, notify_wisdom_time').eq('id', user.id).maybeSingle().then(({ data }) => {
+      if (data) {
+        setNotifyMessages(data.notify_messages !== false);
+        setQuoteTime(data.notify_quote_time ? String(data.notify_quote_time).slice(0, 5) : '08:00');
+        setVerseTime(data.notify_verse_time ? String(data.notify_verse_time).slice(0, 5) : '12:00');
+        setWisdomTime(data.notify_wisdom_time ? String(data.notify_wisdom_time).slice(0, 5) : '08:00');
+      }
+    });
+  }, [user.id, user.isGuest]);
+
+  const saveNotificationPref = (field: string, value: boolean | string) => {
+    if (!supabase || user.isGuest) return;
+    const payload: Record<string, unknown> = { [field]: value };
+    if (field !== 'notify_messages') payload.updated_at = new Date().toISOString();
+    supabase.from('profiles').update(payload).eq('id', user.id).then(() => {});
+  };
 
   const handleChangePassword = async () => {
     if (newPassword.length < 6) { setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters.' }); return; }
@@ -72,34 +96,6 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
       </header>
 
       <div className="flex flex-col gap-6 px-4 py-6">
-        <div className="glass rounded-xl p-5 border-jamaican-gold/30 bg-gradient-to-br from-jamaican-gold/10 to-transparent shadow-lg">
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <span className="text-[10px] font-black tracking-widest uppercase text-jamaican-gold bg-jamaican-gold/20 px-2 py-1 rounded-full border border-jamaican-gold/30">
-                {user.isPremium ? 'Premium Active' : 'Limited Offer'}
-              </span>
-              <h2 className="text-xl font-extrabold mt-2 text-slate-900 dark:text-white">
-                {user.isPremium ? 'Yuh have di Full Wisdom' : 'Unlock Full Wisdom'}
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-white/70 mt-1">
-                {user.isPremium ? 'All features unlocked.' : 'Get AI wisdom & offline access.'}
-              </p>
-            </div>
-            <span className="material-symbols-outlined text-jamaican-gold text-4xl">
-              {user.isPremium ? 'verified' : 'workspace_premium'}
-            </span>
-          </div>
-          {!user.isPremium && (
-            <button
-              onClick={onUpgrade}
-              className="w-full bg-jamaican-gold text-black font-black py-4 rounded-2xl flex justify-between px-5 items-center active:scale-95 transition-all shadow-xl"
-            >
-              <span>{user.isGuest ? 'Sign in to Upgrade' : 'Upgrade to Premium'}</span>
-              <span className="bg-black/10 px-3 py-1 rounded-lg text-xs">$0.00 USD</span>
-            </button>
-          )}
-        </div>
-
         <section>
           <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Account</h3>
           <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">
@@ -182,6 +178,68 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
             </div>
           </div>
         </section>
+
+        {!user.isGuest && (
+          <section>
+            <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Daily notifications</h3>
+            <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <span className="material-symbols-outlined">forum</span>
+                  </div>
+                  <span className="font-bold text-slate-700 dark:text-white/80">Message notifications</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setNotifyMessages(!notifyMessages);
+                    saveNotificationPref('notify_messages', !notifyMessages);
+                  }}
+                  aria-label="Toggle message notifications"
+                  className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 ${notifyMessages ? 'bg-primary' : 'bg-slate-200'}`}
+                >
+                  <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${notifyMessages ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </button>
+              </div>
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-lg">schedule</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-white/40">Quote of the day</span>
+                </div>
+                <input
+                  type="time"
+                  value={quoteTime}
+                  onChange={(e) => { setQuoteTime(e.target.value); saveNotificationPref('notify_quote_time', e.target.value); }}
+                  className="w-full rounded-xl bg-slate-100 dark:bg-white/5 border-0 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-lg">menu_book</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-white/40">Verse of the day</span>
+                </div>
+                <input
+                  type="time"
+                  value={verseTime}
+                  onChange={(e) => { setVerseTime(e.target.value); saveNotificationPref('notify_verse_time', e.target.value); }}
+                  className="w-full rounded-xl bg-slate-100 dark:bg-white/5 border-0 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-lg">auto_awesome</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-white/40">Wisdom of the day</span>
+                </div>
+                <input
+                  type="time"
+                  value={wisdomTime}
+                  onChange={(e) => { setWisdomTime(e.target.value); saveNotificationPref('notify_wisdom_time', e.target.value); }}
+                  className="w-full rounded-xl bg-slate-100 dark:bg-white/5 border-0 px-4 py-3 text-sm font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+          </section>
+        )}
 
         <section>
           <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Legal</h3>

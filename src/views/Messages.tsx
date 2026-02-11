@@ -11,29 +11,44 @@ interface MessagesProps {
     onClose: () => void;
     onOpenProfile: (userId: string) => void;
     initialSearch?: boolean;
+    initialChatUserId?: string | null;
     onUnreadUpdate?: () => void;
 }
 
 type ViewState = 'inbox' | 'chat' | 'search';
 
-const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile, initialSearch = false, onUnreadUpdate }) => {
+const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile, initialSearch = false, initialChatUserId, onUnreadUpdate }) => {
     const [viewState, setViewState] = useState<ViewState>(initialSearch ? 'search' : 'inbox');
     const [activeChatUser, setActiveChatUser] = useState<User | null>(null);
     const [friends, setFriends] = useState<Friendship[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+    const [messagesLoading, setMessagesLoading] = useState(false);
+    const [replyingToMessage, setReplyingToMessage] = useState<ChatMessage | null>(null);
+    const [contextMessage, setContextMessage] = useState<ChatMessage | null>(null);
+    const [messageMenuPos, setMessageMenuPos] = useState({ x: 0, y: 0 });
+    const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
+    const [messageReactions, setMessageReactions] = useState<Record<string, { count: number; userReacted: boolean }>>({});
+    const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
+    const messageLongPressTimerRef = useRef<number | null>(null);
     const [friendshipStatus, setFriendshipStatus] = useState<'pending' | 'accepted' | 'none'>('none');
+    const [friendsLoading, setFriendsLoading] = useState(true);
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const typingTimeoutRef = useRef<number | null>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
     // Track active chat user in a ref so subscription callback always has the latest value
     const activeChatUserRef = useRef<User | null>(null);
     useEffect(() => { activeChatUserRef.current = activeChatUser; }, [activeChatUser]);
 
-    // Load unread counts from DB on mount
+    // Load friends and unread counts on mount; show loading until friends are loaded
     useEffect(() => {
-        loadFriends();
+        setFriendsLoading(true);
+        loadFriends().then(() => setFriendsLoading(false));
         loadUnreadCounts();
-        const interval = setInterval(loadFriends, 30000);
+        const interval = setInterval(() => loadFriends(), 30000);
 
         // Subscribe to all incoming messages
         const channel = MessagingService.subscribeToMessages(currentUser.id, (msg) => {
@@ -82,7 +97,38 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     useEffect(() => {
         // Load history when entering chat and always mark as read
         if (activeChatUser) {
-            MessagingService.getMessages(activeChatUser.id, currentUser.id).then(setMessages);
+            setReplyingToMessage(null);
+            setContextMessage(null);
+            setOtherUserTyping(false);
+            setMessagesLoading(true);
+
+            // Show cached messages immediately when available so the app loads as fast as possible
+            MessagingService.getMessagesFromCache(activeChatUser.id, currentUser.id).then((cached) => {
+                if (cached.length > 0) {
+                    setMessages(cached);
+                    setMessagesLoading(false);
+                    const ids = cached.map(m => m.id);
+                    MessagingService.getReactionsForMessages(ids, currentUser.id).then(setMessageReactions);
+                    MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id).then(setPinnedMessageId);
+                    MessagingService.getStarredMessageIds(currentUser.id, ids).then(setStarredIds);
+                }
+            });
+
+            // Full sync from Supabase; when done, show latest and hide loading if still visible
+            MessagingService.getMessages(activeChatUser.id, currentUser.id).then((msgs) => {
+                setMessages(msgs);
+                setMessagesLoading(false);
+                const ids = msgs.map(m => m.id);
+                if (ids.length > 0) {
+                    MessagingService.getReactionsForMessages(ids, currentUser.id).then(setMessageReactions);
+                    MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id).then(setPinnedMessageId);
+                    MessagingService.getStarredMessageIds(currentUser.id, ids).then(setStarredIds);
+                } else {
+                    setMessageReactions({});
+                    setPinnedMessageId(null);
+                    setStarredIds(new Set());
+                }
+            });
 
             // Immediately zero out local count for this chat
             setUnreadCounts(prev => {
@@ -118,15 +164,85 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
     const loadFriends = async () => {
         const f = await SocialService.getFriends(currentUser.id);
         setFriends(f);
+        return f;
     };
+
+    // Auto-open chat when opened from notification (initialChatUserId)
+    useEffect(() => {
+        if (!initialChatUserId || friends.length === 0) return;
+        const friend = friends.find(f => f.friendId === initialChatUserId);
+        if (friend) {
+            setActiveChatUser({ id: friend.friendId, username: friend.friendName, avatarUrl: friend.friendAvatar, isGuest: false, isPremium: false });
+            setViewState('chat');
+        }
+    }, [initialChatUserId, friends]);
+
+    // Scroll to latest message when messages load or change
+    useEffect(() => {
+        if (messagesLoading || messages.length === 0) return;
+        const t = requestAnimationFrame(() => {
+            scrollAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
+        return () => cancelAnimationFrame(t);
+    }, [messagesLoading, messages.length]);
+
+    // Typing indicator: listen for other user typing (on our channel)
+    useEffect(() => {
+        if (!supabase || !currentUser.id) return;
+        const ch = supabase.channel(`messages:${currentUser.id}`)
+            .on('broadcast', { event: 'user_typing' }, (payload: { payload?: { userId?: string } }) => {
+                const uid = payload.payload?.userId;
+                if (uid && activeChatUserRef.current?.id === uid) {
+                    setOtherUserTyping(true);
+                    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                    typingTimeoutRef.current = window.setTimeout(() => setOtherUserTyping(false), 3000);
+                }
+            })
+            .subscribe();
+        return () => { ch.unsubscribe(); };
+    }, [currentUser.id]);
+
+    // Typing indicator: subscribe to other user's channel and send our typing (debounced)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const typingSendChannelRef = useRef<any>(null);
+    const typingDebounceRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (!supabase || !activeChatUser) {
+            typingSendChannelRef.current?.unsubscribe();
+            typingSendChannelRef.current = null;
+            return;
+        }
+        const ch = supabase.channel(`messages:${activeChatUser.id}`).subscribe();
+        typingSendChannelRef.current = ch;
+        return () => {
+            ch.unsubscribe();
+            typingSendChannelRef.current = null;
+        };
+    }, [activeChatUser?.id]);
+
+    useEffect(() => {
+        if (!activeChatUser || !inputText.trim()) return;
+        if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+        typingDebounceRef.current = window.setTimeout(() => {
+            typingSendChannelRef.current?.send({
+                type: 'broadcast',
+                event: 'user_typing',
+                payload: { userId: currentUser.id }
+            });
+            typingDebounceRef.current = null;
+        }, 300);
+        return () => { if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current); };
+    }, [activeChatUser?.id, currentUser.id, inputText]);
 
     const handleSendMessage = async () => {
         if (!inputText.trim() || !activeChatUser || friendshipStatus === 'pending') return;
         const text = inputText;
+        const replyToId = replyingToMessage?.id;
         setInputText('');
+        setReplyingToMessage(null);
 
         try {
-            const msg = await MessagingService.sendMessage(currentUser.id, activeChatUser.id, text);
+            const msg = await MessagingService.sendMessage(currentUser.id, activeChatUser.id, text, replyToId);
             if (msg) setMessages(prev => [...prev, msg]);
         } catch (e) {
             console.error("Failed to send", e);
@@ -199,6 +315,43 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
         handleDeleteChat(friendId);
     };
 
+    const handleMessageContextPin = async () => {
+        if (!contextMessage || !activeChatUser) return;
+        await MessagingService.setPinnedMessage(currentUser.id, activeChatUser.id, contextMessage.id);
+        setPinnedMessageId(contextMessage.id);
+        setContextMessage(null);
+    };
+    const handleMessageContextDelete = async () => {
+        if (!contextMessage || contextMessage.senderId !== currentUser.id) return;
+        await MessagingService.deleteMessage(contextMessage.id, currentUser.id);
+        setMessages(prev => prev.filter(m => m.id !== contextMessage.id));
+        if (pinnedMessageId === contextMessage.id) setPinnedMessageId(null);
+        setContextMessage(null);
+    };
+    const handleMessageContextLike = async () => {
+        if (!contextMessage) return;
+        const r = messageReactions[contextMessage.id];
+        if (r?.userReacted) {
+            await MessagingService.removeReaction(contextMessage.id, currentUser.id);
+            setMessageReactions(prev => ({ ...prev, [contextMessage.id]: { count: (r.count || 1) - 1, userReacted: false } }));
+        } else {
+            await MessagingService.addReaction(contextMessage.id, currentUser.id);
+            setMessageReactions(prev => ({ ...prev, [contextMessage.id]: { count: (prev[contextMessage.id]?.count || 0) + 1, userReacted: true } }));
+        }
+        setContextMessage(null);
+    };
+    const handleMessageContextStar = async () => {
+        if (!contextMessage) return;
+        if (starredIds.has(contextMessage.id)) {
+            await MessagingService.unstarMessage(currentUser.id, contextMessage.id);
+            setStarredIds(prev => { const n = new Set(prev); n.delete(contextMessage.id); return n; });
+        } else {
+            await MessagingService.starMessage(currentUser.id, contextMessage.id);
+            setStarredIds(prev => new Set([...prev, contextMessage.id]));
+        }
+        setContextMessage(null);
+    };
+
     // Sort friends: pinned first, then by last message time
     const sortedFriends = [...friends].sort((a, b) => {
         const aPinned = pinnedChats.includes(a.friendId);
@@ -228,7 +381,14 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {friends.length === 0 ? (
+                {friendsLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <span className="material-symbols-outlined text-4xl text-primary/50 animate-pulse mb-4">schedule</span>
+                        <p className="text-white/60 text-sm font-bold uppercase tracking-widest px-6">
+                            Di message dem a fawud in deh, just wul on likkle bit
+                        </p>
+                    </div>
+                ) : friends.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-48 text-white/30 text-center">
                         <span className="material-symbols-outlined text-4xl mb-2">forum</span>
                         <p className="text-xs font-bold uppercase tracking-wider">No friends yet</p>
@@ -352,32 +512,149 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             </div>
 
             {/* Messages List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, i) => {
-                    const isMe = msg.senderId === currentUser.id;
-                    const showTime = i === messages.length - 1 || (messages[i + 1] && messages[i + 1].timestamp - msg.timestamp > 300000); // 5 min gap
-
-                    return (
-                        <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                            <div className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed ${isMe
-                                ? 'bg-primary text-background-dark rounded-tr-sm font-medium shadow-lg'
-                                : 'glass text-white rounded-tl-sm border border-white/10'
-                                }`}>
-                                {msg.content}
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messagesLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <span className="material-symbols-outlined text-4xl text-primary/50 animate-pulse mb-4">schedule</span>
+                        <p className="text-white/60 text-sm font-bold uppercase tracking-widest px-6">
+                            Di message dem a fawud in deh, just wul on likkle bit
+                        </p>
+                    </div>
+                ) : (
+                <>
+                    {pinnedMessageId && (() => {
+                        const pinned = messages.find(m => m.id === pinnedMessageId);
+                        if (!pinned) return null;
+                        return (
+                            <div className="flex items-center gap-2 py-2 px-3 rounded-xl bg-white/5 border border-white/10 mb-2">
+                                <span className="material-symbols-outlined text-jamaican-gold text-sm">push_pin</span>
+                                <span className="text-[10px] text-white/60 truncate flex-1">Pinned: {pinned.content.slice(0, 60)}{pinned.content.length > 60 ? '…' : ''}</span>
                             </div>
-                            {showTime && (
-                                <span className="text-[9px] text-white/20 mt-1 font-bold uppercase tracking-widest">
-                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            )}
-                        </div>
-                    );
-                })}
-                <div id="scroll-anchor"></div>
+                        );
+                    })()}
+                    {messages.map((msg, i) => {
+                        const isMe = msg.senderId === currentUser.id;
+                        const showTime = i === messages.length - 1 || (messages[i + 1] && messages[i + 1].timestamp - msg.timestamp > 300000); // 5 min gap
+                        const repliedTo = msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null;
+                        const reaction = messageReactions[msg.id];
+                        const isStarred = starredIds.has(msg.id);
+
+                        return (
+                            <div
+                                key={msg.id}
+                                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                                onTouchStart={(e) => {
+                                    messageLongPressTimerRef.current = window.setTimeout(() => {
+                                        setContextMessage(msg);
+                                        setMessageMenuPos({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+                                    }, 500);
+                                }}
+                                onTouchEnd={() => { if (messageLongPressTimerRef.current) clearTimeout(messageLongPressTimerRef.current); messageLongPressTimerRef.current = null; }}
+                                onTouchMove={() => { if (messageLongPressTimerRef.current) clearTimeout(messageLongPressTimerRef.current); messageLongPressTimerRef.current = null; }}
+                                onMouseDown={(e) => {
+                                    messageLongPressTimerRef.current = window.setTimeout(() => {
+                                        setContextMessage(msg);
+                                        setMessageMenuPos({ x: e.clientX, y: e.clientY });
+                                    }, 500);
+                                }}
+                                onMouseUp={() => { if (messageLongPressTimerRef.current) clearTimeout(messageLongPressTimerRef.current); messageLongPressTimerRef.current = null; }}
+                                onMouseLeave={() => { if (messageLongPressTimerRef.current) clearTimeout(messageLongPressTimerRef.current); messageLongPressTimerRef.current = null; }}
+                            >
+                                <div className={`max-w-[80%] group flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                                    <div className={`p-3 rounded-2xl text-sm leading-relaxed ${isMe
+                                        ? 'bg-primary text-background-dark rounded-tr-sm font-medium shadow-lg'
+                                        : 'glass text-white rounded-tl-sm border border-white/10'
+                                        }`}>
+                                        {repliedTo && (
+                                            <div className={`mb-2 pl-2 border-l-2 ${isMe ? 'border-background-dark/30' : 'border-white/30'} text-[10px] opacity-80 truncate max-w-full`}>
+                                                Replying to: {repliedTo.content.slice(0, 40)}{repliedTo.content.length > 40 ? '…' : ''}
+                                            </div>
+                                        )}
+                                        {msg.content}
+                                        {(reaction?.count ?? 0) > 0 && (
+                                            <div className="flex items-center gap-1 mt-1.5">
+                                                <span className={`material-symbols-outlined text-xs ${reaction?.userReacted ? 'text-primary fill-primary' : 'text-white/40'}`}>thumb_up</span>
+                                                <span className="text-[9px] opacity-80">{reaction?.count}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setReplyingToMessage(msg); }}
+                                            className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-primary"
+                                            aria-label="Reply"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">reply</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                {isStarred && (
+                                    <span className="material-symbols-outlined text-jamaican-gold text-xs mt-0.5" title="Starred">star</span>
+                                )}
+                                {showTime && (
+                                    <span className="text-[9px] text-white/20 mt-1 font-bold uppercase tracking-widest">
+                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                    <div ref={scrollAnchorRef} id="scroll-anchor"></div>
+                </>
+                )}
             </div>
 
+            {/* Message long-press context menu */}
+            {contextMessage && (
+                <>
+                    <div className="fixed inset-0 z-[300]" onClick={() => setContextMessage(null)} aria-hidden="true" />
+                    <div
+                        className="fixed z-[301] glass rounded-2xl p-2 shadow-2xl border border-white/10 min-w-[180px] animate-scale-up"
+                        style={{ top: Math.min(messageMenuPos.y, window.innerHeight - 220), left: Math.min(messageMenuPos.x, window.innerWidth - 200) }}
+                    >
+                        <button onClick={handleMessageContextPin} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5">
+                            <span className="material-symbols-outlined text-jamaican-gold text-lg">push_pin</span>
+                            <span className="text-xs font-black uppercase tracking-wider">Pin</span>
+                        </button>
+                        {contextMessage.senderId === currentUser.id && (
+                            <button onClick={handleMessageContextDelete} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5">
+                                <span className="material-symbols-outlined text-red-400 text-lg">delete</span>
+                                <span className="text-xs font-black uppercase tracking-wider">Delete</span>
+                            </button>
+                        )}
+                        <button onClick={handleMessageContextLike} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5">
+                            <span className="material-symbols-outlined text-primary text-lg">thumb_up</span>
+                            <span className="text-xs font-black uppercase tracking-wider">{messageReactions[contextMessage.id]?.userReacted ? 'Unlike' : 'Like'}</span>
+                        </button>
+                        <button onClick={handleMessageContextStar} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5">
+                            <span className={`material-symbols-outlined text-lg ${starredIds.has(contextMessage.id) ? 'text-jamaican-gold fill-jamaican-gold' : 'text-white/60'}`}>star</span>
+                            <span className="text-xs font-black uppercase tracking-wider">{starredIds.has(contextMessage.id) ? 'Unstar' : 'Star'}</span>
+                        </button>
+                    </div>
+                </>
+            )}
+
+            {/* Typing indicator */}
+                {otherUserTyping && activeChatUser && (
+                    <div className="px-4 py-2 flex items-center gap-2 text-white/50 text-xs">
+                        <span className="flex gap-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </span>
+                        <span className="font-bold uppercase tracking-wider">{activeChatUser.username} is typing...</span>
+                    </div>
+                )}
             {/* Input Area */}
             <div className="p-4 glass border-t border-white/5 z-10">
+                {replyingToMessage && (
+                    <div className="flex items-center justify-between gap-2 mb-2 py-2 px-3 rounded-xl bg-white/5 border border-white/10">
+                        <span className="text-[10px] text-white/60 truncate flex-1">Replying to: {replyingToMessage.content.slice(0, 50)}{replyingToMessage.content.length > 50 ? '…' : ''}</span>
+                        <button onClick={() => setReplyingToMessage(null)} className="shrink-0 p-1 rounded-lg hover:bg-white/10 text-white/60" aria-label="Cancel reply">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    </div>
+                )}
                 {friendshipStatus === 'pending' ? (
                     <div className="flex items-center justify-center p-4 bg-white/5 rounded-2xl border border-white/10">
                         <p className="text-white/40 text-xs font-bold uppercase tracking-widest">Waiting for approval to send more messages</p>
@@ -516,7 +793,7 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
                                 <div className="size-10 rounded-full bg-white/10 overflow-hidden">
                                     {u.avatarUrl ? <img src={u.avatarUrl} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-white">{u.username[0]}</span>}
                                 </div>
-                                {(u.isAdmin || u.isDonor) && (
+                                {u.isAdmin && (
                                     <div className="absolute -bottom-1 -right-1">
                                         <UserBadge user={u} size="sm" />
                                     </div>
@@ -526,7 +803,6 @@ const UserSearch: React.FC<{ currentUser: User, onClose: () => void, onFriendAdd
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-white font-bold">{u.username}</h3>
                                 </div>
-                                {u.isPremium && <span className="text-[10px] bg-jamaican-gold/20 text-jamaican-gold px-1.5 py-0.5 rounded font-black">PREMIUM</span>}
                             </div>
                         </div>
                         {(() => {

@@ -21,6 +21,16 @@ export const MessagingService = {
         });
     },
 
+    /** Fast: returns only from local cache (IndexedDB). Use to show messages immediately while full sync runs. */
+    async getMessagesFromCache(userId: string, currentUserId: string): Promise<ChatMessage[]> {
+        const allMessages = await get<ChatMessage[]>(STORE_KEY) || [];
+        return allMessages.filter(m =>
+            (m.senderId === userId && m.receiverId === currentUserId) ||
+            (m.senderId === currentUserId && m.receiverId === userId) ||
+            (m.type === 'admin-broadcast')
+        ).sort((a, b) => a.timestamp - b.timestamp);
+    },
+
     async getMessages(userId: string, currentUserId: string): Promise<ChatMessage[]> {
         // 1. Try fetching from Supabase first
         if (supabase) {
@@ -38,7 +48,8 @@ export const MessagingService = {
                     content: m.content,
                     timestamp: new Date(m.created_at).getTime(),
                     read: toBoolean(m.read),
-                    type: m.type || 'text'
+                    type: m.type || 'text',
+                    replyToId: m.reply_to_id || undefined
                 }));
                 // Sync to local
                 for (const msg of cloudMsgs) {
@@ -186,7 +197,8 @@ export const MessagingService = {
                     content: m.content,
                     timestamp: new Date(m.created_at).getTime(),
                     read: toBoolean(m.read),
-                    type: m.type || 'text'
+                    type: m.type || 'text',
+                    replyToId: m.reply_to_id || undefined
                 };
                 onMessage(msg);
                 this.saveMessage(msg);
@@ -203,7 +215,7 @@ export const MessagingService = {
         return channel;
     },
 
-    async sendMessage(senderId: string, receiverId: string, content: string) {
+    async sendMessage(senderId: string, receiverId: string, content: string, replyToId?: string) {
         if (!supabase) return;
 
         const newMessage: ChatMessage = {
@@ -213,14 +225,15 @@ export const MessagingService = {
             content,
             timestamp: Date.now(),
             read: false,
-            type: 'text'
+            type: 'text',
+            replyToId
         };
 
         // 1. Save locally
         await this.saveMessage(newMessage);
 
         // 2. Save to DB (Persistence) - read column is text type
-        const { error } = await supabase.from('messages').insert({
+        const insertPayload: Record<string, unknown> = {
             id: newMessage.id,
             sender_id: senderId,
             receiver_id: receiverId,
@@ -228,7 +241,9 @@ export const MessagingService = {
             type: 'text',
             read: 'false',
             created_at: new Date(newMessage.timestamp).toISOString()
-        });
+        };
+        if (replyToId) insertPayload.reply_to_id = replyToId;
+        const { error } = await supabase.from('messages').insert(insertPayload);
 
         if (error) {
             console.error("Message save error:", error);
@@ -267,5 +282,74 @@ export const MessagingService = {
             .subscribe();
 
         return channel;
+    },
+
+    async deleteMessage(messageId: string, senderId: string) {
+        if (!supabase) return { error: 'No connection' };
+        const { error } = await supabase.from('messages').delete().eq('id', messageId).eq('sender_id', senderId);
+        return { error: error?.message };
+    },
+
+    async addReaction(messageId: string, userId: string) {
+        if (!supabase) return;
+        await supabase.from('message_reactions').upsert({ message_id: messageId, user_id: userId, reaction_type: 'like' }, { onConflict: 'message_id,user_id' });
+    },
+    async removeReaction(messageId: string, userId: string) {
+        if (!supabase) return;
+        await supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', userId);
+    },
+    async getReactionsForMessages(messageIds: string[], userId: string): Promise<Record<string, { count: number; userReacted: boolean }>> {
+        if (!supabase || messageIds.length === 0) return {};
+        const { data } = await supabase.from('message_reactions').select('message_id, user_id').in('message_id', messageIds);
+        const countMap: Record<string, number> = {};
+        const userReactedSet = new Set<string>();
+        data?.forEach((r: { message_id: string; user_id: string }) => {
+            countMap[r.message_id] = (countMap[r.message_id] || 0) + 1;
+            if (r.user_id === userId) userReactedSet.add(r.message_id);
+        });
+        const out: Record<string, { count: number; userReacted: boolean }> = {};
+        messageIds.forEach(id => { out[id] = { count: countMap[id] || 0, userReacted: userReactedSet.has(id) }; });
+        return out;
+    },
+
+    async setPinnedMessage(userId: string, otherUserId: string, messageId: string) {
+        if (!supabase) return;
+        await supabase.from('chat_pinned_messages').upsert({ user_id: userId, other_user_id: otherUserId, message_id: messageId }, { onConflict: 'user_id,other_user_id' });
+    },
+    async getPinnedMessage(userId: string, otherUserId: string): Promise<string | null> {
+        if (!supabase) return null;
+        const { data } = await supabase.from('chat_pinned_messages').select('message_id').eq('user_id', userId).eq('other_user_id', otherUserId).maybeSingle();
+        return data?.message_id ?? null;
+    },
+
+    async starMessage(userId: string, messageId: string) {
+        if (!supabase) return;
+        await supabase.from('starred_messages').upsert({ user_id: userId, message_id: messageId }, { onConflict: 'user_id,message_id' });
+    },
+    async unstarMessage(userId: string, messageId: string) {
+        if (!supabase) return;
+        await supabase.from('starred_messages').delete().eq('user_id', userId).eq('message_id', messageId);
+    },
+    async getStarredMessageIds(userId: string, messageIds: string[]): Promise<Set<string>> {
+        if (!supabase || messageIds.length === 0) return new Set();
+        const { data } = await supabase.from('starred_messages').select('message_id').eq('user_id', userId).in('message_id', messageIds);
+        return new Set((data || []).map((r: { message_id: string }) => r.message_id));
+    },
+
+    async getStarredMessagesWithDetails(userId: string): Promise<Array<{ messageId: string; content: string; timestamp: number; otherUserId: string; otherUsername: string }>> {
+        if (!supabase) return [];
+        const { data: starred } = await supabase.from('starred_messages').select('message_id').eq('user_id', userId).order('created_at', { ascending: false });
+        if (!starred?.length) return [];
+        const ids = starred.map((r: { message_id: string }) => r.message_id);
+        const { data: msgs } = await supabase.from('messages').select('id, content, created_at, sender_id, receiver_id').in('id', ids);
+        if (!msgs?.length) return [];
+        const otherIds = [...new Set(msgs.map((m: { sender_id: string; receiver_id: string }) => m.sender_id === userId ? m.receiver_id : m.sender_id))];
+        const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', otherIds);
+        const nameMap: Record<string, string> = {};
+        profiles?.forEach((p: { id: string; username: string }) => { nameMap[p.id] = p.username || 'Seeker'; });
+        return msgs.map((m: { id: string; content: string; created_at: string; sender_id: string; receiver_id: string }) => {
+            const otherUserId = m.sender_id === userId ? m.receiver_id : m.sender_id;
+            return { messageId: m.id, content: m.content, timestamp: new Date(m.created_at).getTime(), otherUserId, otherUsername: nameMap[otherUserId] || 'Seeker' };
+        });
     }
 };

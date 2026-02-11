@@ -4,6 +4,7 @@ import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, Us
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
 import { initializePurchases } from './services/revenueCat';
+import { PushService } from './services/pushService';
 import { EncryptionService } from './services/encryption';
 import { WisdomService } from './services/wisdomService';
 import SplashScreen from './views/SplashScreen';
@@ -26,6 +27,55 @@ import Messages from './views/Messages';
 import FriendRequestList from './components/FriendRequestList';
 import NavigationChatbot from './components/NavigationChatbot';
 import Feed from './views/Feed';
+
+export type NotificationPayload = {
+  message: string;
+  type?: 'message' | 'verse' | 'quote' | 'wisdom' | 'info';
+  action?: { type: string; value?: string };
+};
+
+const SWIPE_THRESHOLD = 50;
+
+const NotificationBanner: React.FC<{
+  payload: NotificationPayload;
+  onDismiss: () => void;
+  onTap: () => void;
+}> = ({ payload, onDismiss, onTap }) => {
+  const touchStartY = useRef(0);
+  const dismissedRef = useRef(false);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    dismissedRef.current = false;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dismissedRef.current) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta < -SWIPE_THRESHOLD) {
+      dismissedRef.current = true;
+      onDismiss();
+    }
+  };
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 z-notification px-4 pt-safe pt-4 animate-fade-in"
+      onClick={() => { onTap(); onDismiss(); }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { onTap(); onDismiss(); } }}
+    >
+      <div className="glass backdrop-blur-xl py-3 px-4 rounded-2xl flex items-center gap-3 shadow-2xl border border-white/10 bg-white/10 dark:bg-white/5 min-h-[52px]">
+        <span className="material-symbols-outlined text-primary text-xl shrink-0">
+          {payload.type === 'message' ? 'forum' : payload.type === 'verse' ? 'menu_book' : 'notifications_active'}
+        </span>
+        <p className="text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-wider flex-1 truncate">
+          {payload.message}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
@@ -54,9 +104,13 @@ const App: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<NotificationPayload | null>(null);
+  const showNotification = useCallback((message: string, opts?: { type?: NotificationPayload['type']; action?: NotificationPayload['action'] }) => {
+    setNotification({ message, ...opts });
+  }, []);
   const [showMessages, setShowMessages] = useState(false);
   const [showMessagesInSearchMode, setShowMessagesInSearchMode] = useState(false);
+  const [initialMessageSenderId, setInitialMessageSenderId] = useState<string | null>(null);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
   const [isFeedModalOpen, setIsFeedModalOpen] = useState(false);
@@ -108,6 +162,13 @@ const App: React.FC = () => {
     }
   }, [user, syncAlertsCount]);
 
+  // Register push token for native notifications
+  useEffect(() => {
+    if (user && !user.isGuest && PushService.isNative()) {
+      PushService.registerAndSyncToken(user.id);
+    }
+  }, [user?.id, user?.isGuest]);
+
   // Realtime subscription for incoming messages — updates badge seamlessly without UI refresh
   useEffect(() => {
     if (!user || user.isGuest || !supabase) return;
@@ -125,7 +186,11 @@ const App: React.FC = () => {
         if (m.sender_id) {
           supabase!.from('profiles').select('username').eq('id', m.sender_id).single().then(({ data: profile }) => {
             const senderName = profile?.username || 'Someone';
-            setNotification(`💬 ${senderName}: ${(m.content || '').slice(0, 40)}`);
+            setNotification({
+              message: `💬 ${senderName}: ${(m.content || '').slice(0, 40)}`,
+              type: 'message',
+              action: { type: 'messages', value: m.sender_id }
+            });
             // Browser / device notification
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification('Likkle Wisdom', {
@@ -206,11 +271,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      setNotification('Signal back! Syncing vibes...');
+      setNotification({ message: 'Signal back! Syncing vibes...', type: 'info' });
     };
     const handleOffline = () => {
       setIsOnline(false);
-      setNotification('Offline mode active. Keep growing.');
+      setNotification({ message: 'Offline mode active. Keep growing.', type: 'info' });
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -461,10 +526,10 @@ const App: React.FC = () => {
         }
       } catch (e) {
         console.error("Bookmark error:", e);
-        setNotification("Couldn't sync to cloud.");
+        setNotification({ message: "Couldn't sync to cloud.", type: 'info' });
       }
     }
-    setNotification(newState ? 'Saved to cabinet! ✨' : 'Removed from cabinet.');
+    setNotification({ message: newState ? 'Saved to cabinet! ✨' : 'Removed from cabinet.', type: 'info' });
   };
 
   const handleBookmarkBibleVerse = async (verse: any) => {
@@ -497,7 +562,7 @@ const App: React.FC = () => {
         }
       } catch (e) { console.error("Bible save error:", e); }
     }
-    setNotification(!exists ? 'Verse saved to cabinet! 📖' : 'Verse removed.');
+    setNotification({ message: !exists ? 'Verse saved to cabinet! 📖' : 'Verse removed.', type: 'info' });
   };
 
   const handleAddJournalEntry = async (title: string, text: string, mood: string) => {
@@ -522,17 +587,17 @@ const App: React.FC = () => {
 
         if (insertError) {
           console.error("Supabase Journal Insert Error:", insertError);
-          setNotification("Failed to sync journal to cloud. ⚠️");
+          setNotification({ message: "Failed to sync journal to cloud. ⚠️", type: 'info' });
         } else {
-          setNotification('Journal saved! ✍️');
+          setNotification({ message: 'Journal saved! ✍️', type: 'info' });
         }
       }
       catch (e) {
         console.error("Journal processing error:", e);
-        setNotification("Error processing journal entry.");
+        setNotification({ message: "Error processing journal entry.", type: 'info' });
       }
     } else {
-      setNotification('Journal saved locally! 📝');
+      setNotification({ message: 'Journal saved locally! 📝', type: 'info' });
     }
   };
 
@@ -542,7 +607,7 @@ const App: React.FC = () => {
       try { await supabase.from('journal_entries').delete().eq('timestamp', parseInt(id)); }
       catch (e) { console.error("Delete journal error:", e); }
     }
-    setNotification('Entry removed! 🗑️');
+    setNotification({ message: 'Entry removed! 🗑️', type: 'info' });
   };
 
   const handleRemoveBookmark = async (id: string, type: string) => {
@@ -554,10 +619,11 @@ const App: React.FC = () => {
       try { await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('item_id', id); }
       catch (e) { console.error("Remove bookmark error:", e); }
     }
-    setNotification('Removed! 🗑️');
+    setNotification({ message: 'Removed! 🗑️', type: 'info' });
   };
 
   const handleSignOut = async () => {
+    if (user?.id) await PushService.removeToken(user.id);
     if (supabase) await supabase.auth.signOut();
     setUser(null);
     setShowSettings(false);
@@ -569,9 +635,9 @@ const App: React.FC = () => {
     const { data, error } = await WisdomService.createUserWisdom(user.id, patois, english);
     if (data) {
       setUserWisdoms(prev => [data, ...prev]);
-      setNotification("Wisdom planted in yuh garden! 🌱");
+      setNotification({ message: "Wisdom planted in yuh garden! 🌱", type: 'info' });
     } else if (error) {
-      setNotification(`Could not plant wisdom: ${error}`);
+      setNotification({ message: `Could not plant wisdom: ${error}`, type: 'info' });
     }
   };
 
@@ -579,7 +645,7 @@ const App: React.FC = () => {
     const { error } = await WisdomService.deleteWisdom(id);
     if (!error) {
       setUserWisdoms(prev => prev.filter(w => w.id !== id));
-      setNotification("Wisdom returned to di stars. ✨");
+      setNotification({ message: "Wisdom returned to di stars. ✨", type: 'info' });
     }
   };
 
@@ -604,6 +670,20 @@ const App: React.FC = () => {
     setShowMessagesInSearchMode(searchMode);
   };
 
+  const handleNotificationTap = useCallback((action?: NotificationPayload['action']) => {
+    setNotification(null);
+    if (action?.type === 'messages') {
+      setInitialMessageSenderId(action.value || null);
+      handleOpenMessages(false);
+    } else if (action?.type === 'bible') {
+      setActiveTab('bible');
+      setView('main');
+    } else if (action?.type === 'home') {
+      setActiveTab('home');
+      setView('main');
+    }
+  }, []);
+
   const handleOpenFriendRequests = () => {
     setShowFriendRequests(true);
   };
@@ -613,6 +693,11 @@ const App: React.FC = () => {
   };
 
   const handleOpenPublicProfile = (id: string) => {
+    setShowMessages(false);
+    setShowMessagesInSearchMode(false);
+    setShowFriendRequests(false);
+    setShowFriendsList(false);
+    setShowAlerts(false);
     setPublicProfileId(id);
   };
 
@@ -675,7 +760,7 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} onOpenMessagesWithUser={(userId) => { setInitialMessageSenderId(userId); handleOpenMessages(false); }} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
   };
@@ -763,12 +848,11 @@ const App: React.FC = () => {
       )}
 
       {notification && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-tooltip animate-fade-in pointer-events-none w-fit px-8">
-          <div className="bg-jamaican-gold py-2.5 px-4 rounded-full flex items-center gap-2 shadow-2xl border border-black/10">
-            <span className="material-symbols-outlined text-black font-black text-sm">notifications_active</span>
-            <p className="text-black font-black text-[9px] uppercase tracking-wider whitespace-nowrap">{notification}</p>
-          </div>
-        </div>
+        <NotificationBanner
+          payload={notification}
+          onDismiss={() => setNotification(null)}
+          onTap={() => handleNotificationTap(notification.action)}
+        />
       )}
       <main 
         ref={mainScrollRef}
@@ -806,7 +890,6 @@ const App: React.FC = () => {
           isDarkMode={isDarkMode}
           onToggleTheme={handleToggleTheme}
           onClose={() => setShowSettings(false)}
-          onUpgrade={handleOpenPremium}
           onSignOut={handleSignOut}
           onUpdateUser={handleUpdateUser}
           onOpenPrivacy={() => {
@@ -836,14 +919,15 @@ const App: React.FC = () => {
           onClose={() => setShowPremium(false)}
           onPurchaseSuccess={() => {
             setShowPremium(false);
-            setNotification("Thanks fi di support!");
+            setNotification({ message: "Thanks fi di support!", type: 'info' });
           }}
         />
       )}
       {showMessages && user && (
         <Messages
           currentUser={user}
-          onClose={() => { setShowMessages(false); setShowMessagesInSearchMode(false); }}
+          initialChatUserId={initialMessageSenderId}
+          onClose={() => { setShowMessages(false); setShowMessagesInSearchMode(false); setInitialMessageSenderId(null); }}
           onOpenProfile={handleOpenPublicProfile}
           initialSearch={showMessagesInSearchMode}
           onUnreadUpdate={syncUnreadCount}
@@ -862,24 +946,28 @@ const App: React.FC = () => {
         />
       )}
       {publicProfileId && user && (
-        <Profile
-          user={user}
-          entries={journalEntries}
-          quotes={quotes}
-          iconic={iconicQuotes}
-          bible={bibleAffirmations}
-          bookmarkedVerses={bookmarkedVerses}
-          userWisdoms={[]}
-          viewingUserId={publicProfileId}
-          onClose={() => setPublicProfileId(null)}
-          onOpenSettings={() => { }}
-          onStatClick={() => { }}
-          onUpdateUser={() => { }}
-          onRemoveBookmark={() => { }}
-          onOpenFriendRequests={() => { }}
-          onAddWisdom={() => { }}
-          onDeleteWisdom={() => { }}
-        />
+        <div className="fixed inset-0 z-overlay flex flex-col overflow-hidden bg-white dark:bg-background-dark">
+          <div className="flex-1 overflow-y-auto no-scrollbar">
+            <Profile
+              user={user}
+              entries={journalEntries}
+              quotes={quotes}
+              iconic={iconicQuotes}
+              bible={bibleAffirmations}
+              bookmarkedVerses={bookmarkedVerses}
+              userWisdoms={[]}
+              viewingUserId={publicProfileId}
+              onClose={() => setPublicProfileId(null)}
+              onOpenSettings={() => { }}
+              onStatClick={() => { }}
+              onUpdateUser={() => { }}
+              onRemoveBookmark={() => { }}
+              onOpenFriendRequests={() => { }}
+              onAddWisdom={() => { }}
+              onDeleteWisdom={() => { }}
+            />
+          </div>
+        </div>
       )}
 
       {user && (

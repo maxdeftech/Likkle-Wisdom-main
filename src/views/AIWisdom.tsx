@@ -23,10 +23,6 @@ const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onUpgrade,
       onGuestRestricted();
       return;
     }
-    if (!user.isPremium) {
-      onUpgrade();
-      return;
-    }
     setLoading(true);
     const result = await generatePatoisWisdom(mood);
     setWisdom(result);
@@ -95,11 +91,6 @@ const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onUpgrade,
                   </span>
                 </div>
               </div>
-              {!user.isPremium && (
-                <div className="absolute top-0 right-0 size-12 rounded-full bg-jamaican-gold text-background-dark flex items-center justify-center border-4 border-background-dark shadow-xl rotate-12">
-                  <span className="material-symbols-outlined text-xl">lock</span>
-                </div>
-              )}
             </div>
             <p className="mt-6 text-slate-900/50 dark:text-white/50 text-[10px] font-black tracking-widest uppercase">Tap di bowl fi focus energy</p>
           </div>
@@ -117,11 +108,6 @@ const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onUpgrade,
             </div>
           )}
 
-          {!wisdom && !loading && !user.isPremium && (
-            <div className="px-10 text-center relative z-10 mt-4">
-              <p className="text-jamaican-gold font-bold text-xs">Unlock Premium to brew unlimited custom AI wisdom!</p>
-            </div>
-          )}
 
           <div className="relative z-10 px-6 mt-8">
             <button
@@ -130,7 +116,7 @@ const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onUpgrade,
               className="w-full flex items-center justify-center gap-2 rounded-2xl h-16 bg-primary text-background-dark font-black text-lg shadow-xl disabled:opacity-50"
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              {loading ? 'A brew di wisdom...' : user.isPremium ? 'Generate AI Wisdom' : 'Unlock AI Wisdom'}
+              {loading ? 'A brew di wisdom...' : 'Generate AI Wisdom'}
             </button>
           </div>
         </>

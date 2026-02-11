@@ -3,7 +3,7 @@ import React from 'react';
 import { User } from '../types';
 
 interface UserBadgeProps {
-    user: Pick<User, 'isAdmin' | 'isDonor'>;
+    user: Pick<User, 'isAdmin'>;
     size?: 'sm' | 'md' | 'lg';
 }
 
@@ -28,19 +28,6 @@ const UserBadge: React.FC<UserBadgeProps> = ({ user, size = 'sm' }) => {
             >
                 <span className={`material-symbols-outlined ${iconSizes[size]} text-background-dark font-bold`} style={{ fontVariationSettings: "'FILL' 1" }}>
                     check
-                </span>
-            </div>
-        );
-    }
-
-    if (user.isDonor) {
-        return (
-            <div
-                className={`${sizeClasses[size]} rounded-full bg-jamaican-gold flex items-center justify-center shadow-lg border-2 border-background-dark`}
-                title="Supporter"
-            >
-                <span className={`material-symbols-outlined ${iconSizes[size]} text-background-dark font-bold`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                    favorite
                 </span>
             </div>
         );

@@ -225,7 +225,6 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
 
   const handleDownloadBook = async () => {
     if (!isOnline) return;
-    if (!user.isPremium) { onUpgrade(); return; }
     setDownloading(true);
     try {
       const chaptersToDownload = Math.min(BOOK_CHAPTERS[book] || 1, 10);
@@ -260,17 +259,15 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
               <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark">{bibleNotes.length > 9 ? '9+' : bibleNotes.length}</span>
             )}
           </button>
-          {user.isPremium && (
-            <button
-              onClick={handleDownloadBook}
-              disabled={downloading || isBookDownloaded(book) || !isOnline}
-              className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isBookDownloaded(book) ? 'bg-primary/20 text-primary' : 'glass text-slate-900/40 dark:text-white/40'} ${!isOnline && !isBookDownloaded(book) ? 'opacity-20 cursor-not-allowed' : ''}`}
-            >
-              <span className={`material-symbols-outlined text-3xl sm:text-4xl font-black ${downloading ? 'animate-bounce' : ''}`}>
-                {isBookDownloaded(book) ? 'download_done' : 'cloud_download'}
-              </span>
-            </button>
-          )}
+          <button
+            onClick={handleDownloadBook}
+            disabled={downloading || isBookDownloaded(book) || !isOnline}
+            className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isBookDownloaded(book) ? 'bg-primary/20 text-primary' : 'glass text-slate-900/40 dark:text-white/40'} ${!isOnline && !isBookDownloaded(book) ? 'opacity-20 cursor-not-allowed' : ''}`}
+          >
+            <span className={`material-symbols-outlined text-3xl sm:text-4xl font-black ${downloading ? 'animate-bounce' : ''}`}>
+              {isBookDownloaded(book) ? 'download_done' : 'cloud_download'}
+            </span>
+          </button>
           <button
             onClick={playChapter}
             className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isPlayingAudio ? 'bg-primary text-background-dark' : 'glass text-primary'}`}

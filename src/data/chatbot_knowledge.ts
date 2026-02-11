@@ -39,8 +39,8 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         action: { type: 'setting', value: 'settings' }
     },
     {
-        keywords: ['premium', 'upgrade', 'support', 'donate', 'pro', 'pay'],
-        response: "Help di wisdom flow! Check out di support page to see how yuh can keep di app runnin'. Every likkle bit counts!",
+        keywords: ['website', 'premium', 'upgrade', 'support', 'donate', 'pro', 'pay', 'maxwell', 'mdt'],
+        response: "Want to see more from us? Tap below and we'll open our website — Maxwell Definitive Technologies. One love!",
         action: { type: 'setting', value: 'premium' }
     },
     {

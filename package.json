@@ -17,6 +17,7 @@
     "@capacitor/cli": "^8.0.2",
     "@capacitor/core": "^8.0.2",
     "@capacitor/ios": "^8.0.2",
+    "@capacitor/push-notifications": "^8.0.0",
     "@google/genai": "^1.40.0",
     "@revenuecat/purchases-capacitor": "^12.1.1",
     "@revenuecat/purchases-capacitor-ui": "^12.1.1",

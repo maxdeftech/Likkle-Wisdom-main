@@ -6,7 +6,6 @@ export interface User {
   isGuest: boolean;
   isPremium: boolean;
   isAdmin?: boolean;
-  isDonor?: boolean;
   isPublic?: boolean;
 }
 
@@ -41,6 +40,7 @@ export interface ChatMessage {
   timestamp: number;
   read: boolean;
   type: 'text' | 'system' | 'admin-broadcast';
+  replyToId?: string;
 }
 
 export interface Quote {

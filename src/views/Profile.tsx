@@ -1,7 +1,8 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation, UserWisdom } from '../types';
 import UserBadge from '../components/UserBadge';
+import { MessagingService } from '../services/messaging';
 
 interface ProfileProps {
   user: User;
@@ -19,6 +20,7 @@ interface ProfileProps {
   onAddWisdom: (patois: string, english: string) => void; // New
   onDeleteWisdom: (id: string) => void; // New
   onFindFriends?: () => void;
+  onOpenMessagesWithUser?: (userId: string) => void;
   viewingUserId?: string | null;
   onClose?: () => void;
   requestCount?: number;
@@ -28,7 +30,7 @@ interface ProfileProps {
   startAdding?: boolean;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onAddWisdom, onDeleteWisdom, onFindFriends, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh, initialTab = 'cabinet', startAdding = false }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onAddWisdom, onDeleteWisdom, onFindFriends, onOpenMessagesWithUser, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh, initialTab = 'cabinet', startAdding = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +53,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [publicWisdoms, setPublicWisdoms] = useState<UserWisdom[]>([]);
   const [isAddingWisdom, setIsAddingWisdom] = useState(startAdding);
   const [newWisdom, setNewWisdom] = useState({ patois: '', english: '' });
+  const [starredMessages, setStarredMessages] = useState<Array<{ messageId: string; content: string; timestamp: number; otherUserId: string; otherUsername: string }>>([]);
 
   const displayRequestCount = isOwnProfile ? (passedRequestCount > 0 ? passedRequestCount : localRequestCount) : 0;
 
@@ -77,6 +80,9 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
         }
       });
 
+      if (isOwnProfile) {
+        MessagingService.getStarredMessagesWithDetails(user.id).then(setStarredMessages);
+      }
       if (!isOwnProfile) {
         SocialService.getPublicProfile(targetUserId).then(setPublicUser);
         import('../services/wisdomService').then(({ WisdomService }) => {
@@ -142,7 +148,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   }, [savedWisdom, savedIconic, savedBible, bookmarkedVerses]);
 
   const displayFeed = isOwnProfile ? combinedFeed : publicCabinet;
-  const displayUser = isOwnProfile ? user : (publicUser || { ...user, username: 'Searching...', avatarUrl: '' });
+  const displayUser = isOwnProfile ? user : (publicUser || { id: targetUserId, username: 'Wisdom Seeker', avatarUrl: '', isGuest: false, isPremium: false });
   const displayMemberSince = isOwnProfile ? memberSinceText : (user.isGuest ? 'Wisdom Seeker (Guest)' : (loadingStats ? 'Joining...' : (joinedAt ? memberSinceText : 'Lifelong Seeker')));
 
   // Track actual app usage days (not just journal entries)
@@ -235,8 +241,8 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           <div className="size-32 rounded-[2.5rem] border-4 border-primary/20 overflow-hidden shadow-2xl bg-background-dark rotate-3 group-hover:rotate-0 transition-all duration-700">
             <img className="w-full h-full object-cover" src={displayUser.avatarUrl || `https://picsum.photos/seed/${displayUser.id}/200`} alt="Avatar" />
           </div>
-          {/* Badge for Admin/Donor */}
-          {(displayUser.isAdmin || displayUser.isDonor) && (
+          {/* Admin green checkmark visible to all */}
+          {displayUser.isAdmin && (
             <div className="absolute -bottom-1 -right-1">
               <UserBadge user={displayUser} size="lg" />
             </div>
@@ -308,7 +314,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
         <div className="grid grid-cols-4 gap-2 w-full">
           <button onClick={scrollToCabinet} className="glass py-5 rounded-3xl active:scale-95 transition-all border-white/5 hover:border-primary/20">
-            <p className="text-primary font-black text-xl">{combinedFeed.length}</p>
+            <p className="text-primary font-black text-xl">{displayFeed.length}</p>
             <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Saved</p>
           </button>
           <button onClick={() => onStatClick('book')} className="glass py-5 rounded-3xl border-x border-white/5 active:scale-95 transition-all hover:border-jamaican-gold/20">
@@ -350,7 +356,32 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
         {profileTab === 'cabinet' ? (
           <div className="space-y-6">
-            {combinedFeed.map((item) => (
+            {isOwnProfile && onOpenMessagesWithUser && (
+              <div className="glass p-6 rounded-[2.5rem] border-jamaican-gold/20 shadow-xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-jamaican-gold">star</span>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Starred messages</h3>
+                </div>
+                {starredMessages.length === 0 ? (
+                  <p className="text-xs text-slate-500 dark:text-white/40">No starred messages. Long-press a message in chat and tap Star.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {starredMessages.map((s) => (
+                      <button
+                        key={s.messageId}
+                        onClick={() => onOpenMessagesWithUser(s.otherUserId)}
+                        className="w-full text-left glass p-4 rounded-2xl border border-white/5 hover:border-jamaican-gold/30 transition-all"
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-wider text-jamaican-gold/80">{s.otherUsername}</p>
+                        <p className="text-sm text-slate-900 dark:text-white truncate mt-0.5">{s.content.slice(0, 80)}{s.content.length > 80 ? '…' : ''}</p>
+                        <p className="text-[9px] text-slate-400 dark:text-white/30 mt-1">{new Date(s.timestamp).toLocaleDateString()}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {displayFeed.map((item) => (
               <div key={`${item.type}-${item.id}`} className="glass p-8 rounded-[2.5rem] border-white/5 shadow-xl animate-fade-in group hover:border-primary/30 transition-all relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex flex-col">
@@ -387,13 +418,13 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
               </div>
             ))}
 
-            {combinedFeed.length === 0 && (
+            {displayFeed.length === 0 && (
               <div className="text-center py-24 flex flex-col items-center glass rounded-[3rem] border-dashed border-slate-200 dark:border-white/10 mx-2">
                 <div className="size-24 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-6">
                   <span className="material-symbols-outlined text-6xl text-slate-900/10 dark:text-white/10">bookmark_add</span>
                 </div>
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">Your cabinet is empty.</p>
-                <button onClick={() => onStatClick('discover')} className="mt-6 text-primary font-black uppercase tracking-widest text-xs hover:underline">Find some vibes →</button>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-900/20 dark:text-white/20">{isOwnProfile ? 'Your cabinet is empty.' : 'Cabinet is empty.'}</p>
+                {isOwnProfile && <button onClick={() => onStatClick('discover')} className="mt-6 text-primary font-black uppercase tracking-widest text-xs hover:underline">Find some vibes →</button>}
               </div>
             )}
           </div>

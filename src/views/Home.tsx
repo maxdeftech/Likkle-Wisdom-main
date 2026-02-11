@@ -338,28 +338,28 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
       {Capacitor.getPlatform() === 'web' && (
         <div className="mb-10 px-1">
-          <button
-            onClick={() => {
-              window.open('https://www.paypal.com/donate/?business=maxwelldefinitivetechnologies@gmail.com&currency_code=USD', '_blank');
-            }}
-            className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
+          <a
+            href="https://maxdeftech.wixsite.com/mdt-ja"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block"
           >
             <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none"></div>
             <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
-                  <span className="material-symbols-outlined text-xl">volunteer_activism</span>
+                  <span className="material-symbols-outlined text-xl">language</span>
                 </div>
                 <div className="text-left">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wide">Support Likkle Wisdom</h3>
-                  <p className="text-white/50 text-[10px] font-bold tracking-wider">Help keep the vibes flowin'</p>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wide">Visit Likkle Wisdom</h3>
+                  <p className="text-white/50 text-[10px] font-bold tracking-wider">Check out di Likkle Wisdom link</p>
                 </div>
               </div>
               <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
                 <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
               </div>
             </div>
-          </button>
+          </a>
         </div>
       )}
 
@@ -450,7 +450,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
             <h3 className="text-2xl sm:text-4xl font-black text-white leading-none">Craft Yuh Own Wisdom</h3>
           </div>
           <div className="size-12 sm:size-16 glass rounded-2xl flex items-center justify-center text-primary border-primary/30">
-            <span className="material-symbols-outlined text-xl sm:text-3xl">{user.isPremium ? 'verified' : 'lock'}</span>
+            <span className="material-symbols-outlined text-xl sm:text-3xl">verified</span>
           </div>
         </div>
       </section>
