@@ -1,12 +1,16 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, UserWisdom } from './types';
+import { useIsDesktop } from './hooks/useIsDesktop';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
 import { initializePurchases } from './services/revenueCat';
 import { PushService } from './services/pushService';
 import { EncryptionService } from './services/encryption';
 import { WisdomService } from './services/wisdomService';
+import { MessagingService } from './services/messaging';
+import { SocialService } from './services/social';
+import { AlertsService } from './services/alertsService';
 import SplashScreen from './views/SplashScreen';
 import Onboarding from './views/Onboarding';
 import Auth from './views/Auth';
@@ -78,6 +82,7 @@ const NotificationBanner: React.FC<{
 };
 
 const App: React.FC = () => {
+  const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>('splash');
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
@@ -152,17 +157,13 @@ const App: React.FC = () => {
 
   const syncUnreadCount = useCallback(() => {
     if (user && !user.isGuest && supabase) {
-      import('./services/messaging').then(({ MessagingService }) => {
-        MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
-      });
+      MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
     }
   }, [user]);
 
   const syncAlertsCount = useCallback(() => {
     if (user && !user.isGuest && supabase) {
-      import('./services/alertsService').then(({ AlertsService }) => {
-        AlertsService.getUnreadCount(user.id).then(setUnreadAlertsCount);
-      });
+      AlertsService.getUnreadCount(user.id).then(setUnreadAlertsCount);
     }
   }, [user]);
 
@@ -342,12 +343,8 @@ const App: React.FC = () => {
       }
 
       // Sync badge counts
-      import('./services/messaging').then(({ MessagingService }) => {
-        MessagingService.getUnreadCount(userId).then(setUnreadMessageCount);
-      });
-      import('./services/social').then(({ SocialService }) => {
-        SocialService.getFriendRequests(userId).then(reqs => setPendingRequestCount(reqs.length));
-      });
+      MessagingService.getUnreadCount(userId).then(setUnreadMessageCount);
+      SocialService.getFriendRequests(userId).then(reqs => setPendingRequestCount(reqs.length));
 
       const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', userId);
       if (bookmarks) {
@@ -404,16 +401,11 @@ const App: React.FC = () => {
     let msgSub: any;
     let friendSub: any;
 
-    import('./services/messaging').then(({ MessagingService }) => {
-      msgSub = MessagingService.subscribeToMessages(user.id, () => {
-        MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
-      });
+    msgSub = MessagingService.subscribeToMessages(user.id, () => {
+      MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
     });
-
-    import('./services/social').then(({ SocialService }) => {
-      friendSub = SocialService.subscribeToFriendRequests(user.id, () => {
-        SocialService.getFriendRequests(user.id).then(reqs => setPendingRequestCount(reqs.length));
-      });
+    friendSub = SocialService.subscribeToFriendRequests(user.id, () => {
+      SocialService.getFriendRequests(user.id).then(reqs => setPendingRequestCount(reqs.length));
     });
 
     return () => {
@@ -842,8 +834,12 @@ const App: React.FC = () => {
 
   if (view === 'splash') return <SplashScreen progress={loadingProgress} message={manualRefreshMessage || undefined} />;
 
+  const containerClass = isDesktop
+    ? 'relative flex flex-col h-screen w-full max-w-5xl min-w-[640px] mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300'
+    : 'relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300';
+
   return (
-    <div className="relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300">
+    <div className={containerClass}>
       <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0"></div>
 
       {!isOnline && (
@@ -1027,17 +1023,14 @@ const FriendsListOverlay: React.FC<{
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    import('./services/social').then(({ SocialService }) => {
-      SocialService.getFriends(currentUser.id).then(f => {
-        setFriends(f);
-        setLoading(false);
-      });
+    SocialService.getFriends(currentUser.id).then(f => {
+      setFriends(f);
+      setLoading(false);
     });
   }, [currentUser.id]);
 
   const handleRemoveFriend = async (friendshipId: string, friendName: string) => {
     if (!confirm(`Remove ${friendName} from your friends?`)) return;
-    const { SocialService } = await import('./services/social');
     const { error } = await SocialService.deleteFriendship(friendshipId);
     if (!error) {
       setFriends(prev => prev.filter(f => f.id !== friendshipId));

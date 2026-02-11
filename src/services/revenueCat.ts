@@ -1,17 +1,23 @@
-
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Capacitor } from '@capacitor/core';
 
-const API_KEY = (import.meta as any).env?.VITE_REVENUECAT_API_KEY || "test_faNbBjxTKlzslOKjswqEVzadXbH";
+// Use production API key only. Set VITE_REVENUECAT_API_KEY in .env for release (Apple App Store / Google Play).
+// Never ship with a Test Store key — App Review will reject. Get production keys from RevenueCat dashboard.
+const API_KEY = (import.meta as any).env?.VITE_REVENUECAT_API_KEY as string | undefined;
+const isDev = (import.meta as any).env?.DEV === true;
 
 export const initializePurchases = async () => {
     try {
-        await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+        if (!API_KEY || API_KEY.startsWith('test_')) {
+            if (Capacitor.getPlatform() !== 'web') console.warn('RevenueCat: Set VITE_REVENUECAT_API_KEY to your production key for release builds.');
+            return;
+        }
+        await Purchases.setLogLevel({ level: isDev ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN });
 
         const platform = Capacitor.getPlatform();
 
-        if (platform === 'ios' || platform === 'android') {
+        if ((platform === 'ios' || platform === 'android') && API_KEY) {
             await Purchases.configure({ apiKey: API_KEY });
         }
     } catch (error) {

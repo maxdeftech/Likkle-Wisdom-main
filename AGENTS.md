@@ -80,7 +80,17 @@ Defined in `src/constants.ts` as `CATEGORIES`. Each content type (`Quote`, `Icon
 
 - `API_KEY` or `GEMINI_API_KEY` - Google Generative AI key for the AI wisdom feature
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY` - Optional, has fallback defaults in code
+- **`VITE_REVENUECAT_API_KEY`** - **Required for App Store / Play Store release.** Use your **production** RevenueCat API key from the RevenueCat dashboard (iOS and Android each have their own key; use the correct one per platform build). Never ship with a Test Store key—App Review will reject. In dev, if unset, IAP is skipped and a console warning is logged.
 
 ## Native App IDs
 - iOS/Android: `com.likklewisdom.app` (see `capacitor.config.ts`)
 - RevenueCat entitlement: `"Maxwell Definitive Technologies Pro"`
+
+## Desktop / Responsive Web
+- `useIsDesktop()` (from `src/hooks/useIsDesktop.ts`) is true when viewport width ≥ 1024px. App uses it to show a wider layout (`max-w-5xl`, `min-w-[640px]`) on laptop/desktop while keeping the same UI and logic.
+
+## iOS (UIScene)
+- The app uses the UIScene lifecycle: `SceneDelegate` creates the window and loads the Main storyboard. `AppDelegate` no longer owns the window; it only provides scene configuration. This satisfies the "CLIENT OF UIKIT REQUIRES UPDATE" requirement.
+
+## Android stability
+- An `ErrorBoundary` wraps the app in `index.tsx`. Global `window.onerror` and `window.unhandledrejection` handlers log errors and prevent unhandled rejections from closing the process.

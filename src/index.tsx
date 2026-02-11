@@ -1,7 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+
+// Prevent unhandled rejections from crashing the app (e.g. Android WebView)
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[unhandledrejection]', event.reason);
+  event.preventDefault();
+  event.stopPropagation();
+});
+window.addEventListener('error', (event) => {
+  console.error('[global error]', event.message, event.filename, event.lineno, event.colno, event.error);
+});
 
 /* Bundled fonts for offline (iOS/Android + PWA). Prevents icon names and text showing when network is off. */
 import '@fontsource/material-symbols-outlined/100.css';
@@ -29,6 +40,8 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );

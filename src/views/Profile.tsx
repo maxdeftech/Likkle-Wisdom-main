@@ -3,6 +3,8 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation, UserWisdom } from '../types';
 import UserBadge from '../components/UserBadge';
 import { MessagingService } from '../services/messaging';
+import { SocialService } from '../services/social';
+import { WisdomService } from '../services/wisdomService';
 
 interface ProfileProps {
   user: User;
@@ -59,54 +61,50 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
   // Fetch stats and public data
   React.useEffect(() => {
-    import('../services/social').then(({ SocialService }) => {
-      if (isOwnProfile && !passedRequestCount) {
-        SocialService.getFriendRequests(targetUserId).then(reqs => setLocalRequestCount(reqs.length));
-      } SocialService.getUserStats(targetUserId).then(stats => {
-        setFriendsCount(stats.friendsCount);
-        setJoinedAt(stats.createdAt);
-        setLoadingStats(false);
+    if (isOwnProfile && !passedRequestCount) {
+      SocialService.getFriendRequests(targetUserId).then(reqs => setLocalRequestCount(reqs.length));
+    }
+    SocialService.getUserStats(targetUserId).then(stats => {
+      setFriendsCount(stats.friendsCount);
+      setJoinedAt(stats.createdAt);
+      setLoadingStats(false);
 
-        // Handle 24h expiration
-        if (stats.statusNote && stats.statusNoteAt) {
-          const noteDate = new Date(stats.statusNoteAt).getTime();
-          const now = Date.now();
-          if (now - noteDate < 86400000) {
-            setStatusNote(stats.statusNote);
-            setNoteInput(stats.statusNote);
-          } else if (isOwnProfile) {
-            SocialService.updateProfileNote(targetUserId, '');
-          }
+      // Handle 24h expiration
+      if (stats.statusNote && stats.statusNoteAt) {
+        const noteDate = new Date(stats.statusNoteAt).getTime();
+        const now = Date.now();
+        if (now - noteDate < 86400000) {
+          setStatusNote(stats.statusNote);
+          setNoteInput(stats.statusNote);
+        } else if (isOwnProfile) {
+          SocialService.updateProfileNote(targetUserId, '');
         }
-      });
-
-      if (isOwnProfile) {
-        MessagingService.getStarredMessagesWithDetails(user.id).then(setStarredMessages);
-      }
-      if (!isOwnProfile) {
-        SocialService.getPublicProfile(targetUserId).then(setPublicUser);
-        import('../services/wisdomService').then(({ WisdomService }) => {
-          WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms);
-        });
-        SocialService.getPublicCabinet(targetUserId).then(cab => {
-          const quoteIds = cab.quoteIds || [];
-          const iconicIds = cab.iconicIds || [];
-          const bibleIds = cab.bibleIds || [];
-          const kjvItems = cab.kjv || [];
-          const combined: any[] = [
-            ...quotes.filter(q => quoteIds.includes(q.id)).map(q => ({ id: q.id, type: 'wisdom', label: 'Old Wisdom', data: q, timestamp: 1 })),
-            ...iconic.filter(q => iconicIds.includes(q.id)).map(q => ({ id: q.id, type: 'legend', label: 'Iconic Soul', data: q, timestamp: 2 })),
-            ...bible.filter(q => bibleIds.includes(q.id)).map(q => ({ id: q.id, type: 'verse', label: 'Scripture Flow', data: q, timestamp: 3 })),
-            ...kjvItems.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
-          ];
-          setPublicCabinet(combined.sort((a, b) => b.timestamp - a.timestamp));
-        });
       }
     });
+
+    if (isOwnProfile) {
+      MessagingService.getStarredMessagesWithDetails(user.id).then(setStarredMessages);
+    }
+    if (!isOwnProfile) {
+      SocialService.getPublicProfile(targetUserId).then(setPublicUser);
+      WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms);
+      SocialService.getPublicCabinet(targetUserId).then(cab => {
+        const quoteIds = cab.quoteIds || [];
+        const iconicIds = cab.iconicIds || [];
+        const bibleIds = cab.bibleIds || [];
+        const kjvItems = cab.kjv || [];
+        const combined: any[] = [
+          ...quotes.filter(q => quoteIds.includes(q.id)).map(q => ({ id: q.id, type: 'wisdom', label: 'Old Wisdom', data: q, timestamp: 1 })),
+          ...iconic.filter(q => iconicIds.includes(q.id)).map(q => ({ id: q.id, type: 'legend', label: 'Iconic Soul', data: q, timestamp: 2 })),
+          ...bible.filter(q => bibleIds.includes(q.id)).map(q => ({ id: q.id, type: 'verse', label: 'Scripture Flow', data: q, timestamp: 3 })),
+          ...kjvItems.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
+        ];
+        setPublicCabinet(combined.sort((a, b) => b.timestamp - a.timestamp));
+      });
+    }
   }, [targetUserId, isOwnProfile]);
 
   const handleSaveNote = async () => {
-    const { SocialService } = await import('../services/social');
     await SocialService.updateProfileNote(user.id, noteInput);
     setStatusNote(noteInput);
     setIsEditingNote(false);

@@ -34,6 +34,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,json,ico,woff,woff2}'],
+        // Avoid terser minification of SW to prevent "Unexpected early exit" race with Rollup close phase
+        mode: 'development',
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -116,9 +118,20 @@ export default defineConfig({
   ],
   build: {
     outDir: 'dist',
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: {
         main: './index.html'
+      },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@supabase/supabase-js')) return 'supabase';
+            if (id.includes('@revenuecat')) return 'revenuecat';
+            if (id.includes('@google/genai')) return 'genai';
+            if (id.includes('react-dom') || id.includes('react/')) return 'vendor';
+          }
+        }
       }
     }
   }
