@@ -339,7 +339,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
       {Capacitor.getPlatform() === 'web' && (
         <div className="mb-10 px-1">
           <a
-            href="https://maxdeftech.wixsite.com/mdt-ja"
+            href="https://likklewisdom.com/"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block"
