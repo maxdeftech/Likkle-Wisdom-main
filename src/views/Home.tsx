@@ -32,13 +32,15 @@ interface HomeProps {
   onCategoryClick: (id: string) => void;
   onOpenMessages: () => void;
   unreadCount?: number;
+  onOpenAlerts?: () => void;
+  alertsCount?: number;
   isDarkMode: boolean;
   onToggleTheme: () => void;
   quotes: Quote[];
   bibleAffirmations: BibleAffirmation[];
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0, isDarkMode, onToggleTheme, quotes, bibleAffirmations }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0, onOpenAlerts, alertsCount = 0, isDarkMode, onToggleTheme, quotes, bibleAffirmations }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
   const [localDaily, setLocalDaily] = useState<{ quote: Quote | null; wisdom: Quote | null; verse: BibleAffirmation | null }>({
@@ -216,6 +218,19 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
               </button>
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Messages</span>
             </div>
+            {onOpenAlerts && (
+              <div className="flex flex-col items-center gap-1">
+                <button onClick={onOpenAlerts} aria-label="Alerts" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
+                  <span className="material-symbols-outlined text-xl">notifications</span>
+                  {alertsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark border-2 border-white dark:border-background-dark animate-pop">
+                      {alertsCount > 9 ? '9+' : alertsCount}
+                    </span>
+                  )}
+                </button>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Alerts</span>
+              </div>
+            )}
           </div>
         </div>
       </header>

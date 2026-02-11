@@ -17,6 +17,7 @@ import Profile from './views/Profile';
 import AIWisdom from './views/AIWisdom';
 import Settings from './views/Settings';
 import PremiumUpgrade from './views/PremiumUpgrade';
+import AlertsView from './views/AlertsView';
 import BottomNav from './components/BottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
 import LegalView from './views/LegalView';
@@ -69,8 +70,10 @@ const App: React.FC = () => {
   // Badge Counts
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
 
   const [showFriendsList, setShowFriendsList] = useState(false);
+  const [showAlerts, setShowAlerts] = useState(false);
 
   const [profileInitialTab, setProfileInitialTab] = useState<'cabinet' | 'wisdoms'>('cabinet');
   const [profileStartAdding, setProfileStartAdding] = useState(false);
@@ -89,6 +92,21 @@ const App: React.FC = () => {
       });
     }
   }, [user]);
+
+  const syncAlertsCount = useCallback(() => {
+    if (user && !user.isGuest && supabase) {
+      import('./services/alertsService').then(({ AlertsService }) => {
+        AlertsService.getUnreadCount(user.id).then(setUnreadAlertsCount);
+      });
+    }
+  }, [user]);
+
+  // Load alerts count on mount
+  useEffect(() => {
+    if (user && !user.isGuest) {
+      syncAlertsCount();
+    }
+  }, [user, syncAlertsCount]);
 
   // Realtime subscription for incoming messages — updates badge seamlessly without UI refresh
   useEffect(() => {
@@ -588,6 +606,10 @@ const App: React.FC = () => {
     setShowFriendRequests(true);
   };
 
+  const handleOpenAlerts = () => {
+    setShowAlerts(true);
+  };
+
   const handleOpenPublicProfile = (id: string) => {
     setPublicProfileId(id);
   };
@@ -631,6 +653,7 @@ const App: React.FC = () => {
       if (value === 'premium') handleOpenPremium();
       if (value === 'ai') handleOpenAI();
       if (value === 'messages') handleOpenMessages();
+      if (value === 'alerts') handleOpenAlerts();
     }
   };
 
@@ -645,13 +668,13 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
+      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
       case 'feed': return <Feed user={user} isOnline={isOnline} userWisdoms={userWisdoms} onModalChange={setIsFeedModalOpen} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
-      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
+      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
   };
 
@@ -869,6 +892,13 @@ const App: React.FC = () => {
             setShowFriendRequests(false);
             handleOpenMessages(true);
           }}
+        />
+      )}
+      {showAlerts && user && (
+        <AlertsView
+          user={user}
+          onClose={() => setShowAlerts(false)}
+          onUnreadUpdate={syncAlertsCount}
         />
       )}
       {view === 'main' && (

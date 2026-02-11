@@ -21,10 +21,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
-            text: "Hail! I'm Likkle Guide. What yuh lookin' for inna di app today?",
+            text: "Hail! I'm Likkle Guide. What yuh lookin' for inna di app today?\n\nTap a topic below or ask me anything:",
             sender: 'ai'
         }
     ]);
+    const [showQuickActions, setShowQuickActions] = useState(true);
     const [input, setInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -148,6 +149,7 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
         };
 
         setMessages(prev => [...prev, userMessage]);
+        setShowQuickActions(false); // Hide quick actions after user sends first message
         const currentInput = input.toLowerCase();
         setInput('');
 
@@ -242,6 +244,55 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                             </div>
                         </div>
                     ))}
+
+                    {/* Quick Action Buttons */}
+                    {showQuickActions && messages.length === 1 && (
+                        <div className="grid grid-cols-2 gap-2 mt-4 animate-fade-in">
+                            {[
+                                { label: 'About App', icon: 'info', query: 'What is Likkle Wisdom?' },
+                                { label: 'Bible', icon: 'menu_book', query: 'Show me the Bible' },
+                                { label: 'Feed', icon: 'dynamic_feed', query: 'Take me to Feed' },
+                                { label: 'AI Wisdom', icon: 'auto_awesome', query: 'Generate custom wisdom' },
+                                { label: 'Journal', icon: 'book', query: 'Open my journal' },
+                                { label: 'Messages', icon: 'forum', query: 'Show my messages' },
+                                { label: 'Friends', icon: 'group', query: 'See my friends' },
+                                { label: 'Settings', icon: 'settings', query: 'Open settings' },
+                            ].map((opt, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => {
+                                        setInput(opt.query);
+                                        setShowQuickActions(false);
+                                        // Simulate user sending the query
+                                        const userMsg: Message = {
+                                            id: Date.now().toString(),
+                                            text: opt.query,
+                                            sender: 'user'
+                                        };
+                                        setMessages(prev => [...prev, userMsg]);
+                                        
+                                        // Process response
+                                        setTimeout(() => {
+                                            const match = CHATBOT_KNOWLEDGE.find(k =>
+                                                k.keywords.some(keyword => opt.query.toLowerCase().includes(keyword))
+                                            );
+                                            const aiResponse: Message = {
+                                                id: (Date.now() + 1).toString(),
+                                                text: match ? match.response : FALLBACK_RESPONSE,
+                                                sender: 'ai',
+                                                action: match?.action
+                                            };
+                                            setMessages(prev => [...prev, aiResponse]);
+                                        }, 600);
+                                    }}
+                                    className="glass rounded-xl p-3 flex flex-col items-center gap-1 active:scale-95 transition-all border border-slate-900/5 dark:border-white/5 hover:border-primary/30"
+                                >
+                                    <span className="material-symbols-outlined text-primary text-lg">{opt.icon}</span>
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-900/60 dark:text-white/60">{opt.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Input */}

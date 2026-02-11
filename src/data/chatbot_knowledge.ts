@@ -121,6 +121,11 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         response: "Pull down on di Home page fi refresh yuh daily content! Or go to Profile > Settings fi a full app refresh.",
     },
     {
+        keywords: ['alerts', 'notifications', 'announcements', 'admin alerts', 'updates from admin'],
+        response: "Stay updated with admin announcements! Tap di Alerts bell icon at di top of Home page to see all official notices from di team.",
+        action: { type: 'setting', value: 'alerts' }
+    },
+    {
         keywords: ['patois', 'jamaican', 'dialect', 'creole', 'language'],
         response: "Likkle Wisdom celebrates Jamaican Patois — di language of di heart. Every quote comes with both Patois and English so everyone can vibe!",
     },
@@ -154,8 +159,8 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         response: "Yuh can delete journal entries, wisdoms, or chats. Long press on a chat fi delete it, or tap di trash icon on yuh own posts and entries.",
     },
     {
-        keywords: ['what is', 'about', 'app', 'likkle wisdom', 'this app'],
-        response: "Likkle Wisdom is a Jamaican Patois wisdom app! It brings yuh daily quotes, Bible verses, an AI wisdom brewer, and a journal — all wrapped in island vibes. 🌴",
+        keywords: ['what is', 'about', 'app', 'likkle wisdom', 'this app', 'tell me about', 'overview', 'features'],
+        response: "Likkle Wisdom is yuh daily dose of Jamaican culture and inspiration! 🇯🇲\n\n✨ FEATURES:\n• Daily Quotes & Wisdom in Patois\n• Full KJV Bible (read, listen, bookmark)\n• AI Wisdom Brewer fi custom vibes\n• Private Journal (encrypted)\n• Pen yuh own Patois proverbs\n• Community Feed (24hr posts)\n• Message friends\n• Highlight & note Bible verses\n• Offline mode fi on-the-go\n\nEvery feature celebrates di wisdom, culture, and irie vibes of Jamaica. One Love! 🌴",
     },
     {
         keywords: ['bug', 'broken', 'error', 'crash', 'not working', 'problem'],
