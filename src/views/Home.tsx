@@ -8,16 +8,19 @@ import { presentPaywall } from '../services/revenueCat';
 import { Capacitor } from '@capacitor/core';
 
 const JAMAICA_IMAGES = [
-  { url: 'https://images.unsplash.com/photo-1541410965313-d53b3c16ef17?q=80&w=800&auto=format&fit=crop', caption: 'Blue Mountains, Jamaica' },
-  { url: 'https://images.unsplash.com/photo-1580237072617-771c3ecc4a24?q=80&w=800&auto=format&fit=crop', caption: 'Seven Mile Beach, Negril' },
-  { url: 'https://images.unsplash.com/photo-1570071677470-1544a60da887?q=80&w=800&auto=format&fit=crop', caption: 'Port Antonio, Jamaica' },
-  { url: 'https://images.unsplash.com/photo-1562613838-e7dc94e1c8bd?q=80&w=800&auto=format&fit=crop', caption: 'Jamaican Sunset' },
-  { url: 'https://images.unsplash.com/photo-1596394723269-e3e3db759e10?q=80&w=800&auto=format&fit=crop', caption: 'Tropical Paradise' },
-  { url: 'https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=800&auto=format&fit=crop', caption: 'Caribbean Waters' },
-  { url: 'https://images.unsplash.com/photo-1548282826-dd3e2c2b3f8e?q=80&w=800&auto=format&fit=crop', caption: 'Jamaican Coastline' },
-  { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', caption: 'Island Beach Vibes' },
-  { url: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?q=80&w=800&auto=format&fit=crop', caption: 'Crystal Clear Waters' },
-  { url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=800&auto=format&fit=crop', caption: 'Tropical Sunset' },
+  // Verified working Unsplash images of Jamaica landmarks and Caribbean scenes
+  { url: 'https://images.unsplash.com/photo-1605218309111-d0a7a0d17877?w=800&auto=format&fit=crop', caption: "Dunn's River Falls" },
+  { url: 'https://images.unsplash.com/photo-1580237072617-771c3ecc4a24?w=800&auto=format&fit=crop', caption: 'Seven Mile Beach, Negril' },
+  { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop', caption: 'Blue Lagoon, Portland' },
+  { url: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&auto=format&fit=crop', caption: 'Jamaican Beach Paradise' },
+  { url: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=800&auto=format&fit=crop', caption: 'Crystal Clear Waters' },
+  { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop', caption: 'Caribbean Coastline' },
+  { url: 'https://images.unsplash.com/photo-1541410965313-d53b3c16ef17?w=800&auto=format&fit=crop', caption: 'Blue Mountains, Jamaica' },
+  { url: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&auto=format&fit=crop', caption: 'Tropical Waterfall' },
+  { url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop', caption: 'Jamaican Sunset' },
+  { url: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&auto=format&fit=crop', caption: 'Palm Trees & Beach' },
+  { url: 'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=800&auto=format&fit=crop', caption: 'Jamaican Coastline Vista' },
+  { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop', caption: 'Turquoise Caribbean Sea' },
 ];
 
 interface HomeProps {
@@ -439,39 +442,49 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
       {/* Image Viewer Lightbox */}
       {showImageViewer && (
-        <div className="fixed inset-0 z-[300] bg-black/95 flex flex-col items-center justify-center animate-fade-in" onClick={() => setShowImageViewer(false)}>
-          <button className="absolute top-6 right-6 size-12 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all z-10">
-            <span className="material-symbols-outlined text-2xl">close</span>
-          </button>
-          <img
-            src={JAMAICA_IMAGES[imgIndex].url.replace('w=800', 'w=1600')}
-            alt={JAMAICA_IMAGES[imgIndex].caption}
-            className="max-w-full max-h-[80vh] object-contain rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="flex items-center gap-4 mt-6">
-            <p className="text-white/60 text-sm font-bold">{JAMAICA_IMAGES[imgIndex].caption}</p>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleSaveImage(); }}
-              className="flex items-center gap-2 px-5 py-3 bg-primary text-background-dark rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg"
+        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowImageViewer(false)}>
+          <div className="relative max-w-full max-h-full flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            {/* Close button on image */}
+            <button 
+              onClick={() => setShowImageViewer(false)}
+              className="absolute top-4 right-4 size-12 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center text-white z-10 active:scale-90 transition-all shadow-xl border border-white/20"
             >
-              <span className="material-symbols-outlined text-sm">download</span>
-              Save
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            {/* Image */}
+            <img
+              src={JAMAICA_IMAGES[imgIndex].url.replace('w=800', 'w=1600')}
+              alt={JAMAICA_IMAGES[imgIndex].caption}
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+            />
+
+            {/* Caption and Save button */}
+            <div className="flex items-center gap-4 mt-4">
+              <p className="text-white/60 text-sm font-bold">{JAMAICA_IMAGES[imgIndex].caption}</p>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleSaveImage(); }}
+                className="flex items-center gap-2 px-5 py-3 bg-primary text-background-dark rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                Save
+              </button>
+            </div>
+
+            {/* Navigation arrows */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex - 1 + JAMAICA_IMAGES.length) % JAMAICA_IMAGES.length); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center text-white active:scale-90 transition-all shadow-xl border border-white/20"
+            >
+              <span className="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex + 1) % JAMAICA_IMAGES.length); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center text-white active:scale-90 transition-all shadow-xl border border-white/20"
+            >
+              <span className="material-symbols-outlined text-2xl">chevron_right</span>
             </button>
           </div>
-          {/* Navigation arrows */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex - 1 + JAMAICA_IMAGES.length) % JAMAICA_IMAGES.length); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all"
-          >
-            <span className="material-symbols-outlined text-2xl">chevron_left</span>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex + 1) % JAMAICA_IMAGES.length); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all"
-          >
-            <span className="material-symbols-outlined text-2xl">chevron_right</span>
-          </button>
         </div>
       )}
     </div>
