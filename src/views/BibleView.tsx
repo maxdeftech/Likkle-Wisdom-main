@@ -56,7 +56,9 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
   const [searchQuery, setSearchQuery] = useState('');
   const [selectorStage, setSelectorStage] = useState<'book' | 'chapter'>('book');
   const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number } | { type: 'full'; book: string; bookIndex: number; totalBooks: number; chapter: number; totalChapters: number } | null>(null);
   const [isServingCache, setIsServingCache] = useState(false);
+  const [fullBibleStashed, setFullBibleStashed] = useState(() => localStorage.getItem('kjv_full_bible_offline') === 'true');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const { speak, stop, isSpeaking } = useTTS();
 
@@ -138,6 +140,8 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
 
   const getCacheKey = (b: string, c: number) => `kjv_cache_${b.replace(/\s/g, '_')}_${c}`;
   const isBookDownloaded = (b: string) => localStorage.getItem(`kjv_book_offline_${b.replace(/\s/g, '_')}`) === 'true';
+  const isChapterCached = useCallback((b: string, ch: number) => !!localStorage.getItem(getCacheKey(b, ch)), []);
+  const isFullBibleDownloaded = fullBibleStashed;
 
   const fetchBible = async () => {
     setLoading(true);
@@ -156,7 +160,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
 
     if (!isOnline) {
       setLoading(false);
-      setError("No signal. Chapter nuh stashed fi offline use.");
+      setError("No signal. Dis chapter nuh stashed yet — stash it when yuh have connection, or pick a book/chapter weh yuh already download.");
       return;
     }
 
@@ -173,7 +177,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
         text: cleanGodName(v.text)
       }));
       setVerses(fetchedVerses);
-      if (user.isPremium && fetchedVerses.length > 0) localStorage.setItem(getCacheKey(book, chapter), JSON.stringify(fetchedVerses));
+      if (fetchedVerses.length > 0) localStorage.setItem(getCacheKey(book, chapter), JSON.stringify(fetchedVerses));
     } catch (e: any) {
       setError(e.message === 'Failed to fetch' ? "Network issues. Check connection." : e.message);
     } finally {
@@ -225,10 +229,12 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
 
   const handleDownloadBook = async () => {
     if (!isOnline) return;
+    const totalChapters = BOOK_CHAPTERS[book] || 1;
     setDownloading(true);
+    setDownloadProgress({ current: 0, total: totalChapters });
     try {
-      const chaptersToDownload = Math.min(BOOK_CHAPTERS[book] || 1, 10);
-      for (let i = 1; i <= chaptersToDownload; i++) {
+      for (let i = 1; i <= totalChapters; i++) {
+        setDownloadProgress({ current: i, total: totalChapters });
         const formattedBook = book.replace(/\s/g, '+');
         const res = await fetch(`https://bible-api.com/${formattedBook}+${i}?translation=kjv`);
         if (res.ok) {
@@ -238,7 +244,40 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
         }
       }
       localStorage.setItem(`kjv_book_offline_${book.replace(/\s/g, '_')}`, 'true');
-    } catch { /* ignore error */ } finally { setDownloading(false); }
+    } catch { /* ignore error */ } finally { setDownloading(false); setDownloadProgress(null); }
+  };
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const handleDownloadFullBible = async () => {
+    if (!isOnline) return;
+    const bookList = Object.keys(BOOK_CHAPTERS);
+    setDownloading(true);
+    setDownloadProgress({ type: 'full', book: bookList[0], bookIndex: 1, totalBooks: bookList.length, chapter: 0, totalChapters: BOOK_CHAPTERS[bookList[0]] || 1 });
+    try {
+      for (let bi = 0; bi < bookList.length; bi++) {
+        const b = bookList[bi];
+        const totalChapters = BOOK_CHAPTERS[b] || 1;
+        for (let ch = 1; ch <= totalChapters; ch++) {
+          setDownloadProgress({ type: 'full', book: b, bookIndex: bi + 1, totalBooks: bookList.length, chapter: ch, totalChapters });
+          try {
+            const formattedBook = b.replace(/\s/g, '+');
+            const res = await fetch(`https://bible-api.com/${formattedBook}+${ch}?translation=kjv`);
+            if (res.ok) {
+              const data = await res.json();
+              const clean = (data.verses || []).map((v: any) => ({ ...v, book_name: b, book_id: b.toLowerCase().replace(/\s/g, '_'), text: cleanGodName(v.text) }));
+              localStorage.setItem(getCacheKey(b, ch), JSON.stringify(clean));
+            }
+            await delay(180);
+          } catch {
+            // Skip this chapter and continue (e.g. rate limit or network); don't abort whole download
+          }
+        }
+        localStorage.setItem(`kjv_book_offline_${b.replace(/\s/g, '_')}`, 'true');
+      }
+      localStorage.setItem('kjv_full_bible_offline', 'true');
+      setFullBibleStashed(true);
+    } catch { /* ignore */ } finally { setDownloading(false); setDownloadProgress(null); }
   };
 
   return (
@@ -262,11 +301,15 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
           <button
             onClick={handleDownloadBook}
             disabled={downloading || isBookDownloaded(book) || !isOnline}
-            className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isBookDownloaded(book) ? 'bg-primary/20 text-primary' : 'glass text-slate-900/40 dark:text-white/40'} ${!isOnline && !isBookDownloaded(book) ? 'opacity-20 cursor-not-allowed' : ''}`}
+            className={`size-14 sm:size-16 rounded-2xl flex flex-col items-center justify-center shadow-xl transition-all ${isBookDownloaded(book) ? 'bg-primary/20 text-primary' : 'glass text-slate-900/40 dark:text-white/40'} ${!isOnline && !isBookDownloaded(book) ? 'opacity-20 cursor-not-allowed' : ''}`}
+            title={isBookDownloaded(book) ? 'Book stashed for offline' : 'Stash full book for offline'}
           >
-            <span className={`material-symbols-outlined text-3xl sm:text-4xl font-black ${downloading ? 'animate-bounce' : ''}`}>
+            <span className={`material-symbols-outlined text-3xl sm:text-4xl font-black ${downloading && downloadProgress && !('type' in downloadProgress) ? 'animate-bounce' : ''}`}>
               {isBookDownloaded(book) ? 'download_done' : 'cloud_download'}
             </span>
+            {downloadProgress && !('type' in downloadProgress) && (
+              <span className="text-[8px] font-black text-primary mt-0.5 leading-none">{downloadProgress.current}/{downloadProgress.total}</span>
+            )}
           </button>
           <button
             onClick={playChapter}
@@ -307,9 +350,22 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
                 </div>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
-                  {Array.from({ length: maxChapters }).map((_, i) => (
-                    <button key={i} onClick={() => { setChapter(i + 1); setShowSelector(false); setSelectorStage('book'); }} className={`aspect-square rounded-2xl flex items-center justify-center font-black text-lg sm:text-2xl transition-all ${chapter === i + 1 ? 'bg-primary text-background-dark' : 'glass text-white/40 hover:text-white'}`}>{i + 1}</button>
-                  ))}
+                  {Array.from({ length: maxChapters }).map((_, i) => {
+                    const ch = i + 1;
+                    const cached = isChapterCached(book, ch);
+                    const offlineUnavailable = !isOnline && !cached;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => { setChapter(ch); setShowSelector(false); setSelectorStage('book'); }}
+                        disabled={offlineUnavailable}
+                        className={`aspect-square rounded-2xl flex flex-col items-center justify-center font-black text-lg sm:text-2xl transition-all relative ${chapter === ch ? 'bg-primary text-background-dark' : offlineUnavailable ? 'glass text-white/20 cursor-not-allowed' : 'glass text-white/40 hover:text-white'}`}
+                      >
+                        {ch}
+                        {cached && <span className="material-symbols-outlined text-[10px] text-primary absolute bottom-1 right-1" title="Available offline">offline_pin</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -317,7 +373,45 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
         </div>
       )}
 
-      {isServingCache && (
+      {/* Stash whole Bible for offline */}
+      {!isFullBibleDownloaded && isOnline && (
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={handleDownloadFullBible}
+            disabled={downloading}
+            className="glass rounded-2xl px-6 py-4 flex items-center gap-4 border border-primary/20 hover:border-primary/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed w-full max-w-md mx-auto"
+          >
+            <span className={`material-symbols-outlined text-2xl text-primary ${downloading && downloadProgress && 'type' in downloadProgress ? 'animate-bounce' : ''}`}>
+              {isFullBibleDownloaded ? 'download_done' : 'menu_book'}
+            </span>
+            <div className="flex-1 text-left">
+              {downloadProgress && 'type' in downloadProgress ? (
+                <>
+                  <p className="text-[10px] font-black uppercase text-primary tracking-widest">Stashing whole Bible...</p>
+                  <p className="text-xs text-white/70 font-bold">{downloadProgress.book} {downloadProgress.chapter}/{downloadProgress.totalChapters} · Book {downloadProgress.bookIndex}/{downloadProgress.totalBooks}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] font-black uppercase text-primary tracking-widest">Stash whole Bible</p>
+                  <p className="text-[9px] font-bold text-white/50">Download KJV for full offline readin'</p>
+                </>
+              )}
+            </div>
+          </button>
+        </div>
+      )}
+      {isFullBibleDownloaded && (
+        <div className="flex justify-center mb-6 animate-fade-in">
+          <div className="bg-primary/10 border border-primary/20 px-6 py-2 rounded-full flex items-center gap-3 shadow-lg">
+            <span className="material-symbols-outlined text-primary text-sm">menu_book</span>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black uppercase text-primary tracking-widest leading-none">Whole Bible stashed</span>
+              <span className="text-[7px] font-bold uppercase text-primary/60 tracking-widest">Full KJV available offline</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {isServingCache && !isFullBibleDownloaded && (
         <div className="flex justify-center mb-6 animate-fade-in">
           <div className="bg-primary/10 border border-primary/20 px-6 py-2 rounded-full flex items-center gap-3 shadow-lg">
             <span className="material-symbols-outlined text-primary text-sm animate-pulse">offline_pin</span>

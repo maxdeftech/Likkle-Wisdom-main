@@ -307,7 +307,6 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                         </button>
                         <input
                             ref={inputRef}
-                            autoFocus
                             type="text"
                             value={input}
                             onChange={e => setInput(e.target.value)}

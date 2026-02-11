@@ -92,6 +92,17 @@ const App: React.FC = () => {
     return saved ? saved === 'dark' : true;
   });
 
+  // Prevent keyboard from opening on first load (iOS): blur any auto-focused input
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const el = document.activeElement as HTMLElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.getAttribute('contenteditable') === 'true')) {
+        el.blur();
+      }
+    }, 150);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
