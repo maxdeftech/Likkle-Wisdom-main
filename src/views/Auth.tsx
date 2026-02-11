@@ -98,7 +98,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
     // 1. Try to fetch existing profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username, is_premium, avatar_url')
+      .select('username, is_premium, avatar_url, is_admin')
       .eq('id', userId)
       .maybeSingle();
 
@@ -108,7 +108,8 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
         username: profile.username || userEmail?.split('@')[0] || 'Seeker',
         avatarUrl: profile.avatar_url || undefined,
         isGuest: false,
-        isPremium: !!profile.is_premium
+        isPremium: !!profile.is_premium,
+        isAdmin: !!profile.is_admin
       });
       return;
     }
@@ -119,7 +120,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
     const { data: newProfile } = await supabase
       .from('profiles')
       .insert({ id: userId, username: fallbackUsername })
-      .select('username, is_premium, avatar_url')
+      .select('username, is_premium, avatar_url, is_admin')
       .maybeSingle();
 
     if (newProfile) {
@@ -128,7 +129,8 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
         username: newProfile.username || fallbackUsername,
         avatarUrl: newProfile.avatar_url || undefined,
         isGuest: false,
-        isPremium: !!newProfile.is_premium
+        isPremium: !!newProfile.is_premium,
+        isAdmin: !!newProfile.is_admin
       });
     } else {
       // 3. Absolute fallback if database creation fails
@@ -136,7 +138,8 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
         id: userId,
         username: fallbackUsername,
         isGuest: false,
-        isPremium: false
+        isPremium: false,
+        isAdmin: false
       });
     }
   };

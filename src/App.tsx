@@ -259,6 +259,7 @@ const App: React.FC = () => {
           username: profile.username || prev?.username || 'Seeker',
           avatarUrl: profile.avatar_url || prev?.avatarUrl || undefined,
           isPremium: profile.is_premium || prev?.isPremium || false,
+          isAdmin: profile.is_admin || false,
           isPublic: profile.is_public !== undefined ? profile.is_public : true,
           isGuest: false
         }));
@@ -373,7 +374,8 @@ const App: React.FC = () => {
           username: session.user.user_metadata?.username || prev?.username || 'Seeker',
           avatarUrl: session.user.user_metadata?.avatar_url || prev?.avatarUrl,
           isGuest: false,
-          isPremium: true
+          isPremium: true,
+          isAdmin: prev?.isAdmin || false
         }));
         syncUserContent(session.user.id);
         if (view === 'auth' || view === 'splash') setView('main');
