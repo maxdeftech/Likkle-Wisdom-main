@@ -998,7 +998,7 @@ const App: React.FC = () => {
           onUnreadUpdate={syncAlertsCount}
         />
       )}
-      {view === 'main' && (
+      {user && view !== 'splash' && view !== 'auth' && (
         <BottomNav
           activeTab={activeTab}
           onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
