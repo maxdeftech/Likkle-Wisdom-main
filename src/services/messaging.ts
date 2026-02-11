@@ -61,6 +61,8 @@ export const MessagingService = {
     },
 
     async markAsRead(senderId: string, receiverId: string) {
+        console.log(`[markAsRead] Marking messages from ${senderId} to ${receiverId} as read...`);
+        
         // Local update
         await update(STORE_KEY, (val: ChatMessage[] | undefined) => {
             if (!val) return [];
@@ -70,16 +72,22 @@ export const MessagingService = {
             });
         });
 
-        // Remote update - try both string and boolean since column type may vary
+        // Remote update - handle both string and boolean read column types
         if (supabase) {
             try {
-                // First, get ALL messages from this sender to this receiver that are unread
-                // We fetch without filtering on read, then check client-side
-                const { data: allMsgs } = await supabase
+                // Fetch ALL messages from sender to receiver
+                const { data: allMsgs, error: fetchError } = await supabase
                     .from('messages')
                     .select('id, read')
                     .eq('sender_id', senderId)
                     .eq('receiver_id', receiverId);
+
+                if (fetchError) {
+                    console.error('[markAsRead] Fetch error:', fetchError);
+                    return;
+                }
+
+                console.log(`[markAsRead] Found ${allMsgs?.length || 0} messages from sender to receiver`);
 
                 if (allMsgs && allMsgs.length > 0) {
                     // Filter for unread (handle both string 'false' and boolean false)
@@ -87,30 +95,56 @@ export const MessagingService = {
                         .filter(m => m.read === false || m.read === 'false')
                         .map(m => m.id);
 
+                    console.log(`[markAsRead] ${unreadIds.length} unread messages to mark as read`);
+
                     if (unreadIds.length > 0) {
-                        // Update each message individually by ID to avoid RLS filter issues
-                        for (const id of unreadIds) {
-                            await supabase
+                        // Try batch update first with string 'true'
+                        const { data: batchResult, error: batchError } = await supabase
+                            .from('messages')
+                            .update({ read: 'true' })
+                            .in('id', unreadIds)
+                            .select('id');
+
+                        if (batchError) {
+                            console.error('[markAsRead] Batch string update failed:', batchError);
+                            
+                            // Fallback: try with boolean true
+                            const { data: boolResult, error: boolError } = await supabase
                                 .from('messages')
-                                .update({ read: 'true' })
-                                .eq('id', id);
+                                .update({ read: true })
+                                .in('id', unreadIds)
+                                .select('id');
+
+                            if (boolError) {
+                                console.error('[markAsRead] Batch boolean update also failed:', boolError);
+                                
+                                // Last resort: update one by one
+                                console.log('[markAsRead] Trying individual updates...');
+                                for (const id of unreadIds) {
+                                    const { error: individualError } = await supabase
+                                        .from('messages')
+                                        .update({ read: 'true' })
+                                        .eq('id', id);
+                                    
+                                    if (individualError) {
+                                        console.error(`[markAsRead] Failed to update message ${id}:`, individualError);
+                                    }
+                                }
+                            } else {
+                                console.log(`[markAsRead] Boolean batch update succeeded, updated ${boolResult?.length || 0} messages`);
+                            }
+                        } else {
+                            console.log(`[markAsRead] String batch update succeeded, updated ${batchResult?.length || 0} messages`);
                         }
 
-                        // If string didn't work, also try boolean true
-                        const { data: stillUnread } = await supabase
+                        // Verify the update
+                        const { data: verification } = await supabase
                             .from('messages')
                             .select('id, read')
                             .in('id', unreadIds);
 
-                        if (stillUnread) {
-                            const remaining = stillUnread.filter(m => m.read === false || m.read === 'false');
-                            for (const m of remaining) {
-                                await supabase
-                                    .from('messages')
-                                    .update({ read: true })
-                                    .eq('id', m.id);
-                            }
-                        }
+                        const stillUnread = verification?.filter(m => m.read === false || m.read === 'false') || [];
+                        console.log(`[markAsRead] Verification: ${stillUnread.length} messages still unread after update`);
                     }
                 }
             } catch (err) {
