@@ -373,7 +373,7 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [syncUserContent, view, user]);
+  }, [syncUserContent]);
 
   useEffect(() => {
     if (view === 'splash') {
@@ -548,14 +548,26 @@ const App: React.FC = () => {
     setShowSettings(false);
     const wasGuest = user?.isGuest;
     const userId = user?.id;
+    
+    // Clear local state immediately so UI updates
+    setUser(null);
+    setView('auth');
+    
+    // Clear localStorage to prevent session restoration
+    localStorage.removeItem('lkkle_quotes');
+    localStorage.removeItem('lkkle_iconic');
+    localStorage.removeItem('lkkle_bible');
+    localStorage.removeItem('lkkle_journal');
+    localStorage.removeItem('lkkle_verses');
+    localStorage.removeItem('lkkle_user_wisdoms');
+    
+    // Background cleanup
     try {
       if (!wasGuest && userId) await PushService.removeToken(userId);
       if (!wasGuest && supabase) await supabase.auth.signOut();
-    } catch (_) {
-      // Still clear local state so user reaches auth screen
+    } catch (e) {
+      console.warn('Sign out cleanup error:', e);
     }
-    setUser(null);
-    setView('auth');
   };
 
   const handleAddWisdom = async (patois: string, english: string) => {
