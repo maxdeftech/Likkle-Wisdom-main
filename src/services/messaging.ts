@@ -23,48 +23,64 @@ export const MessagingService = {
 
     /** Fast: returns only from local cache (IndexedDB). Use to show messages immediately while full sync runs. */
     async getMessagesFromCache(userId: string, currentUserId: string): Promise<ChatMessage[]> {
-        const allMessages = await get<ChatMessage[]>(STORE_KEY) || [];
-        return allMessages.filter(m =>
-            (m.senderId === userId && m.receiverId === currentUserId) ||
-            (m.senderId === currentUserId && m.receiverId === userId) ||
-            (m.type === 'admin-broadcast')
-        ).sort((a, b) => a.timestamp - b.timestamp);
+        try {
+            const allMessages = await get<ChatMessage[]>(STORE_KEY) || [];
+            return allMessages.filter(m =>
+                (m.senderId === userId && m.receiverId === currentUserId) ||
+                (m.senderId === currentUserId && m.receiverId === userId) ||
+                (m.type === 'admin-broadcast')
+            ).sort((a, b) => a.timestamp - b.timestamp);
+        } catch (e) {
+            console.warn('[MessagingService.getMessagesFromCache] IndexedDB unavailable (e.g. iOS private mode):', e);
+            return [];
+        }
     },
 
     async getMessages(userId: string, currentUserId: string): Promise<ChatMessage[]> {
-        // 1. Try fetching from Supabase first
-        if (supabase) {
-            const { data, error } = await supabase
-                .from('messages')
-                .select('*')
-                .or(`and(sender_id.eq.${userId},receiver_id.eq.${currentUserId}),and(sender_id.eq.${currentUserId},receiver_id.eq.${userId})`)
-                .order('created_at', { ascending: true });
+        const fromLocal = async (): Promise<ChatMessage[]> => {
+            const allMessages = await get<ChatMessage[]>(STORE_KEY) || [];
+            return allMessages.filter(m =>
+                (m.senderId === userId && m.receiverId === currentUserId) ||
+                (m.senderId === currentUserId && m.receiverId === userId) ||
+                (m.type === 'admin-broadcast')
+            ).sort((a, b) => a.timestamp - b.timestamp);
+        };
 
-            if (!error && data) {
-                const cloudMsgs: ChatMessage[] = data.map(m => ({
-                    id: m.id,
-                    senderId: m.sender_id,
-                    receiverId: m.receiver_id,
-                    content: m.content,
-                    timestamp: new Date(m.created_at).getTime(),
-                    read: toBoolean(m.read),
-                    type: m.type || 'text',
-                    replyToId: m.reply_to_id || undefined
-                }));
-                // Sync to local
-                for (const msg of cloudMsgs) {
-                    await this.saveMessage(msg);
+        try {
+            // 1. Try fetching from Supabase first
+            if (supabase) {
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .or(`and(sender_id.eq.${userId},receiver_id.eq.${currentUserId}),and(sender_id.eq.${currentUserId},receiver_id.eq.${userId})`)
+                    .order('created_at', { ascending: true });
+
+                if (!error && data) {
+                    const cloudMsgs: ChatMessage[] = data.map(m => ({
+                        id: m.id,
+                        senderId: m.sender_id,
+                        receiverId: m.receiver_id,
+                        content: m.content,
+                        timestamp: new Date(m.created_at).getTime(),
+                        read: toBoolean(m.read),
+                        type: m.type || 'text',
+                        replyToId: m.reply_to_id || undefined
+                    }));
+                    for (const msg of cloudMsgs) {
+                        await this.saveMessage(msg);
+                    }
                 }
             }
-        }
 
-        // 2. Return from local (which is now synced)
-        const allMessages = await get<ChatMessage[]>(STORE_KEY) || [];
-        return allMessages.filter(m =>
-            (m.senderId === userId && m.receiverId === currentUserId) ||
-            (m.senderId === currentUserId && m.receiverId === userId) ||
-            (m.type === 'admin-broadcast')
-        ).sort((a, b) => a.timestamp - b.timestamp);
+            return await fromLocal();
+        } catch (e) {
+            console.warn('[MessagingService.getMessages] Supabase or IndexedDB failed, returning local only:', e);
+            try {
+                return await fromLocal();
+            } catch {
+                return [];
+            }
+        }
     },
 
     async getAllMessages(): Promise<ChatMessage[]> {

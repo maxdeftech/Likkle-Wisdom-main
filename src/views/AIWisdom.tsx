@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { generatePatoisWisdom } from '../services/geminiService';
+import { generatePatoisWisdom, isGeminiKeyConfigured, KEY_MISSING_RESPONSE } from '../services/geminiService';
 import { MOODS } from '../constants';
 import { User } from '../types';
 
@@ -105,6 +105,12 @@ const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onUpgrade,
                   <p className="text-sm text-slate-900/60 dark:text-white/60 italic font-medium leading-relaxed">"{wisdom.english}"</p>
                 </div>
               </div>
+              {!isGeminiKeyConfigured() && wisdom.patois === KEY_MISSING_RESPONSE.patois && (
+                <div className="mt-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">AI key not set</p>
+                  <p className="text-xs text-slate-600 dark:text-white/50">Add <code className="bg-black/10 dark:bg-white/10 px-1 rounded">VITE_GEMINI_API_KEY</code> to your <code className="bg-black/10 dark:bg-white/10 px-1 rounded">.env</code> file, then run <code className="bg-black/10 dark:bg-white/10 px-1 rounded">npm run build</code> again. For iOS/Android, sync after building.</p>
+                </div>
+              )}
             </div>
           )}
 

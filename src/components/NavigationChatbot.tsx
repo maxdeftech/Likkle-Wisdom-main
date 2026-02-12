@@ -34,19 +34,20 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<any>(null);
 
-    // TTS: Speak a message
+    // TTS: Speak a message (guarded for platforms without speechSynthesis, e.g. Android WebView)
     const speakText = (text: string, msgId: string) => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            if (speakingId === msgId) { setSpeakingId(null); return; }
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
-            utterance.onend = () => setSpeakingId(null);
-            utterance.onerror = () => setSpeakingId(null);
-            setSpeakingId(msgId);
-            window.speechSynthesis.speak(utterance);
-        }
+        const synth = typeof window !== 'undefined' ? (window as any).speechSynthesis : null;
+        if (!synth || typeof synth.cancel !== 'function' || typeof synth.speak !== 'function') return;
+
+        synth.cancel();
+        if (speakingId === msgId) { setSpeakingId(null); return; }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.onend = () => setSpeakingId(null);
+        utterance.onerror = () => setSpeakingId(null);
+        setSpeakingId(msgId);
+        synth.speak(utterance);
     };
 
     // STT: Start/stop speech recognition
@@ -81,8 +82,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
 
     // Cleanup TTS on close
     useEffect(() => {
-        if (!isOpen && 'speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
+        if (!isOpen) {
+            const synth = typeof window !== 'undefined' ? (window as any).speechSynthesis : null;
+            if (synth && typeof synth.cancel === 'function') {
+                synth.cancel();
+            }
             setSpeakingId(null);
         }
     }, [isOpen]);

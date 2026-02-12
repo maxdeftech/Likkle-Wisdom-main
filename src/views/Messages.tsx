@@ -112,6 +112,8 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                     MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id).then(setPinnedMessageId);
                     MessagingService.getStarredMessageIds(currentUser.id, ids).then(setStarredIds);
                 }
+            }).catch(() => {
+                setMessagesLoading(false);
             });
 
             // Full sync from Supabase; when done, show latest and hide loading if still visible
@@ -128,6 +130,13 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                     setPinnedMessageId(null);
                     setStarredIds(new Set());
                 }
+            }).catch((err) => {
+                console.warn('[Messages] Load failed (e.g. RLS or network):', err);
+                setMessages([]);
+                setMessagesLoading(false);
+                setMessageReactions({});
+                setPinnedMessageId(null);
+                setStarredIds(new Set());
             });
 
             // Immediately zero out local count for this chat

@@ -39,7 +39,7 @@ Each view is a full-screen React component. Navigation is controlled by `activeT
 
 ### Services (`src/services/`)
 - `supabase.ts` - Auth, profiles, bookmarks, journal entries sync. Falls back gracefully if credentials missing.
-- `geminiService.ts` - AI wisdom generation via `@google/genai`. Uses `process.env.API_KEY`.
+- `geminiService.ts` - AI wisdom generation via `@google/genai`. Uses `VITE_GEMINI_API_KEY` from `.env` (Vite exposes only `VITE_*` at build time; required for web and native).
 - `revenueCat.ts` - In-app purchases for iOS/Android via Capacitor plugin. Only initializes on native platforms.
 - `messaging.ts`, `social.ts` - Friend requests and messaging features.
 
@@ -78,7 +78,7 @@ Defined in `src/constants.ts` as `CATEGORIES`. Each content type (`Quote`, `Icon
 
 ## Environment Variables
 
-- `API_KEY` or `GEMINI_API_KEY` - Google Generative AI key for the AI wisdom feature
+- `VITE_GEMINI_API_KEY` - Google Generative AI key for the AI wisdom feature. Add to `.env` and run `npm run build` (and `npx cap sync` for native); the key is baked in at build time.
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY` - Optional, has fallback defaults in code
 - **`VITE_REVENUECAT_API_KEY`** - **Required for App Store / Play Store release.** Use your **production** RevenueCat API key from the RevenueCat dashboard (iOS and Android each have their own key; use the correct one per platform build). Never ship with a Test Store key—App Review will reject. In dev, if unset, IAP is skipped and a console warning is logged.
 

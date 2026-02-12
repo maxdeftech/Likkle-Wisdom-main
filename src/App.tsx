@@ -175,15 +175,18 @@ const App: React.FC = () => {
   }, [user, syncAlertsCount]);
 
   // Register push token for native notifications
+  // Temporarily disabled on native (Android/iOS) to avoid crashes when POST_NOTIFICATIONS is granted.
+  // PushService still works as a no-op on web/PWA.
   useEffect(() => {
-    if (user && !user.isGuest && PushService.isNative()) {
-      PushService.registerAndSyncToken(user.id);
-    }
+    // Intentionally left blank for now.
   }, [user?.id, user?.isGuest]);
 
   // Realtime subscription for incoming messages — updates badge seamlessly without UI refresh
+  // Disabled on native (Android/iOS) to avoid potential WebView/runtime crashes; still active on web.
   useEffect(() => {
     if (!user || user.isGuest || !supabase) return;
+    if (PushService.isNative()) return;
+
     const channel = supabase.channel(`app_msg_badge_${user.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -428,22 +431,24 @@ const App: React.FC = () => {
       } else if (session) {
         syncUserContent(session.user.id);
         if (view === 'splash' || view === 'auth') setView('main');
-      } else if (view === 'main') {
+      } else if (view === 'main' && (!user || !user.isGuest)) {
+        // Only force back to auth if we *expected* a real Supabase session
         setView('auth');
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        // Use functional update to avoid wiping extra user state (like avatarUrl)
+        // Prefer existing profile (prev) over session user_metadata to avoid name/avatar
+        // glitching when JWT metadata is stale (e.g. after profile update or token refresh).
         setUser(prev => ({
           ...(prev || {}),
           id: session.user.id,
-          username: session.user.user_metadata?.username || prev?.username || 'Seeker',
-          avatarUrl: session.user.user_metadata?.avatar_url || prev?.avatarUrl,
+          username: prev?.username ?? session.user.user_metadata?.username ?? 'Seeker',
+          avatarUrl: prev?.avatarUrl ?? session.user.user_metadata?.avatar_url,
           isGuest: false,
-          isPremium: true,
-          isAdmin: prev?.isAdmin || false
+          isPremium: prev?.isPremium ?? true,
+          isAdmin: prev?.isAdmin ?? false
         }));
         syncUserContent(session.user.id);
         if (view === 'auth' || view === 'splash') setView('main');
@@ -454,7 +459,7 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [syncUserContent, view]);
+  }, [syncUserContent, view, user]);
 
   useEffect(() => {
     if (view === 'splash') {

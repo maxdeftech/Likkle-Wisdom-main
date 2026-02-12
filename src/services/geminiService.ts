@@ -1,16 +1,25 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
+const KEY_MISSING_RESPONSE = {
+  patois: "Wisdom hidden when di key missin'.",
+  english: "True wisdom is hard to find without the right connection."
+};
+
+export function isGeminiKeyConfigured(): boolean {
+  const env = (import.meta as any).env ?? {};
+  return !!(env.VITE_GEMINI_API_KEY?.trim?.() || env.GEMINI_API_KEY?.trim?.());
+}
+
 export async function generatePatoisWisdom(mood: string) {
-  // Use import.meta.env for Vite compatibility
-  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  const env = (import.meta as any).env ?? {};
+  const apiKey = (env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || "").trim();
 
   if (!apiKey) {
-    console.error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in your .env file.");
-    return {
-      patois: "Wisdom hidden when di key missin'.",
-      english: "True wisdom is hard to find without the right connection."
-    };
+    console.error(
+      "Gemini API key is missing. Add VITE_GEMINI_API_KEY=your_key to .env, then run 'npm run build' again. " +
+      "For native (iOS/Android), the key is baked in at build time."
+    );
+    return KEY_MISSING_RESPONSE;
   }
 
   try {
@@ -53,4 +62,6 @@ export async function generatePatoisWisdom(mood: string) {
     };
   }
 }
+
+export { KEY_MISSING_RESPONSE };
 
