@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
 import { Capacitor } from '@capacitor/core';
-import { presentPaywall } from '../services/revenueCat';
+import { initializePurchases, presentPaywall } from '../services/revenueCat';
 
 const LIKKLE_WISDOM_WEBSITE = 'https://likklewisdom.com/';
 
@@ -93,7 +93,10 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     if (!Capacitor.isNativePlatform()) return;
     setSupportLoading(true);
     try {
+      await initializePurchases();
       await presentPaywall();
+    } catch (e) {
+      console.warn('Support paywall:', e);
     } finally {
       setSupportLoading(false);
     }
