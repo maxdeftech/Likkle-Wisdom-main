@@ -154,12 +154,23 @@ const App: React.FC = () => {
     }
   }, [user, syncAlertsCount]);
 
-  // Register push token for native notifications
-  // Temporarily disabled on native (Android/iOS) to avoid crashes when POST_NOTIFICATIONS is granted.
-  // PushService still works as a no-op on web/PWA.
+  // Native push: register device token for verse/quote/wisdom/alerts of the day
   useEffect(() => {
-    // Intentionally left blank for now.
+    if (!user || user.isGuest || !PushService.isNative()) return;
+    PushService.registerAndSyncToken(user.id);
   }, [user?.id, user?.isGuest]);
+
+  // When user taps a push notification, open the right tab
+  useEffect(() => {
+    PushService.setNotificationHandlers({
+      onOpenTarget: (target) => {
+        setView('main');
+        if (target === 'verse') setActiveTab('bible');
+        else if (target === 'alert') setShowAlerts(true);
+        else setActiveTab('home');
+      }
+    });
+  }, []);
 
   // Daily scheduled push notifications: wisdom/quote at 8am, verse at 12pm
   useEffect(() => {
@@ -543,12 +554,30 @@ const App: React.FC = () => {
 
   const handleAddWisdom = async (patois: string, english: string) => {
     if (!user) return;
+
+    // Guests must sign up before saving wisdom
+    if (user.isGuest) {
+      setShowAuthGate(true);
+      return;
+    }
+
+    // Basic offline guard to avoid confusing network errors
+    if (!navigator.onLine) {
+      setNotification({ message: "No signal right now. Try plant di wisdom when yuh back online.", type: 'info' });
+      return;
+    }
+
     const { data, error } = await WisdomService.createUserWisdom(user.id, patois, english);
     if (data) {
       setUserWisdoms(prev => [data, ...prev]);
       setNotification({ message: "Wisdom planted in yuh garden! 🌱", type: 'info' });
     } else if (error) {
-      setNotification({ message: `Could not plant wisdom: ${error}`, type: 'info' });
+      // Normalize generic network errors into a clearer message
+      const lower = error.toLowerCase();
+      const friendly = lower.includes('load failed') || lower.includes('failed to fetch')
+        ? "Network hiccup while planting wisdom. Check connection and try again."
+        : `Could not plant wisdom: ${error}`;
+      setNotification({ message: friendly, type: 'info' });
     }
   };
 

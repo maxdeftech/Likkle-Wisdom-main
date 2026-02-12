@@ -6,10 +6,16 @@
 import { supabase } from './supabase';
 import { UserWisdom } from '../types';
 
+function isNetworkError(message: string): boolean {
+    const m = (message || '').toLowerCase();
+    return m.includes('load failed') || m.includes('failed to fetch') || m.includes('network');
+}
+
 export const WisdomService = {
-    /** Fetch all wisdoms for a user, newest first; returns [] if no supabase or on error. */
+    /** Fetch all wisdoms for a user, newest first; returns [] if no supabase, offline, or on error. */
     async getUserWisdoms(userId: string): Promise<UserWisdom[]> {
         if (!supabase) return [];
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return [];
 
         try {
             const { data, error } = await supabase
@@ -19,17 +25,13 @@ export const WisdomService = {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error('[WisdomService] Error fetching user wisdoms:', {
-                    message: error.message,
-                    code: error.code
-                });
+                if (!isNetworkError(error.message)) {
+                    console.error('[WisdomService] Error fetching user wisdoms:', error.message, error.code);
+                }
                 return [];
             }
 
-            if (!data) {
-                console.warn('[WisdomService] No wisdom data returned');
-                return [];
-            }
+            if (!data) return [];
 
             return data.map(d => ({
                 id: d.id,
@@ -39,7 +41,10 @@ export const WisdomService = {
                 timestamp: new Date(d.created_at).getTime()
             }));
         } catch (e) {
-            console.error('[WisdomService] Exception in getUserWisdoms:', e);
+            const msg = e instanceof Error ? e.message : String(e);
+            if (!isNetworkError(msg)) {
+                console.error('[WisdomService] Exception in getUserWisdoms:', e);
+            }
             return [];
         }
     },
