@@ -1,20 +1,28 @@
+/**
+ * Likkle Wisdom — Application entry point.
+ * Bootstraps React, global error handlers, fonts, and mounts App inside an ErrorBoundary.
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
-// Prevent unhandled rejections from crashing the app (e.g. Android WebView)
+// --- Global error handlers (prevent crashes on Android WebView / unhandled rejections) ---
+// Log unhandled promise rejections and prevent them from terminating the app
 window.addEventListener('unhandledrejection', (event) => {
   console.error('[unhandledrejection]', event.reason);
   event.preventDefault();
   event.stopPropagation();
 });
+// Log global synchronous errors (message, file, line, column, error object)
 window.addEventListener('error', (event) => {
   console.error('[global error]', event.message, event.filename, event.lineno, event.colno, event.error);
 });
 
-/* Bundled fonts for offline (iOS/Android + PWA). Prevents icon names and text showing when network is off. */
+// --- Bundled fonts for offline (iOS/Android + PWA) ---
+// Ensures icons (Material Symbols) and text (Plus Jakarta Sans, Space Grotesk) render when network is off
 import '@fontsource/material-symbols-outlined/100.css';
 import '@fontsource/material-symbols-outlined/200.css';
 import '@fontsource/material-symbols-outlined/300.css';
@@ -32,6 +40,7 @@ import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/600.css';
 import '@fontsource/space-grotesk/700.css';
 
+// --- Mount root ---
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");

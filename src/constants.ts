@@ -1,6 +1,11 @@
+/**
+ * src/constants.ts — Static content and category definitions.
+ * Quotes, iconic quotes, and Bible affirmations are used by Home, Discover, BibleView; favorites sync to Supabase bookmarks.
+ */
 
 import { Quote, Category, IconicQuote, BibleAffirmation } from './types';
 
+/** Category list for filtering; each has id, name, description, icon (Material Symbol name), and Tailwind color. */
 export const CATEGORIES: Category[] = [
   { id: 'Affirmations', name: 'Big Up Yuhself', description: 'Positive vibes only', icon: 'spa', color: 'primary' },
   { id: 'Wisdom', name: 'Deep Tings', description: 'Old school Patois lore', icon: 'psychology', color: 'jamaican-gold' },
@@ -10,6 +15,7 @@ export const CATEGORIES: Category[] = [
   { id: 'Word & Powah', name: 'Bible Verses', description: 'Word of di Lawd', icon: 'menu_book', color: 'primary' }
 ];
 
+/** Iconic quotes from Jamaican legends (Bob Marley, Marcus Garvey, Miss Lou, etc.); category 'Legends'. */
 export const ICONIC_QUOTES: IconicQuote[] = [
   { id: 'ic1', author: 'Bob Marley', text: "The greatness of a man is not in how much wealth he acquires, but in his integrity and his ability to affect those around him positively.", category: 'Legends', isFavorite: false },
   { id: 'ic2', author: 'Marcus Garvey', text: "A people without the knowledge of their past history, origin and culture is like a tree without roots.", category: 'Legends', isFavorite: false },
@@ -28,6 +34,7 @@ export const ICONIC_QUOTES: IconicQuote[] = [
   { id: 'ic15', author: 'Marcus Garvey', text: "With confidence, you have won before you have started.", category: 'Legends', isFavorite: false }
 ];
 
+/** Bible verses with KJV and Patois; category 'Word & Powah'; isFavorite synced to bookmarks. */
 export const BIBLE_AFFIRMATIONS: BibleAffirmation[] = [
   { id: 'b1', reference: 'Psalm 23:1', kjv: "The Lord is my shepherd; I shall not want.", patois: "De Lawd a mi shepherd; mi nah go want fi nuttn.", category: 'Word & Powah', isFavorite: false },
   { id: 'b2', reference: 'Philippians 4:13', kjv: "I can do all things through Christ which strengtheneth me.", patois: "Mi can do every single ting tru Christ weh gi mi di strength.", category: 'Word & Powah', isFavorite: false },
@@ -51,6 +58,7 @@ export const BIBLE_AFFIRMATIONS: BibleAffirmation[] = [
   { id: 'b20', reference: 'Philippians 4:6', kjv: "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.", patois: "Nuh worry bout nuttn; but inna everyting, pray an give thanks an tell God wah yuh need.", category: 'Word & Powah', isFavorite: false }
 ];
 
+/** Jamaican Patois quotes with English translation; categories map to CATEGORIES; isFavorite synced to Supabase. */
 export const INITIAL_QUOTES: Quote[] = [
   { id: '1', patois: "Every mickle mek a muckle", english: "Every small amount adds up to something big.", category: "Wisdom", isFavorite: false },
   { id: '2', patois: "Wah sweet nanny goat a go run him belly", english: "What seems good now might have bad consequences later.", category: "Wisdom", isFavorite: false },

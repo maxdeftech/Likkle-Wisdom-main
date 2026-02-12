@@ -1,15 +1,26 @@
+/**
+ * src/services/geminiService.ts — AI-generated Jamaican Patois wisdom via Google Gemini.
+ * Uses VITE_GEMINI_API_KEY (or GEMINI_API_KEY) from env; key is baked in at build for web and native.
+ */
+
 import { GoogleGenAI, Type } from "@google/genai";
 
+/** Returned when API key is missing so the UI still shows a fallback message. */
 const KEY_MISSING_RESPONSE = {
   patois: "Wisdom hidden when di key missin'.",
   english: "True wisdom is hard to find without the right connection."
 };
 
+/** Returns true if VITE_GEMINI_API_KEY or GEMINI_API_KEY is set (non-empty after trim). */
 export function isGeminiKeyConfigured(): boolean {
   const env = (import.meta as any).env ?? {};
   return !!(env.VITE_GEMINI_API_KEY?.trim?.() || env.GEMINI_API_KEY?.trim?.());
 }
 
+/**
+ * Calls Gemini to generate a unique Jamaican Patois proverb/affirmation for the given mood.
+ * Returns { patois, english }; on key missing or API error returns a fallback object.
+ */
 export async function generatePatoisWisdom(mood: string) {
   const env = (import.meta as any).env ?? {};
   const apiKey = (env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || "").trim();
@@ -25,7 +36,7 @@ export async function generatePatoisWisdom(mood: string) {
   try {
     const ai = new GoogleGenAI({ apiKey });
 
-    // Using gemini-2.0-flash for faster and more reliable generation
+    // gemini-2.0-flash: fast and reliable for short JSON generation
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: [

@@ -1,7 +1,12 @@
+/**
+ * src/services/feedService.ts — Social feed: posts from Supabase (posts table + post-media storage).
+ * getPosts (last 24h), createPost (with optional media upload), deletePost, subscribeToFeed (Realtime).
+ */
+
 import { supabase } from './supabase';
 import { Post } from '../types';
 
-// Helper: fetch profiles for a set of user IDs
+/** Fetches profile rows (username, avatar_url) for given user IDs; returns a map id -> profile. */
 async function fetchProfiles(userIds: string[]): Promise<Record<string, { username: string; avatar_url?: string }>> {
   if (!supabase || userIds.length === 0) return {};
   const unique = [...new Set(userIds)];
