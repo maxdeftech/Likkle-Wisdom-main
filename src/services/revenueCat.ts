@@ -7,18 +7,24 @@ import { Capacitor } from '@capacitor/core';
 const API_KEY = (import.meta as any).env?.VITE_REVENUECAT_API_KEY as string | undefined;
 const isDev = (import.meta as any).env?.DEV === true;
 
+/** True after configure() has been called successfully on native (so paywall can be shown). */
+let isConfigured = false;
+
 export const initializePurchases = async () => {
     try {
-        if (!API_KEY || API_KEY.startsWith('test_')) {
-            if (Capacitor.getPlatform() !== 'web') console.warn('RevenueCat: Set VITE_REVENUECAT_API_KEY to your production key for release builds.');
+        if (!API_KEY?.trim()) {
+            if (Capacitor.getPlatform() !== 'web') console.warn('RevenueCat: Set VITE_REVENUECAT_API_KEY in .env so the paywall can load.');
             return;
+        }
+        if (API_KEY.startsWith('test_') && Capacitor.getPlatform() !== 'web') {
+            console.warn('RevenueCat: Using a test key. Use your production key for App Store / Play Store release.');
         }
         await Purchases.setLogLevel({ level: isDev ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN });
 
         const platform = Capacitor.getPlatform();
-
-        if ((platform === 'ios' || platform === 'android') && API_KEY) {
+        if (platform === 'ios' || platform === 'android') {
             await Purchases.configure({ apiKey: API_KEY });
+            isConfigured = true;
         }
     } catch (error) {
         console.error("Error configuring RevenueCat:", error);
@@ -39,20 +45,29 @@ export const checkPremiumStatus = async (): Promise<boolean> => {
 };
 
 export const presentPaywall = async (): Promise<boolean> => {
+    const platform = Capacitor.getPlatform();
+    if (platform !== 'ios' && platform !== 'android') {
+        console.warn('RevenueCat paywall is only supported on iOS and Android.');
+        return false;
+    }
+    if (!isConfigured) {
+        console.warn('RevenueCat not configured yet. Call initializePurchases() first (e.g. on app launch).');
+        return false;
+    }
     try {
-        // Present paywall for current offering
-        const { result } = await RevenueCatUI.presentPaywall();
+        const { result } = await RevenueCatUI.presentPaywall({
+            displayCloseButton: true,
+        });
 
-        switch (result) {
-            case PAYWALL_RESULT.PURCHASED:
-            case PAYWALL_RESULT.RESTORED:
-                return true;
-            case PAYWALL_RESULT.NOT_PRESENTED:
-            case PAYWALL_RESULT.ERROR:
-            case PAYWALL_RESULT.CANCELLED:
-            default:
-                return false;
+        if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
+            return true;
         }
+        if (result === PAYWALL_RESULT.NOT_PRESENTED) {
+            console.warn('RevenueCat paywall not presented (e.g. no offering in dashboard, or offline). Check RevenueCat dashboard has an Offering and a Paywall.');
+        } else if (result === PAYWALL_RESULT.ERROR) {
+            console.error('RevenueCat paywall error.');
+        }
+        return false;
     } catch (error) {
         console.error("Error presenting paywall:", error);
         return false;
