@@ -9,6 +9,7 @@ import { PushService } from './services/pushService';
 import { EncryptionService } from './services/encryption';
 import { WisdomService } from './services/wisdomService';
 import { MessagingService } from './services/messaging';
+import { MessageSyncService } from './services/messageSyncService';
 import { SocialService } from './services/social';
 import { AlertsService } from './services/alertsService';
 import SplashScreen from './views/SplashScreen';
@@ -430,6 +431,8 @@ const App: React.FC = () => {
         }
       } else if (session) {
         syncUserContent(session.user.id);
+        // Sync all messages from cloud for cross-device access
+        MessageSyncService.syncAllMessages(session.user.id).catch(e => console.warn('Message sync failed:', e));
         if (view === 'splash' || view === 'auth') setView('main');
       } else if (view === 'main' && (!user || !user.isGuest)) {
         // Only force back to auth if we *expected* a real Supabase session
@@ -451,6 +454,8 @@ const App: React.FC = () => {
           isAdmin: prev?.isAdmin ?? false
         }));
         syncUserContent(session.user.id);
+        // Sync all messages from cloud for cross-device access (background)
+        MessageSyncService.syncAllMessages(session.user.id).catch(e => console.warn('Message sync failed:', e));
         if (view === 'auth' || view === 'splash') setView('main');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);

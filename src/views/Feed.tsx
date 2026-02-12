@@ -68,9 +68,17 @@ const Feed: React.FC<FeedProps> = ({ user, isOnline, userWisdoms, onModalChange 
 
   const loadPosts = async () => {
     setLoading(true);
-    const p = await FeedService.getPosts();
-    setPosts(p);
-    setLoading(false);
+    try {
+      console.log('[Feed] Loading posts...');
+      const p = await FeedService.getPosts();
+      console.log('[Feed] Got posts:', p);
+      setPosts(p);
+    } catch (e) {
+      console.error('[Feed] Error loading posts:', e);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchVerse = async () => {

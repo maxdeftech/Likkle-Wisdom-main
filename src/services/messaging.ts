@@ -47,16 +47,21 @@ export const MessagingService = {
         };
 
         try {
-            // 1. Try fetching from Supabase first
+            // 1. Try fetching from Supabase first using two separate, simpler queries
+            // (Complex .or() filters can fail on iOS WebView; split into two queries instead)
             if (supabase) {
-                const { data, error } = await supabase
+                const cloudMsgs: ChatMessage[] = [];
+
+                // Query 1: Messages from userId to currentUserId
+                const { data: msgs1, error: err1 } = await supabase
                     .from('messages')
                     .select('*')
-                    .or(`and(sender_id.eq.${userId},receiver_id.eq.${currentUserId}),and(sender_id.eq.${currentUserId},receiver_id.eq.${userId})`)
+                    .eq('sender_id', userId)
+                    .eq('receiver_id', currentUserId)
                     .order('created_at', { ascending: true });
 
-                if (!error && data) {
-                    const cloudMsgs: ChatMessage[] = data.map(m => ({
+                if (!err1 && msgs1) {
+                    cloudMsgs.push(...msgs1.map(m => ({
                         id: m.id,
                         senderId: m.sender_id,
                         receiverId: m.receiver_id,
@@ -65,10 +70,37 @@ export const MessagingService = {
                         read: toBoolean(m.read),
                         type: m.type || 'text',
                         replyToId: m.reply_to_id || undefined
-                    }));
-                    for (const msg of cloudMsgs) {
-                        await this.saveMessage(msg);
-                    }
+                    })));
+                }
+
+                // Query 2: Messages from currentUserId to userId
+                const { data: msgs2, error: err2 } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .eq('sender_id', currentUserId)
+                    .eq('receiver_id', userId)
+                    .order('created_at', { ascending: true });
+
+                if (!err2 && msgs2) {
+                    cloudMsgs.push(...msgs2.map(m => ({
+                        id: m.id,
+                        senderId: m.sender_id,
+                        receiverId: m.receiver_id,
+                        content: m.content,
+                        timestamp: new Date(m.created_at).getTime(),
+                        read: toBoolean(m.read),
+                        type: m.type || 'text',
+                        replyToId: m.reply_to_id || undefined
+                    })));
+                }
+
+                // Sync to local and deduplicate
+                for (const msg of cloudMsgs) {
+                    await this.saveMessage(msg);
+                }
+
+                if (err1 || err2) {
+                    console.warn('[MessagingService.getMessages] Supabase query partial failure:', { err1, err2 });
                 }
             }
 

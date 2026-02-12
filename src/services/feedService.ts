@@ -38,23 +38,46 @@ function mapPost(row: any, profileMap: Record<string, { username: string; avatar
 export const FeedService = {
 
   async getPosts(): Promise<Post[]> {
-    if (!supabase) return [];
-
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id, user_id, content_type, text_content, media_url, scripture_ref, wisdom_ref, created_at')
-      .gte('created_at', cutoff)
-      .order('created_at', { ascending: false });
-
-    if (error || !data) {
-      console.error('Feed fetch error:', error);
+    if (!supabase) {
+      console.error('[FeedService] Supabase not initialized');
       return [];
     }
 
-    const profileMap = await fetchProfiles(data.map((p: any) => p.user_id));
-    return data.map((p: any) => mapPost(p, profileMap));
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    try {
+      console.log('[FeedService] Fetching posts from', cutoff);
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, user_id, content_type, text_content, media_url, scripture_ref, wisdom_ref, created_at')
+        .gte('created_at', cutoff)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[FeedService] Query error:', error);
+        return [];
+      }
+
+      if (!data) {
+        console.warn('[FeedService] No data returned');
+        return [];
+      }
+
+      console.log(`[FeedService] Fetched ${data.length} posts`);
+
+      if (data.length === 0) {
+        console.info('[FeedService] No posts in the last 24h');
+        return [];
+      }
+
+      const profileMap = await fetchProfiles(data.map((p: any) => p.user_id));
+      const posts = data.map((p: any) => mapPost(p, profileMap));
+      console.log('[FeedService] Mapped to', posts.length, 'posts');
+      return posts;
+    } catch (e) {
+      console.error('[FeedService] Exception during getPosts:', e);
+      return [];
+    }
   },
 
   async createPost(
