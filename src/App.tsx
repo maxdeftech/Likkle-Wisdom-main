@@ -200,7 +200,7 @@ const App: React.FC = () => {
         // In-app notification
         const m = payload.new as any;
         if (m.sender_id) {
-          supabase!.from('profiles').select('username').eq('id', m.sender_id).single().then(({ data: profile }) => {
+          supabase!.from('profiles').select('username').eq('id', m.sender_id).maybeSingle().then(({ data: profile }) => {
             const senderName = profile?.username || 'Someone';
             setNotification({
               message: `💬 ${senderName}: ${(m.content || '').slice(0, 40)}`,
@@ -215,7 +215,7 @@ const App: React.FC = () => {
                 tag: `msg-${m.id}`
               });
             }
-          });
+          }).then(() => {}, () => {});
         }
       })
       .on('postgres_changes', {
@@ -335,20 +335,21 @@ const App: React.FC = () => {
     try {
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (profile) {
+        // Prefer profile from DB over any stale session metadata (fixes stale avatar on refresh)
         setUser(prev => ({
           id: userId,
-          username: profile.username || prev?.username || 'Seeker',
-          avatarUrl: profile.avatar_url || prev?.avatarUrl || undefined,
-          isPremium: profile.is_premium || prev?.isPremium || false,
-          isAdmin: profile.is_admin || false,
+          username: profile.username ?? prev?.username ?? 'Seeker',
+          avatarUrl: profile.avatar_url ?? prev?.avatarUrl ?? undefined,
+          isPremium: profile.is_premium ?? prev?.isPremium ?? false,
+          isAdmin: profile.is_admin ?? false,
           isPublic: profile.is_public !== undefined ? profile.is_public : true,
           isGuest: false
         }));
       }
 
-      // Sync badge counts
-      MessagingService.getUnreadCount(userId).then(setUnreadMessageCount);
-      SocialService.getFriendRequests(userId).then(reqs => setPendingRequestCount(reqs.length));
+      // Sync badge counts (catch to avoid unhandled rejections)
+      MessagingService.getUnreadCount(userId).then(setUnreadMessageCount).catch(() => {});
+      SocialService.getFriendRequests(userId).then(reqs => setPendingRequestCount(reqs.length)).catch(() => {});
 
       const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', userId);
       if (bookmarks) {
@@ -406,10 +407,10 @@ const App: React.FC = () => {
     let friendSub: any;
 
     msgSub = MessagingService.subscribeToMessages(user.id, () => {
-      MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
+      MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount).catch(() => {});
     });
     friendSub = SocialService.subscribeToFriendRequests(user.id, () => {
-      SocialService.getFriendRequests(user.id).then(reqs => setPendingRequestCount(reqs.length));
+      SocialService.getFriendRequests(user.id).then(reqs => setPendingRequestCount(reqs.length)).catch(() => {});
     });
 
     return () => {
@@ -1036,7 +1037,7 @@ const FriendsListOverlay: React.FC<{
     SocialService.getFriends(currentUser.id).then(f => {
       setFriends(f);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [currentUser.id]);
 
   const handleRemoveFriend = async (friendshipId: string, friendName: string) => {

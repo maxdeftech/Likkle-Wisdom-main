@@ -4,9 +4,6 @@ import { Quote, User, Tab, BibleAffirmation } from '../types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, CATEGORIES } from '../constants';
 import { useTTS } from '../hooks/useTTS';
 import OnlineCount from '../components/OnlineCount';
-import { presentPaywall } from '../services/revenueCat';
-import { Capacitor } from '@capacitor/core';
-
 const JAMAICA_IMAGES = [
   // Verified working Unsplash images of Jamaica landmarks and Caribbean scenes
   { url: 'https://images.unsplash.com/photo-1605218309111-d0a7a0d17877?w=800&auto=format&fit=crop', caption: "Dunn's River Falls" },
@@ -336,32 +333,30 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         </div>
       </section>
 
-      {Capacitor.getPlatform() === 'web' && (
-        <div className="mb-10 px-1">
-          <a
-            href="https://likklewisdom.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block"
-          >
-            <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none"></div>
-            <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
-                  <span className="material-symbols-outlined text-xl">language</span>
-                </div>
-                <div className="text-left">
-                  <h3 className="text-white font-black text-sm uppercase tracking-wide">Visit Likkle Wisdom</h3>
-                  <p className="text-white/50 text-[10px] font-bold tracking-wider">Check out di Likkle Wisdom link</p>
-                </div>
+      {/* Visit Likkle Wisdom — web, iOS, and Android */}
+      <div className="mb-10 px-1">
+        <button
+          type="button"
+          onClick={() => window.open('https://likklewisdom.com/', '_blank')}
+          className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
+        >
+          <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
+          <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
+                <span className="material-symbols-outlined text-xl">language</span>
               </div>
-              <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
-                <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+              <div className="text-left">
+                <h3 className="text-white font-black text-sm uppercase tracking-wide">Visit Likkle Wisdom</h3>
+                <p className="text-white/50 text-[10px] font-bold tracking-wider">Check out di Likkle Wisdom link</p>
               </div>
             </div>
-          </a>
-        </div>
-      )}
+            <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
+              <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+            </div>
+          </div>
+        </button>
+      </div>
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-6">

@@ -62,7 +62,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   // Fetch stats and public data
   React.useEffect(() => {
     if (isOwnProfile && !passedRequestCount) {
-      SocialService.getFriendRequests(targetUserId).then(reqs => setLocalRequestCount(reqs.length));
+      SocialService.getFriendRequests(targetUserId).then(reqs => setLocalRequestCount(reqs.length)).catch(() => {});
     }
     SocialService.getUserStats(targetUserId).then(stats => {
       setFriendsCount(stats.friendsCount);
@@ -80,14 +80,16 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           SocialService.updateProfileNote(targetUserId, '');
         }
       }
+    }).catch(() => {
+      setLoadingStats(false);
     });
 
     if (isOwnProfile) {
-      MessagingService.getStarredMessagesWithDetails(user.id).then(setStarredMessages);
+      MessagingService.getStarredMessagesWithDetails(user.id).then(setStarredMessages).catch(() => {});
     }
     if (!isOwnProfile) {
-      SocialService.getPublicProfile(targetUserId).then(setPublicUser);
-      WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms);
+      SocialService.getPublicProfile(targetUserId).then(setPublicUser).catch(() => {});
+      WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms).catch(() => {});
       SocialService.getPublicCabinet(targetUserId).then(cab => {
         const quoteIds = cab.quoteIds || [];
         const iconicIds = cab.iconicIds || [];
@@ -100,7 +102,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           ...kjvItems.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
         ];
         setPublicCabinet(combined.sort((a, b) => b.timestamp - a.timestamp));
-      });
+      }).catch(() => {});
     }
   }, [targetUserId, isOwnProfile]);
 

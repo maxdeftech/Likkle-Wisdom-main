@@ -13,7 +13,7 @@ export const SocialService = {
             .select('id, username, avatar_url, is_premium, is_admin, is_public')
             .ilike('username', `%${query}%`)
             .neq('id', currentUserId)
-            .eq('is_public', true)
+            .or('is_public.eq.true,is_public.is.null')
             .limit(50);
 
         if (error) {
@@ -42,7 +42,7 @@ export const SocialService = {
             .from('profiles')
             .select('id, username, avatar_url, is_premium, is_admin, is_public')
             .neq('id', currentUserId)
-            .eq('is_public', true)
+            .or('is_public.eq.true,is_public.is.null')
             .order('username', { ascending: true })
             .range(offset, offset + limit - 1);
 

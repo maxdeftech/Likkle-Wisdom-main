@@ -1,7 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
+import { Capacitor } from '@capacitor/core';
+import { presentPaywall } from '../services/revenueCat';
+
+const LIKKLE_WISDOM_WEBSITE = 'https://likklewisdom.com/';
 
 interface SettingsProps {
   user: User;
@@ -23,6 +26,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [supportLoading, setSupportLoading] = useState(false);
 
   // Notification preferences (from profiles)
   const [notifyMessages, setNotifyMessages] = useState(true);
@@ -39,14 +43,14 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
         setVerseTime(data.notify_verse_time ? String(data.notify_verse_time).slice(0, 5) : '12:00');
         setWisdomTime(data.notify_wisdom_time ? String(data.notify_wisdom_time).slice(0, 5) : '08:00');
       }
-    });
+    }).then(() => {}, () => {});
   }, [user.id, user.isGuest]);
 
   const saveNotificationPref = (field: string, value: boolean | string) => {
     if (!supabase || user.isGuest) return;
     const payload: Record<string, unknown> = { [field]: value };
     if (field !== 'notify_messages') payload.updated_at = new Date().toISOString();
-    supabase.from('profiles').update(payload).eq('id', user.id).then(() => {});
+    supabase.from('profiles').update(payload).eq('id', user.id).then(() => {}, () => {});
   };
 
   const handleChangePassword = async () => {
@@ -81,6 +85,22 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     window.open('https://forms.gle/ekcvNBsacR6NYfCq9', '_blank');
   };
 
+  const handleVisitWebsite = () => {
+    window.open(LIKKLE_WISDOM_WEBSITE, '_blank');
+  };
+
+  const handleSupportLikkleWisdom = async () => {
+    if (!Capacitor.isNativePlatform()) return;
+    setSupportLoading(true);
+    try {
+      await presentPaywall();
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
+  const isNative = Capacitor.isNativePlatform();
+
   return (
     <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 pt-safe transition-colors duration-300">
       <header className="sticky top-0 z-sticky flex items-center glass backdrop-blur-md px-6 py-4 justify-between">
@@ -96,6 +116,59 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
       </header>
 
       <div className="flex flex-col gap-6 px-4 py-6">
+        {/* Visit Likkle Wisdom + Support (same design as Home; Support only on iOS/Android, guests can use) */}
+        <section>
+          <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Likkle Wisdom</h3>
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleVisitWebsite}
+              className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
+            >
+              <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
+              <div className="relative bg-background-dark/95 dark:bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
+                    <span className="material-symbols-outlined text-xl">language</span>
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-white font-black text-sm uppercase tracking-wide">Visit Likkle Wisdom</h3>
+                    <p className="text-white/50 text-[10px] font-bold tracking-wider">Check out di Likkle Wisdom link</p>
+                  </div>
+                </div>
+                <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
+                  <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                </div>
+              </div>
+            </button>
+
+            {isNative && (
+              <button
+                type="button"
+                onClick={handleSupportLikkleWisdom}
+                disabled={supportLoading}
+                className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left disabled:opacity-70"
+              >
+                <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
+                <div className="relative bg-background-dark/95 dark:bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
+                      <span className="material-symbols-outlined text-xl">volunteer_activism</span>
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-white font-black text-sm uppercase tracking-wide">Support Likkle Wisdom</h3>
+                      <p className="text-white/50 text-[10px] font-bold tracking-wider">One-time or subscription via secure payment</p>
+                    </div>
+                  </div>
+                  <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
+                    <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                  </div>
+                </div>
+              </button>
+            )}
+          </div>
+        </section>
+
         <section>
           <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Account</h3>
           <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">

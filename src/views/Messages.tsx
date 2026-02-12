@@ -108,9 +108,16 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                     setMessages(cached);
                     setMessagesLoading(false);
                     const ids = cached.map(m => m.id);
-                    MessagingService.getReactionsForMessages(ids, currentUser.id).then(setMessageReactions);
-                    MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id).then(setPinnedMessageId);
-                    MessagingService.getStarredMessageIds(currentUser.id, ids).then(setStarredIds);
+                    // Load reactions, pinned, starred in parallel
+                    Promise.all([
+                        MessagingService.getReactionsForMessages(ids, currentUser.id),
+                        MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id),
+                        MessagingService.getStarredMessageIds(currentUser.id, ids)
+                    ]).then(([reactions, pinnedId, starred]) => {
+                        setMessageReactions(reactions);
+                        setPinnedMessageId(pinnedId);
+                        setStarredIds(starred);
+                    }).catch(() => {});
                 }
             }).catch(() => {
                 setMessagesLoading(false);
@@ -122,9 +129,16 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
                 setMessagesLoading(false);
                 const ids = msgs.map(m => m.id);
                 if (ids.length > 0) {
-                    MessagingService.getReactionsForMessages(ids, currentUser.id).then(setMessageReactions);
-                    MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id).then(setPinnedMessageId);
-                    MessagingService.getStarredMessageIds(currentUser.id, ids).then(setStarredIds);
+                    // Load reactions, pinned, starred in parallel (faster than sequential)
+                    Promise.all([
+                        MessagingService.getReactionsForMessages(ids, currentUser.id),
+                        MessagingService.getPinnedMessage(currentUser.id, activeChatUser.id),
+                        MessagingService.getStarredMessageIds(currentUser.id, ids)
+                    ]).then(([reactions, pinnedId, starred]) => {
+                        setMessageReactions(reactions);
+                        setPinnedMessageId(pinnedId);
+                        setStarredIds(starred);
+                    }).catch(() => {});
                 } else {
                     setMessageReactions({});
                     setPinnedMessageId(null);
@@ -158,14 +172,14 @@ const Messages: React.FC<MessagesProps> = ({ currentUser, onClose, onOpenProfile
             // Also mark as read again after a brief delay to catch any race conditions
             const timer = setTimeout(doMarkRead, 2000);
 
-            SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus);
+            SocialService.getFriendshipStatus(currentUser.id, activeChatUser.id).then(setFriendshipStatus).catch(() => {});
 
             // When leaving chat, mark as read one more time to be safe
             return () => {
                 clearTimeout(timer);
                 MessagingService.markAsRead(activeChatUser.id, currentUser.id).then(() => {
                     if (onUnreadUpdate) onUnreadUpdate();
-                });
+                }).catch(() => {});
             };
         }
     }, [activeChatUser, currentUser.id]);

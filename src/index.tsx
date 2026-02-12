@@ -12,7 +12,9 @@ import './index.css';
 // --- Global error handlers (prevent crashes on Android WebView / unhandled rejections) ---
 // Log unhandled promise rejections and prevent them from terminating the app
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('[unhandledrejection]', event.reason);
+  const reason = event.reason;
+  const msg = reason instanceof Error ? reason.message : (typeof reason === 'object' && reason !== null ? JSON.stringify(reason) : String(reason));
+  console.error('[unhandledrejection]', msg, reason);
   event.preventDefault();
   event.stopPropagation();
 });
