@@ -545,11 +545,16 @@ const App: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    if (user?.id) await PushService.removeToken(user.id);
-    if (supabase) await supabase.auth.signOut();
-    setUser(null);
     setShowSettings(false);
+    setUser(null);
     setView('auth');
+    try {
+      if (user?.isGuest) return;
+      if (user?.id) await PushService.removeToken(user.id);
+      if (supabase) await supabase.auth.signOut();
+    } catch (_) {
+      // Already navigated away; ignore sign-out cleanup errors (e.g. offline)
+    }
   };
 
   const handleAddWisdom = async (patois: string, english: string) => {

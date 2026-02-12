@@ -202,8 +202,10 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
               </button>
             )}
             <button
-              onClick={onSignOut}
-              className="w-full flex items-center gap-3 p-4 text-red-500 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+              type="button"
+              onClick={() => onSignOut()}
+              aria-label="Sign out"
+              className="w-full flex items-center gap-3 p-4 text-red-500 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors active:opacity-80"
             >
               <span className="material-symbols-outlined">logout</span>
               <span className="font-bold uppercase tracking-widest text-xs">Sign Out</span>
