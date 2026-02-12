@@ -29,16 +29,14 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [supportLoading, setSupportLoading] = useState(false);
 
   // Notification preferences (from profiles)
-  const [notifyMessages, setNotifyMessages] = useState(true);
   const [quoteTime, setQuoteTime] = useState('08:00');
   const [verseTime, setVerseTime] = useState('12:00');
   const [wisdomTime, setWisdomTime] = useState('08:00');
 
   useEffect(() => {
     if (user.isGuest || !supabase) return;
-    supabase.from('profiles').select('notify_messages, notify_quote_time, notify_verse_time, notify_wisdom_time').eq('id', user.id).maybeSingle().then(({ data }) => {
+    supabase.from('profiles').select('notify_quote_time, notify_verse_time, notify_wisdom_time').eq('id', user.id).maybeSingle().then(({ data }) => {
       if (data) {
-        setNotifyMessages(data.notify_messages !== false);
         setQuoteTime(data.notify_quote_time ? String(data.notify_quote_time).slice(0, 5) : '08:00');
         setVerseTime(data.notify_verse_time ? String(data.notify_verse_time).slice(0, 5) : '12:00');
         setWisdomTime(data.notify_wisdom_time ? String(data.notify_wisdom_time).slice(0, 5) : '08:00');
@@ -46,11 +44,9 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     }).then(() => {}, () => {});
   }, [user.id, user.isGuest]);
 
-  const saveNotificationPref = (field: string, value: boolean | string) => {
+  const saveNotificationPref = (field: string, value: string) => {
     if (!supabase || user.isGuest) return;
-    const payload: Record<string, unknown> = { [field]: value };
-    if (field !== 'notify_messages') payload.updated_at = new Date().toISOString();
-    supabase.from('profiles').update(payload).eq('id', user.id).then(() => {}, () => {});
+    supabase.from('profiles').update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', user.id).then(() => {}, () => {});
   };
 
   const handleChangePassword = async () => {
@@ -259,24 +255,6 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
           <section>
             <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Daily notifications</h3>
             <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                    <span className="material-symbols-outlined">forum</span>
-                  </div>
-                  <span className="font-bold text-slate-700 dark:text-white/80">Message notifications</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setNotifyMessages(!notifyMessages);
-                    saveNotificationPref('notify_messages', !notifyMessages);
-                  }}
-                  aria-label="Toggle message notifications"
-                  className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 ${notifyMessages ? 'bg-primary' : 'bg-slate-200'}`}
-                >
-                  <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${notifyMessages ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </button>
-              </div>
               <div className="p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-lg">schedule</span>

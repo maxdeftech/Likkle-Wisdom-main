@@ -1,20 +1,15 @@
-
 import React from 'react';
 import { Tab } from '../types';
 
 interface BottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
-  onOpenFriends: () => void;
   onOpenWisdomCreator: () => void;
-  unreadMessageCount?: number;
-  pendingRequestCount?: number;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenFriends, onOpenWisdomCreator, unreadMessageCount = 0, pendingRequestCount = 0 }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWisdomCreator }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
-    { id: 'feed', label: 'Feed', icon: 'dynamic_feed' },
     { id: 'bible', label: 'Bible', icon: 'auto_stories' },
     { id: 'book', label: 'Journal', icon: 'edit_note' },
     { id: 'me', label: 'Profile', icon: 'person' },
@@ -39,20 +34,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenFri
         </button>
       ))}
 
-      {/* Divider */}
-      <div className="w-px h-8 bg-white/10 mx-0.5"></div>
+      <div className="w-px h-8 bg-white/10 mx-0.5" />
 
-      {/* Friends List */}
-      <button
-        onClick={onOpenFriends}
-        aria-label="My Friends"
-        className="flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 text-slate-900/40 dark:text-white/40 relative"
-      >
-        <span className="material-symbols-outlined text-[24px]">group</span>
-        <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">Friends</span>
-      </button>
-
-      {/* Wisdom Creator */}
       <button
         onClick={onOpenWisdomCreator}
         aria-label="Create Wisdom"

@@ -2,7 +2,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation, UserWisdom } from '../types';
 import UserBadge from '../components/UserBadge';
-import { MessagingService } from '../services/messaging';
 import { SocialService } from '../services/social';
 import { WisdomService } from '../services/wisdomService';
 
@@ -18,21 +17,16 @@ interface ProfileProps {
   onStatClick: (tab: Tab) => void;
   onUpdateUser: (data: Partial<User>) => void;
   onRemoveBookmark: (id: string, type: string) => void;
-  onOpenFriendRequests: () => void;
-  onAddWisdom: (patois: string, english: string) => void; // New
-  onDeleteWisdom: (id: string) => void; // New
-  onFindFriends?: () => void;
-  onOpenMessagesWithUser?: (userId: string) => void;
+  onAddWisdom: (patois: string, english: string) => void;
+  onDeleteWisdom: (id: string) => void;
   viewingUserId?: string | null;
   onClose?: () => void;
-  requestCount?: number;
-  unreadCount?: number;
   onRefresh?: () => void;
   initialTab?: 'cabinet' | 'wisdoms';
   startAdding?: boolean;
 }
 
-const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onOpenFriendRequests, onAddWisdom, onDeleteWisdom, onFindFriends, onOpenMessagesWithUser, viewingUserId, onClose, requestCount: passedRequestCount = 0, unreadCount = 0, onRefresh, initialTab = 'cabinet', startAdding = false }) => {
+const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible, bookmarkedVerses, userWisdoms, onOpenSettings, onStatClick, onUpdateUser, onRemoveBookmark, onAddWisdom, onDeleteWisdom, viewingUserId, onClose, onRefresh, initialTab = 'cabinet', startAdding = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cabinetRef = useRef<HTMLDivElement>(null);
 
@@ -44,8 +38,6 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [publicCabinet, setPublicCabinet] = useState<any[]>([]);
 
   // Social stats
-  const [localRequestCount, setLocalRequestCount] = useState(0);
-  const [friendsCount, setFriendsCount] = useState(0);
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statusNote, setStatusNote] = useState<string | null>(null);
@@ -55,17 +47,10 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [publicWisdoms, setPublicWisdoms] = useState<UserWisdom[]>([]);
   const [isAddingWisdom, setIsAddingWisdom] = useState(startAdding);
   const [newWisdom, setNewWisdom] = useState({ patois: '', english: '' });
-  const [starredMessages, setStarredMessages] = useState<Array<{ messageId: string; content: string; timestamp: number; otherUserId: string; otherUsername: string }>>([]);
-
-  const displayRequestCount = isOwnProfile ? (passedRequestCount > 0 ? passedRequestCount : localRequestCount) : 0;
 
   // Fetch stats and public data
   React.useEffect(() => {
-    if (isOwnProfile && !passedRequestCount) {
-      SocialService.getFriendRequests(targetUserId).then(reqs => setLocalRequestCount(reqs.length)).catch(() => {});
-    }
     SocialService.getUserStats(targetUserId).then(stats => {
-      setFriendsCount(stats.friendsCount);
       setJoinedAt(stats.createdAt);
       setLoadingStats(false);
 
@@ -84,9 +69,6 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       setLoadingStats(false);
     });
 
-    if (isOwnProfile) {
-      MessagingService.getStarredMessagesWithDetails(user.id).then(setStarredMessages).catch(() => {});
-    }
     if (!isOwnProfile) {
       SocialService.getPublicProfile(targetUserId).then(setPublicUser).catch(() => {});
       WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms).catch(() => {});
@@ -219,14 +201,6 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             </div>
 
             <div className="flex flex-col items-center gap-1.5">
-              <button onClick={onOpenFriendRequests} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform relative">
-                <span className="material-symbols-outlined">group_add</span>
-                {displayRequestCount > 0 && <span className="absolute -top-1 -right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">{displayRequestCount}</span>}
-              </button>
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Friends</span>
-            </div>
-
-            <div className="flex flex-col items-center gap-1.5">
               <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
                 <span className="material-symbols-outlined">settings</span>
               </button>
@@ -302,17 +276,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
         <p className="text-primary/60 text-[10px] font-black uppercase tracking-[0.4em] mb-8">{memberSinceText}</p>
 
-        {isOwnProfile && onFindFriends && (
-          <button
-            onClick={onFindFriends}
-            className="w-full mb-8 glass py-4 rounded-2xl flex items-center justify-center gap-2 text-primary border-primary/20 active:scale-[0.98] transition-all group"
-          >
-            <span className="material-symbols-outlined text-lg group-hover:animate-bounce">person_add</span>
-            <span className="text-[10px] font-black uppercase tracking-widest">Find More Wise Ones</span>
-          </button>
-        )}
-
-        <div className="grid grid-cols-4 gap-2 w-full">
+        <div className="grid grid-cols-3 gap-2 w-full">
           <button onClick={scrollToCabinet} className="glass py-5 rounded-3xl active:scale-95 transition-all border-white/5 hover:border-primary/20">
             <p className="text-primary font-black text-xl">{displayFeed.length}</p>
             <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Saved</p>
@@ -321,10 +285,6 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             <p className="text-jamaican-gold font-black text-xl">{entries.length}</p>
             <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Journals</p>
           </button>
-          <div className="glass py-5 rounded-3xl border-white/5 relative overflow-hidden">
-            <p className="text-primary font-black text-xl">{friendsCount}</p>
-            <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Friends</p>
-          </div>
           <div className="glass py-5 rounded-3xl border-white/5 relative overflow-hidden">
             <p className="text-primary font-black text-xl">{activeDaysThisMonth}</p>
             <p className="text-[7px] uppercase tracking-widest text-slate-900/30 dark:text-white/30 font-bold">Active</p>
@@ -356,31 +316,6 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
 
         {profileTab === 'cabinet' ? (
           <div className="space-y-6">
-            {isOwnProfile && onOpenMessagesWithUser && (
-              <div className="glass p-6 rounded-[2.5rem] border-jamaican-gold/20 shadow-xl">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="material-symbols-outlined text-jamaican-gold">star</span>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Starred messages</h3>
-                </div>
-                {starredMessages.length === 0 ? (
-                  <p className="text-xs text-slate-500 dark:text-white/40">No starred messages. Long-press a message in chat and tap Star.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {starredMessages.map((s) => (
-                      <button
-                        key={s.messageId}
-                        onClick={() => onOpenMessagesWithUser(s.otherUserId)}
-                        className="w-full text-left glass p-4 rounded-2xl border border-white/5 hover:border-jamaican-gold/30 transition-all"
-                      >
-                        <p className="text-[10px] font-black uppercase tracking-wider text-jamaican-gold/80">{s.otherUsername}</p>
-                        <p className="text-sm text-slate-900 dark:text-white truncate mt-0.5">{s.content.slice(0, 80)}{s.content.length > 80 ? '…' : ''}</p>
-                        <p className="text-[9px] text-slate-400 dark:text-white/30 mt-1">{new Date(s.timestamp).toLocaleDateString()}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
             {displayFeed.map((item) => (
               <div key={`${item.type}-${item.id}`} className="glass p-8 rounded-[2.5rem] border-white/5 shadow-xl animate-fade-in group hover:border-primary/30 transition-all relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">

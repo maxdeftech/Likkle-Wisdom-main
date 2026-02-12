@@ -27,8 +27,6 @@ interface HomeProps {
   onOpenAI: () => void;
   onTabChange: (tab: Tab) => void;
   onCategoryClick: (id: string) => void;
-  onOpenMessages: () => void;
-  unreadCount?: number;
   onOpenAlerts?: () => void;
   alertsCount?: number;
   isDarkMode: boolean;
@@ -37,7 +35,7 @@ interface HomeProps {
   bibleAffirmations: BibleAffirmation[];
 }
 
-const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenMessages, unreadCount = 0, onOpenAlerts, alertsCount = 0, isDarkMode, onToggleTheme, quotes, bibleAffirmations }) => {
+const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTabChange, onCategoryClick, onOpenAlerts, alertsCount = 0, isDarkMode, onToggleTheme, quotes, bibleAffirmations }) => {
   const [activeDaily, setActiveDaily] = useState<'quote' | 'wisdom' | 'verse'>('quote');
   const [reveal, setReveal] = useState(false);
   const [localDaily, setLocalDaily] = useState<{ quote: Quote | null; wisdom: Quote | null; verse: BibleAffirmation | null }>({
@@ -203,17 +201,6 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
                 <span className="material-symbols-outlined text-xl">explore</span>
               </button>
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Explore</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <button onClick={() => onOpenMessages()} aria-label="Messages" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
-                <span className="material-symbols-outlined text-xl">forum</span>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 size-5 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white border-2 border-white dark:border-background-dark animate-pop">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Messages</span>
             </div>
             {onOpenAlerts && (
               <div className="flex flex-col items-center gap-1">

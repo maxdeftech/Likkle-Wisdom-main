@@ -255,11 +255,9 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                             {[
                                 { label: 'About App', icon: 'info', query: 'What is Likkle Wisdom?' },
                                 { label: 'Bible', icon: 'menu_book', query: 'Show me the Bible' },
-                                { label: 'Feed', icon: 'dynamic_feed', query: 'Take me to Feed' },
                                 { label: 'AI Wisdom', icon: 'auto_awesome', query: 'Generate custom wisdom' },
                                 { label: 'Journal', icon: 'book', query: 'Open my journal' },
-                                { label: 'Messages', icon: 'forum', query: 'Show my messages' },
-                                { label: 'Friends', icon: 'group', query: 'See my friends' },
+                                { label: 'Profile', icon: 'person', query: 'Open my profile' },
                                 { label: 'Settings', icon: 'settings', query: 'Open settings' },
                             ].map((opt, i) => (
                                 <button

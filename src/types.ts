@@ -14,43 +14,6 @@ export interface User {
   isPublic?: boolean;
 }
 
-/** A friend request sent or received; status is pending until accepted/rejected. */
-export interface FriendRequest {
-  id: string;
-  requesterId: string;
-  requesterName: string;
-  requesterAvatar?: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  timestamp: number;
-}
-
-/** An accepted friendship; lastMessage used for inbox preview. */
-export interface Friendship {
-  id: string;
-  friendId: string;
-  friendName: string;
-  friendAvatar?: string;
-  status: 'accepted' | 'blocked';
-  since: number;
-  lastMessage?: {
-    content: string;
-    timestamp: number;
-    senderId: string;
-  };
-}
-
-/** A single DM or system message; receiverId is userId or 'group' for group chats. */
-export interface ChatMessage {
-  id: string;
-  senderId: string;
-  receiverId: string; // 'group' or userId
-  content: string;
-  timestamp: number;
-  read: boolean;
-  type: 'text' | 'system' | 'admin-broadcast';
-  replyToId?: string;
-}
-
 /** Jamaican Patois quote with English translation and category; isFavorite synced to Supabase bookmarks. */
 export interface Quote {
   id: string;
@@ -118,23 +81,9 @@ export interface UserWisdom {
   timestamp: number;
 }
 
-/** Feed post: text, image, video, scripture, or wisdom; author from profiles. */
-export interface Post {
-  id: string;
-  userId: string;
-  username: string;
-  avatarUrl?: string;
-  contentType: 'text' | 'image' | 'video' | 'scripture' | 'wisdom';
-  textContent?: string;
-  mediaUrl?: string;
-  scriptureRef?: { book: string; chapter: number; verse: number; text: string };
-  wisdomRef?: { patois: string; english: string };
-  createdAt: number;
-}
-
 /** Top-level app view: splash → onboarding → auth → main; privacy/terms are full-screen legal. */
 export type View = 'splash' | 'onboarding' | 'auth' | 'main' | 'privacy' | 'terms';
-/** Main tab when view is 'main': home, feed, discover, bible, book (journal), me (profile). */
-export type Tab = 'home' | 'feed' | 'discover' | 'bible' | 'book' | 'me';
+/** Main tab when view is 'main': home, discover, bible, book (journal), me (profile). */
+export type Tab = 'home' | 'discover' | 'bible' | 'book' | 'me';
 /** Mood for journal entries and AI wisdom generation. */
 export type Mood = 'Peace' | 'Hustle' | 'Joy' | 'Healing';

@@ -8,8 +8,6 @@ import { initializePurchases } from './services/revenueCat';
 import { PushService } from './services/pushService';
 import { EncryptionService } from './services/encryption';
 import { WisdomService } from './services/wisdomService';
-import { MessagingService } from './services/messaging';
-import { MessageSyncService } from './services/messageSyncService';
 import { SocialService } from './services/social';
 import { AlertsService } from './services/alertsService';
 import SplashScreen from './views/SplashScreen';
@@ -28,14 +26,11 @@ import BottomNav from './components/BottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
 import LegalView from './views/LegalView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import Messages from './views/Messages';
-import FriendRequestList from './components/FriendRequestList';
 import NavigationChatbot from './components/NavigationChatbot';
-import Feed from './views/Feed';
 
 export type NotificationPayload = {
   message: string;
-  type?: 'message' | 'verse' | 'quote' | 'wisdom' | 'info';
+  type?: 'verse' | 'quote' | 'wisdom' | 'info';
   action?: { type: string; value?: string };
 };
 
@@ -72,7 +67,7 @@ const NotificationBanner: React.FC<{
     >
       <div className="glass backdrop-blur-xl py-3 px-4 rounded-2xl flex items-center gap-3 shadow-2xl border border-white/10 bg-white/10 dark:bg-white/5 min-h-[52px]">
         <span className="material-symbols-outlined text-primary text-xl shrink-0">
-          {payload.type === 'message' ? 'forum' : payload.type === 'verse' ? 'menu_book' : 'notifications_active'}
+          {payload.type === 'verse' ? 'menu_book' : 'notifications_active'}
         </span>
         <p className="text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-wider flex-1 truncate">
           {payload.message}
@@ -125,12 +120,7 @@ const App: React.FC = () => {
   const showNotification = useCallback((message: string, opts?: { type?: NotificationPayload['type']; action?: NotificationPayload['action'] }) => {
     setNotification({ message, ...opts });
   }, []);
-  const [showMessages, setShowMessages] = useState(false);
-  const [showMessagesInSearchMode, setShowMessagesInSearchMode] = useState(false);
-  const [initialMessageSenderId, setInitialMessageSenderId] = useState<string | null>(null);
-  const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
-  const [isFeedModalOpen, setIsFeedModalOpen] = useState(false);
 
   // Pull-to-refresh state
   const [isPulling, setIsPulling] = useState(false);
@@ -138,12 +128,7 @@ const App: React.FC = () => {
   const pullStartY = useRef(0);
   const mainScrollRef = useRef<HTMLDivElement>(null);
 
-  // Badge Counts
-  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
-  const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
-
-  const [showFriendsList, setShowFriendsList] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
 
   const [profileInitialTab, setProfileInitialTab] = useState<'cabinet' | 'wisdoms'>('cabinet');
@@ -155,12 +140,6 @@ const App: React.FC = () => {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [bookmarkedVerses, setBookmarkedVerses] = useState<any[]>([]);
   const [userWisdoms, setUserWisdoms] = useState<UserWisdom[]>([]);
-
-  const syncUnreadCount = useCallback(() => {
-    if (user && !user.isGuest && supabase) {
-      MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount);
-    }
-  }, [user]);
 
   const syncAlertsCount = useCallback(() => {
     if (user && !user.isGuest && supabase) {
@@ -181,61 +160,6 @@ const App: React.FC = () => {
   useEffect(() => {
     // Intentionally left blank for now.
   }, [user?.id, user?.isGuest]);
-
-  // Realtime subscription for incoming messages — updates badge seamlessly without UI refresh
-  // Disabled on native (Android/iOS) to avoid potential WebView/runtime crashes; still active on web.
-  useEffect(() => {
-    if (!user || user.isGuest || !supabase) return;
-    if (PushService.isNative()) return;
-
-    const channel = supabase.channel(`app_msg_badge_${user.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `receiver_id=eq.${user.id}`
-      }, (payload) => {
-        // Increment unread badge silently
-        setUnreadMessageCount(prev => prev + 1);
-        // In-app notification
-        const m = payload.new as any;
-        if (m.sender_id) {
-          supabase!.from('profiles').select('username').eq('id', m.sender_id).maybeSingle().then(({ data: profile }) => {
-            const senderName = profile?.username || 'Someone';
-            setNotification({
-              message: `💬 ${senderName}: ${(m.content || '').slice(0, 40)}`,
-              type: 'message',
-              action: { type: 'messages', value: m.sender_id }
-            });
-            // Browser / device notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('Likkle Wisdom', {
-                body: `${senderName}: ${(m.content || '').slice(0, 80)}`,
-                icon: '/icon-192.png',
-                tag: `msg-${m.id}`
-              });
-            }
-          }).then(() => {}, () => {});
-        }
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `receiver_id=eq.${user.id}`
-      }, () => {
-        // When messages are marked as read, refresh count
-        syncUnreadCount();
-      })
-      .subscribe();
-
-    // Request notification permission once
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
-    return () => { channel.unsubscribe(); };
-  }, [user, syncUnreadCount]);
 
   // Daily scheduled push notifications: wisdom/quote at 8am, verse at 12pm
   useEffect(() => {
@@ -347,9 +271,6 @@ const App: React.FC = () => {
         }));
       }
 
-      // Sync badge counts (catch to avoid unhandled rejections)
-      MessagingService.getUnreadCount(userId).then(setUnreadMessageCount).catch(() => {});
-      SocialService.getFriendRequests(userId).then(reqs => setPendingRequestCount(reqs.length)).catch(() => {});
 
       const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', userId);
       if (bookmarks) {
@@ -399,26 +320,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Real-time subscriptions for badges
-  useEffect(() => {
-    if (!user || user.isGuest || !supabase) return;
-
-    let msgSub: any;
-    let friendSub: any;
-
-    msgSub = MessagingService.subscribeToMessages(user.id, () => {
-      MessagingService.getUnreadCount(user.id).then(setUnreadMessageCount).catch(() => {});
-    });
-    friendSub = SocialService.subscribeToFriendRequests(user.id, () => {
-      SocialService.getFriendRequests(user.id).then(reqs => setPendingRequestCount(reqs.length)).catch(() => {});
-    });
-
-    return () => {
-      msgSub?.unsubscribe();
-      friendSub?.unsubscribe();
-    };
-  }, [user]);
-
   useEffect(() => {
     if (!supabase) return;
 
@@ -432,8 +333,6 @@ const App: React.FC = () => {
         }
       } else if (session) {
         syncUserContent(session.user.id);
-        // Sync all messages from cloud for cross-device access
-        MessageSyncService.syncAllMessages(session.user.id).catch(e => console.warn('Message sync failed:', e));
         if (view === 'splash' || view === 'auth') setView('main');
       } else if (view === 'main' && (!user || !user.isGuest)) {
         // Only force back to auth if we *expected* a real Supabase session
@@ -455,8 +354,6 @@ const App: React.FC = () => {
           isAdmin: prev?.isAdmin ?? false
         }));
         syncUserContent(session.user.id);
-        // Sync all messages from cloud for cross-device access (background)
-        MessageSyncService.syncAllMessages(session.user.id).catch(e => console.warn('Message sync failed:', e));
         if (view === 'auth' || view === 'splash') setView('main');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
@@ -679,17 +576,9 @@ const App: React.FC = () => {
     setShowPremium(true);
   };
 
-  const handleOpenMessages = (searchMode: boolean = false) => {
-    setShowMessages(true);
-    setShowMessagesInSearchMode(searchMode);
-  };
-
   const handleNotificationTap = useCallback((action?: NotificationPayload['action']) => {
     setNotification(null);
-    if (action?.type === 'messages') {
-      setInitialMessageSenderId(action.value || null);
-      handleOpenMessages(false);
-    } else if (action?.type === 'bible') {
+    if (action?.type === 'bible') {
       setActiveTab('bible');
       setView('main');
     } else if (action?.type === 'home') {
@@ -698,29 +587,17 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleOpenFriendRequests = () => {
-    setShowFriendRequests(true);
-  };
-
   const handleOpenAlerts = () => {
     setShowAlerts(true);
   };
 
   const handleOpenPublicProfile = (id: string) => {
-    setShowMessages(false);
-    setShowMessagesInSearchMode(false);
-    setShowFriendRequests(false);
-    setShowFriendsList(false);
     setShowAlerts(false);
     setPublicProfileId(id);
   };
 
   const handleOpenCategory = (categoryId: string) => {
     setActiveCategory(categoryId);
-  };
-
-  const handleOpenFriendsList = () => {
-    setShowFriendsList(true);
   };
 
   const handleGoToWisdomCreator = () => {
@@ -743,17 +620,14 @@ const App: React.FC = () => {
       setActiveTab(value as Tab);
       setActiveCategory(null);
       setView('main');
-      // Reset other modals
       setShowSettings(false);
       setShowAI(false);
       setShowPremium(false);
-      setShowMessages(false);
       setPublicProfileId(null);
     } else if (type === 'setting') {
       if (value === 'settings') handleOpenSettings();
       if (value === 'premium') handleOpenPremium();
       if (value === 'ai') handleOpenAI();
-      if (value === 'messages') handleOpenMessages();
       if (value === 'alerts') handleOpenAlerts();
     }
   };
@@ -769,18 +643,17 @@ const App: React.FC = () => {
     }
 
     switch (activeTab) {
-      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
-      case 'feed': return <Feed user={user} isOnline={isOnline} userWisdoms={userWisdoms} onModalChange={setIsFeedModalOpen} />;
+      case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onOpenFriendRequests={handleOpenFriendRequests} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onFindFriends={() => handleOpenMessages(true)} onOpenMessagesWithUser={(userId) => { setInitialMessageSenderId(userId); handleOpenMessages(false); }} requestCount={pendingRequestCount} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
-      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenMessages={handleOpenMessages} unreadCount={unreadMessageCount} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
+      case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
+      default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
   };
 
   // Swipe navigation
-  const TAB_ORDER: Tab[] = ['home', 'feed', 'bible', 'book', 'me'];
+  const TAB_ORDER: Tab[] = ['home', 'bible', 'book', 'me'];
   const touchStartX = React.useRef(0);
   const touchStartY = React.useRef(0);
 
@@ -790,8 +663,8 @@ const App: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // Ignore swipes when overlays are open or Feed create modal is open
-    if (showSettings || showAI || showPremium || showMessages || showFriendRequests || showFriendsList || publicProfileId || activeCategory || isFeedModalOpen) return;
+    // Ignore swipes when overlays are open
+    if (showSettings || showAI || showPremium || publicProfileId || activeCategory) return;
     if (view !== 'main') return;
 
     const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -941,28 +814,6 @@ const App: React.FC = () => {
           }}
         />
       )}
-      {showMessages && user && (
-        <Messages
-          currentUser={user}
-          initialChatUserId={initialMessageSenderId}
-          onClose={() => { setShowMessages(false); setShowMessagesInSearchMode(false); setInitialMessageSenderId(null); }}
-          onOpenProfile={handleOpenPublicProfile}
-          initialSearch={showMessagesInSearchMode}
-          onUnreadUpdate={syncUnreadCount}
-        />
-      )}
-      {showFriendsList && user && (
-        <FriendsListOverlay
-          currentUser={user}
-          onClose={() => setShowFriendsList(false)}
-          onOpenChat={(friendUser) => {
-            setShowFriendsList(false);
-            setShowMessages(true);
-            setShowMessagesInSearchMode(false);
-          }}
-          onOpenProfile={handleOpenPublicProfile}
-        />
-      )}
       {publicProfileId && user && (
         <div className="fixed inset-0 z-overlay flex flex-col overflow-hidden bg-white dark:bg-background-dark">
           <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -980,7 +831,6 @@ const App: React.FC = () => {
               onStatClick={() => { }}
               onUpdateUser={() => { }}
               onRemoveBookmark={() => { }}
-              onOpenFriendRequests={() => { }}
               onAddWisdom={() => { }}
               onDeleteWisdom={() => { }}
             />
@@ -990,17 +840,6 @@ const App: React.FC = () => {
 
       {user && (
         <NavigationChatbot onNavigate={handleBotNavigate} />
-      )}
-      {showFriendRequests && user && (
-        <FriendRequestList
-          userId={user.id}
-          onClose={() => setShowFriendRequests(false)}
-          onRequestsChanged={() => { /* maybe refresh profile badge */ }}
-          onOpenAddFriend={() => {
-            setShowFriendRequests(false);
-            handleOpenMessages(true);
-          }}
-        />
       )}
       {showAlerts && user && (
         <AlertsView
@@ -1013,100 +852,10 @@ const App: React.FC = () => {
         <BottomNav
           activeTab={activeTab}
           onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
-          onOpenFriends={handleOpenFriendsList}
           onOpenWisdomCreator={handleGoToWisdomCreator}
-          unreadMessageCount={unreadMessageCount}
-          pendingRequestCount={pendingRequestCount}
         />
       )}
       <PWAInstallPrompt />
-    </div>
-  );
-};
-
-const FriendsListOverlay: React.FC<{
-  currentUser: User;
-  onClose: () => void;
-  onOpenChat: (friend: User) => void;
-  onOpenProfile: (userId: string) => void;
-}> = ({ currentUser, onClose, onOpenChat, onOpenProfile }) => {
-  const [friends, setFriends] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    SocialService.getFriends(currentUser.id).then(f => {
-      setFriends(f);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [currentUser.id]);
-
-  const handleRemoveFriend = async (friendshipId: string, friendName: string) => {
-    if (!confirm(`Remove ${friendName} from your friends?`)) return;
-    const { error } = await SocialService.deleteFriendship(friendshipId);
-    if (!error) {
-      setFriends(prev => prev.filter(f => f.id !== friendshipId));
-    } else {
-      alert('Failed to remove friend.');
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-modal bg-background-dark flex flex-col pt-safe animate-slide-up">
-      <div className="flex items-center justify-between p-6 border-b border-white/5">
-        <h2 className="text-2xl font-black text-white uppercase tracking-tight">My Friends</h2>
-        <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all">
-          <span className="material-symbols-outlined">close</span>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {loading && (
-          <div className="text-center text-white/30 text-xs uppercase mt-8 animate-pulse">Loading friends...</div>
-        )}
-        {!loading && friends.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-48 text-white/30 text-center">
-            <span className="material-symbols-outlined text-4xl mb-2">group</span>
-            <p className="text-xs font-bold uppercase tracking-wider">No friends yet</p>
-          </div>
-        )}
-        {friends.map((f: any) => (
-          <div key={f.id} className="glass p-4 rounded-2xl flex items-center gap-4 group">
-            <div className="relative cursor-pointer" onClick={() => onOpenProfile(f.friendId)}>
-              <div className="size-12 rounded-full bg-white/10 overflow-hidden">
-                {f.friendAvatar ? (
-                  <img src={f.friendAvatar} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white font-black text-lg">
-                    {f.friendName?.[0]?.toUpperCase()}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-bold text-sm truncate">{f.friendName}</h3>
-              <p className="text-white/30 text-[10px] uppercase tracking-widest font-bold">
-                Friends since {new Date(f.since).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onOpenChat({ id: f.friendId, username: f.friendName, avatarUrl: f.friendAvatar, isGuest: false, isPremium: false })}
-                className="size-9 rounded-full glass flex items-center justify-center text-primary active:scale-90 transition-transform"
-                title="Message"
-              >
-                <span className="material-symbols-outlined text-lg">chat</span>
-              </button>
-              <button
-                onClick={() => handleRemoveFriend(f.id, f.friendName)}
-                className="size-9 rounded-full glass flex items-center justify-center text-red-400/60 hover:text-red-400 active:scale-90 transition-all"
-                title="Remove Friend"
-              >
-                <span className="material-symbols-outlined text-lg">person_remove</span>
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };

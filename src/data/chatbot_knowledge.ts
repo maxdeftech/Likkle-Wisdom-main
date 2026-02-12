@@ -15,7 +15,7 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     },
     {
         keywords: ['discover', 'explore', 'categories', 'search', 'find things', 'look for'],
-        response: "Want to explore more? Di Discover page has all di categories and a powerful search fi find quotes, bible verses, and even friends!",
+        response: "Want to explore more? Di Discover page has all di categories and a powerful search fi find quotes and bible verses.",
         action: { type: 'tab', value: 'discover' }
     },
     {
@@ -49,29 +49,8 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         action: { type: 'setting', value: 'ai' }
     },
     {
-        keywords: ['message', 'chat', 'inbox', 'dm', 'text friend'],
-        response: "Connect with other wise souls! Tap di message icon at di top right of Home to open yuh inbox.",
-        action: { type: 'setting', value: 'messages' }
-    },
-    {
         keywords: ['help', 'navigate', 'how to', 'guide', 'what can you do'],
-        response: "I'm Likkle Guide! I can help yuh find di Bible, Journal, Feed, AI Brewster, Messages, Friends, and more. What yuh lookin' for today?",
-    },
-    // --- NEW ENTRIES BELOW ---
-    {
-        keywords: ['feed', 'posts', 'community', 'share post', 'timeline'],
-        response: "Di Feed is where di community share vibes! Post text, images, videos, scripture, or yuh own wisdom. Posts last 24 hours so share while it fresh!",
-        action: { type: 'tab', value: 'feed' }
-    },
-    {
-        keywords: ['friends', 'my friends', 'friend list', 'connections', 'people'],
-        response: "Check yuh friends from di Friends icon in di bottom nav! Yuh can message dem, remove dem, or view dem profile from deh.",
-        action: { type: 'setting', value: 'friends' }
-    },
-    {
-        keywords: ['add friend', 'friend request', 'find people', 'invite'],
-        response: "To add friends, go to Messages and tap di person+ icon. Search fi people and send dem a request! Dem have to accept before yuh can chat.",
-        action: { type: 'setting', value: 'messages' }
+        response: "I'm Likkle Guide! I can help yuh find di Bible, Journal, Profile, AI Brewster, Settings, and more. What yuh lookin' for today?",
     },
     {
         keywords: ['bookmark', 'favorite', 'save', 'cabinet', 'saved'],
@@ -94,7 +73,7 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     },
     {
         keywords: ['notification', 'alerts', 'bell', 'updates'],
-        response: "Notifications pop up at di top when yuh get new messages, friend requests, or when something important happen. Keep an eye out!",
+        response: "Notifications pop up at di top when something important happen. Tap di Alerts bell on Home fi see admin announcements. Keep an eye out!",
     },
     {
         keywords: ['avatar', 'photo', 'picture', 'profile picture', 'change photo'],
@@ -113,8 +92,8 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     },
     {
         keywords: ['share', 'send quote', 'share verse', 'share wisdom'],
-        response: "Yuh can share wisdom by posting it to di Feed! Go to Feed, tap di + button, and choose 'Scripture' or 'Wisdom' to share from yuh collection.",
-        action: { type: 'tab', value: 'feed' }
+        response: "Yuh can share wisdom by copying it and pasting into any app, or save it to yuh Cabinet on Profile. Tap di heart on any quote or verse fi save it!",
+        action: { type: 'tab', value: 'me' }
     },
     {
         keywords: ['refresh', 'reload', 'new quotes', 'update'],
@@ -150,17 +129,12 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         response: "Yuh can swipe left or right on any page fi move between tabs! Swipe left fi go forward, swipe right fi go back. Di bottom nav updates automatically.",
     },
     {
-        keywords: ['pin chat', 'pin', 'favorite chat'],
-        response: "Long press on any chat in yuh inbox fi see options like Pin Chat, Delete Chat, and Remove Friend. Pinned chats always show at di top!",
-        action: { type: 'setting', value: 'messages' }
-    },
-    {
         keywords: ['delete', 'remove', 'erase'],
-        response: "Yuh can delete journal entries, wisdoms, or chats. Long press on a chat fi delete it, or tap di trash icon on yuh own posts and entries.",
+        response: "Yuh can delete journal entries and wisdoms from yuh Profile. Tap di trash icon on yuh own entries or My Wisdom items.",
     },
     {
         keywords: ['what is', 'about', 'app', 'likkle wisdom', 'this app', 'tell me about', 'overview', 'features'],
-        response: "Likkle Wisdom is yuh daily dose of Jamaican culture and inspiration! 🇯🇲\n\n✨ FEATURES:\n• Daily Quotes & Wisdom in Patois\n• Full KJV Bible (read, listen, bookmark)\n• AI Wisdom Brewer fi custom vibes\n• Private Journal (encrypted)\n• Pen yuh own Patois proverbs\n• Community Feed (24hr posts)\n• Message friends\n• Highlight & note Bible verses\n• Offline mode fi on-the-go\n\nEvery feature celebrates di wisdom, culture, and irie vibes of Jamaica. One Love! 🌴",
+        response: "Likkle Wisdom is yuh daily dose of Jamaican culture and inspiration! 🇯🇲\n\n✨ FEATURES:\n• Daily Quotes & Wisdom in Patois\n• Full KJV Bible (read, listen, bookmark)\n• AI Wisdom Brewer fi custom vibes\n• Private Journal (encrypted)\n• Pen yuh own Patois proverbs\n• Saved wisdom cabinet on Profile\n• Highlight & note Bible verses\n• Offline mode fi on-the-go\n\nEvery feature celebrates di wisdom, culture, and irie vibes of Jamaica. One Love! 🌴",
     },
     {
         keywords: ['bug', 'broken', 'error', 'crash', 'not working', 'problem'],
@@ -169,4 +143,4 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     }
 ];
 
-export const FALLBACK_RESPONSE = "I neva quite catch dat. Try asking me 'bout di Feed, Bible, Journal, Messages, Friends, AI Brewster, or how to navigate di app!";
+export const FALLBACK_RESPONSE = "I neva quite catch dat. Try asking me 'bout di Bible, Journal, Profile, AI Brewster, or how to navigate di app!";

@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { CATEGORIES, ICONIC_QUOTES } from '../constants';
 import { Quote, IconicQuote, BibleAffirmation } from '../types';
-import { SocialService } from '../services/social';
 
 interface DiscoverProps {
   onCategoryClick: (id: string) => void;
@@ -15,9 +14,6 @@ interface DiscoverProps {
 }
 
 const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [] }) => {
-  const [userResults, setUserResults] = useState<any[]>([]);
-  const [searchingUsers, setSearchingUsers] = useState(false);
-
   const q = searchQuery.toLowerCase().trim();
 
   // Search content when query > 1 char
@@ -41,20 +37,7 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSea
     return CATEGORIES.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
   }, [q]);
 
-  // Search users
-  useEffect(() => {
-    if (q.length < 2) { setUserResults([]); return; }
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      setSearchingUsers(true);
-      const users = await SocialService.searchUsers(q, '');
-      if (!cancelled) setUserResults(users);
-      setSearchingUsers(false);
-    }, 300);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [q]);
-
-  const hasResults = quoteResults.length > 0 || bibleResults.length > 0 || iconicResults.length > 0 || categoryResults.length > 0 || userResults.length > 0;
+  const hasResults = quoteResults.length > 0 || bibleResults.length > 0 || iconicResults.length > 0 || categoryResults.length > 0;
   const isSearching = q.length >= 2;
 
   return (
@@ -76,7 +59,7 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSea
         <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40 text-2xl">search</span>
         <input 
           className="w-full bg-white/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl py-5 sm:py-7 pl-14 pr-6 text-slate-900 dark:text-white placeholder-slate-500 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent transition-all shadow-xl" 
-          placeholder="Search wisdom, verses, friends..." 
+          placeholder="Search wisdom, verses..." 
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
@@ -85,7 +68,7 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSea
       {/* Search Results */}
       {isSearching && (
         <div className="space-y-8 mb-12">
-          {!hasResults && !searchingUsers && (
+          {!hasResults && (
             <div className="text-center py-12 glass rounded-[2rem]">
               <span className="material-symbols-outlined text-5xl text-white/10 mb-3">search_off</span>
               <p className="text-white/20 text-xs font-black uppercase tracking-widest">No results fi "{searchQuery}"</p>
@@ -156,32 +139,6 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSea
             </div>
           )}
 
-          {/* User Results */}
-          {userResults.length > 0 && (
-            <div>
-              <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-4">People ({userResults.length})</h3>
-              <div className="space-y-2">
-                {userResults.map((u: any) => (
-                  <div key={u.id} className="glass rounded-2xl p-4 flex items-center gap-3">
-                    <div className="size-10 rounded-full bg-white/10 overflow-hidden shrink-0">
-                      {u.avatar_url ? (
-                        <img src={u.avatar_url} className="w-full h-full object-cover" alt="" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white font-black">{u.username?.[0]?.toUpperCase()}</div>
-                      )}
-                    </div>
-                    <span className="text-white font-bold text-sm truncate">{u.username}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {searchingUsers && (
-            <div className="flex justify-center py-4">
-              <span className="material-symbols-outlined animate-spin text-primary text-xl">progress_activity</span>
-            </div>
-          )}
         </div>
       )}
 
