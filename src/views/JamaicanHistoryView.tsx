@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import {
   NATIONAL_HEROES,
   ICONIC_PLACES,
-  CURRENCY_IMAGES,
+  JAMAICAN_CURRENCY,
   BRITISH_RULE,
   TAINOS,
   COLUMBUS_IN_JAMAICA,
@@ -11,7 +11,12 @@ import {
   PERSONS_LIKE_MS_LOU,
   JAMAICAN_CUISINE,
   NATIONAL_SYMBOLS,
+  PRIME_MINISTERS,
+  SPORTS_ICONS,
+  REGGAE_BOYS_GIRLS,
+  OLYMPIC_MEDALS,
 } from '../data/jamaicanHistory';
+import type { ExternalLink } from '../data/jamaicanHistory';
 
 interface JamaicanHistoryViewProps {
   onClose: () => void;
@@ -30,9 +35,20 @@ const SectionCard: React.FC<{
   </div>
 );
 
-const ImageBlock: React.FC<{ src: string; alt: string; className?: string }> = ({ src, alt, className = '' }) => (
-  <div className={`rounded-2xl overflow-hidden border border-white/10 shadow-lg ${className}`}>
-    <img src={src} alt={alt} className="w-full h-48 sm:h-56 object-cover" loading="lazy" />
+const LinkList: React.FC<{ links: ExternalLink[]; className?: string }> = ({ links, className = '' }) => (
+  <div className={`flex flex-wrap gap-2 ${className}`}>
+    {links.map((link) => (
+      <a
+        key={link.url}
+        href={link.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl glass text-xs font-bold text-primary border border-primary/20 hover:bg-primary/10 transition-colors"
+      >
+        <span className="material-symbols-outlined text-sm">open_in_new</span>
+        {link.label}
+      </a>
+    ))}
   </div>
 );
 
@@ -41,7 +57,7 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
 
   return (
     <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-hidden animate-fade-in" role="article" aria-label="Jamaican History">
-      <header className="sticky top-0 z-sticky flex items-center gap-3 px-4 py-4 glass backdrop-blur-md border-b border-white/5">
+      <header className="sticky top-0 z-sticky flex items-center gap-3 px-4 py-4 pt-safe glass backdrop-blur-md border-b border-white/5">
         <button
           onClick={onClose}
           aria-label="Back to Discover"
@@ -63,7 +79,7 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               <span className="material-symbols-outlined text-4xl text-white">flag</span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium max-w-md mx-auto">
-              From the Taínos to Independence — heroes, places, culture, and how we overcame.
+              From the Taínos to Independence — heroes, places, culture, sport, and how we overcame.
             </p>
           </div>
 
@@ -74,11 +90,12 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               National Heroes
             </h2>
             <div className="space-y-4">
-              {NATIONAL_HEROES.map((hero, i) => (
+              {NATIONAL_HEROES.map((hero) => (
                 <div key={hero.name} className="pl-4 border-l-2 border-primary/30 py-1">
                   <p className="font-black text-slate-900 dark:text-white">{hero.name}</p>
                   <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{hero.role} · {hero.year}</p>
                   <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{hero.blurb}</p>
+                  <LinkList links={hero.links} className="mt-2" />
                 </div>
               ))}
             </div>
@@ -92,13 +109,11 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
             </h2>
             <div className="space-y-6">
               {ICONIC_PLACES.map((place) => (
-                <div key={place.name} className="space-y-3">
-                  <ImageBlock src={place.image} alt={place.name} />
-                  <div>
-                    <p className="font-black text-slate-900 dark:text-white">{place.name}</p>
-                    <p className="text-[10px] font-bold text-jamaican-gold/80 uppercase tracking-wider">{place.established}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{place.description}</p>
-                  </div>
+                <div key={place.name} className="space-y-2">
+                  <p className="font-black text-slate-900 dark:text-white">{place.name}</p>
+                  <p className="text-[10px] font-bold text-jamaican-gold/80 uppercase tracking-wider">{place.established}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{place.description}</p>
+                  <LinkList links={place.links} />
                 </div>
               ))}
             </div>
@@ -110,14 +125,33 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               <span className="material-symbols-outlined text-primary text-2xl">payments</span>
               Jamaican Currency Through Time
             </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{JAMAICAN_CURRENCY.intro}</p>
+            <div className="space-y-3 mb-4">
+              {JAMAICAN_CURRENCY.sections.map((sec, i) => (
+                <div key={i}>
+                  <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{sec.heading}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{sec.text}</p>
+                </div>
+              ))}
+            </div>
+            <LinkList links={JAMAICAN_CURRENCY.links} />
+          </SectionCard>
+
+          {/* Prime Ministers */}
+          <SectionCard delay={220}>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-jamaican-gold text-2xl">account_balance</span>
+              Jamaica&apos;s Prime Ministers
+            </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-              From older banknotes and the Jamaican pound to the modern Jamaican dollar (JMD).
+              Since independence on 6 August 1962, Jamaica has been led by these Prime Ministers. JLP = Jamaica Labour Party, PNP = People&apos;s National Party.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {CURRENCY_IMAGES.map((c) => (
-                <div key={c.label} className="rounded-xl overflow-hidden border border-white/10">
-                  <img src={c.url} alt={c.label} className="w-full h-32 object-cover" loading="lazy" />
-                  <p className="p-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 text-center">{c.label}</p>
+            <div className="space-y-3">
+              {PRIME_MINISTERS.map((pm) => (
+                <div key={`${pm.name}-${pm.term}`} className="py-2 border-b border-white/5 last:border-0">
+                  <p className="font-black text-slate-900 dark:text-white">{pm.name}</p>
+                  <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{pm.party} · {pm.term}</p>
+                  <LinkList links={pm.links} className="mt-1" />
                 </div>
               ))}
             </div>
@@ -130,11 +164,12 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               {BRITISH_RULE.title}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{BRITISH_RULE.intro}</p>
-            <ul className="space-y-2 list-disc list-inside text-sm text-slate-600 dark:text-slate-300">
+            <ul className="space-y-2 list-disc list-inside text-sm text-slate-600 dark:text-slate-300 mb-4">
               {BRITISH_RULE.points.map((point, i) => (
                 <li key={i}>{point}</li>
               ))}
             </ul>
+            <LinkList links={BRITISH_RULE.links} />
           </SectionCard>
 
           {/* Tainos */}
@@ -144,11 +179,12 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               {TAINOS.title}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{TAINOS.intro}</p>
-            <ul className="space-y-2 list-disc list-inside text-sm text-slate-600 dark:text-slate-300">
+            <ul className="space-y-2 list-disc list-inside text-sm text-slate-600 dark:text-slate-300 mb-4">
               {TAINOS.points.map((point, i) => (
                 <li key={i}>{point}</li>
               ))}
             </ul>
+            <LinkList links={TAINOS.links} />
           </SectionCard>
 
           {/* Columbus */}
@@ -158,11 +194,12 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               {COLUMBUS_IN_JAMAICA.title}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{COLUMBUS_IN_JAMAICA.intro}</p>
-            <ul className="space-y-2 list-disc list-inside text-sm text-slate-600 dark:text-slate-300">
+            <ul className="space-y-2 list-disc list-inside text-sm text-slate-600 dark:text-slate-300 mb-4">
               {COLUMBUS_IN_JAMAICA.impact.map((item, i) => (
                 <li key={i}>{item}</li>
               ))}
             </ul>
+            <LinkList links={COLUMBUS_IN_JAMAICA.links} />
           </SectionCard>
 
           {/* Slavery & Overcoming */}
@@ -172,7 +209,7 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               {SLAVERY_AND_OVERCOMING.title}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{SLAVERY_AND_OVERCOMING.intro}</p>
-            <div className="space-y-4">
+            <div className="space-y-4 mb-4">
               {SLAVERY_AND_OVERCOMING.sections.map((sec, i) => (
                 <div key={i}>
                   <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{sec.heading}</p>
@@ -180,6 +217,7 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
                 </div>
               ))}
             </div>
+            <LinkList links={SLAVERY_AND_OVERCOMING.links} />
           </SectionCard>
 
           {/* Museums */}
@@ -191,16 +229,16 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
             <div className="space-y-6">
               {MUSEUMS.map((m) => (
                 <div key={m.name} className="space-y-2">
-                  {m.image && <ImageBlock src={m.image} alt={m.name} className="mb-2" />}
                   <p className="font-black text-slate-900 dark:text-white">{m.name}</p>
                   <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{m.location}</p>
                   <p className="text-sm text-slate-600 dark:text-slate-300">{m.description}</p>
+                  <LinkList links={m.links} />
                 </div>
               ))}
             </div>
           </SectionCard>
 
-          {/* Persons like Ms Lou */}
+          {/* Icons: Miss Lou & More */}
           <SectionCard delay={500}>
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
               <span className="material-symbols-outlined text-primary text-2xl">person</span>
@@ -208,24 +246,72 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
             </h2>
             <div className="space-y-4">
               {PERSONS_LIKE_MS_LOU.map((p) => (
-                <div key={p.name} className="flex gap-4 items-start">
-                  {p.image && (
-                    <div className="shrink-0 size-16 rounded-2xl overflow-hidden border border-white/10">
-                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-black text-slate-900 dark:text-white">{p.name}</p>
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{p.role}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{p.blurb}</p>
-                  </div>
+                <div key={p.name}>
+                  <p className="font-black text-slate-900 dark:text-white">{p.name}</p>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{p.role}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{p.blurb}</p>
+                  <LinkList links={p.links} className="mt-2" />
                 </div>
               ))}
             </div>
           </SectionCard>
 
+          {/* Sports Icons */}
+          <SectionCard delay={520}>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-jamaican-gold text-2xl">sports</span>
+              Iconic Sports People
+            </h2>
+            <div className="space-y-4">
+              {SPORTS_ICONS.map((s) => (
+                <div key={s.name}>
+                  <p className="font-black text-slate-900 dark:text-white">{s.name}</p>
+                  <p className="text-[10px] font-bold text-jamaican-gold/80 uppercase tracking-wider">{s.sport}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{s.blurb}</p>
+                  <LinkList links={s.links} className="mt-2" />
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {/* Reggae Boyz & Reggae Girlz */}
+          <SectionCard delay={540}>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-primary text-2xl">sports_soccer</span>
+              Reggae Boyz & Reggae Girlz
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <p className="font-black text-slate-900 dark:text-white">Reggae Boyz (Men&apos;s national team)</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{REGGAE_BOYS_GIRLS.reggaeBoyz.intro}</p>
+                <LinkList links={REGGAE_BOYS_GIRLS.reggaeBoyz.links} className="mt-2" />
+              </div>
+              <div>
+                <p className="font-black text-slate-900 dark:text-white">Reggae Girlz (Women&apos;s national team)</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{REGGAE_BOYS_GIRLS.reggaeGirlz.intro}</p>
+                <LinkList links={REGGAE_BOYS_GIRLS.reggaeGirlz.links} className="mt-2" />
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* Olympic Medals */}
+          <SectionCard delay={560}>
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+              <span className="material-symbols-outlined text-jamaican-gold text-2xl">emoji_events</span>
+              Jamaica at the Olympics
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">{OLYMPIC_MEDALS.intro}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{OLYMPIC_MEDALS.summary}</p>
+            <ul className="space-y-1 list-disc list-inside text-sm text-slate-600 dark:text-slate-300 mb-4">
+              {OLYMPIC_MEDALS.highlights.map((h, i) => (
+                <li key={i}>{h}</li>
+              ))}
+            </ul>
+            <LinkList links={OLYMPIC_MEDALS.links} />
+          </SectionCard>
+
           {/* Cuisine */}
-          <SectionCard delay={550}>
+          <SectionCard delay={580}>
             <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 mb-4">
               <span className="material-symbols-outlined text-jamaican-gold text-2xl">restaurant</span>
               Jamaican Cuisine
@@ -246,16 +332,13 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
               <span className="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
               National Dish, Symbols & More
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {NATIONAL_SYMBOLS.map((s) => (
-                <div key={s.name} className="rounded-xl border border-white/10 overflow-hidden bg-white/5 dark:bg-black/20">
-                  {s.image && (
-                    <img src={s.image} alt={s.value} className="w-full h-28 object-cover" loading="lazy" />
-                  )}
-                  <div className="p-3">
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{s.name}</p>
-                    <p className="font-bold text-slate-900 dark:text-white">{s.value}</p>
-                  </div>
+                <div key={s.name} className="py-2 border-b border-white/5 last:border-0">
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{s.name}</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{s.value}</p>
+                  {s.description && <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">{s.description}</p>}
+                  <LinkList links={s.links} className="mt-1" />
                 </div>
               ))}
             </div>
