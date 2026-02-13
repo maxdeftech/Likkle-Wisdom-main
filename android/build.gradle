@@ -1,4 +1,6 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+// If the IDE reports "initialization script ... does not exist", it's a transient IDE/Gradle sync issue:
+// run "./gradlew tasks" in android/ or reload the window to clear it; the command-line build is unaffected.
 
 buildscript {
     
