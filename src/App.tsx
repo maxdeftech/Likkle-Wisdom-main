@@ -349,6 +349,9 @@ const App: React.FC = () => {
         // Only force back to auth if we *expected* a real Supabase session
         setView('auth');
       }
+    }).catch((err) => {
+      console.warn("getSession failed:", err);
+      // Avoid unhandled rejection; don't force auth so user can still use guest/offline
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
