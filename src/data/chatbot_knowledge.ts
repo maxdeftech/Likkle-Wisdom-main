@@ -39,9 +39,14 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         action: { type: 'setting', value: 'settings' }
     },
     {
-        keywords: ['website', 'premium', 'upgrade', 'support', 'donate', 'pro', 'pay', 'maxwell', 'mdt'],
-        response: "Want to see more from us? Tap below and we'll open our website — Maxwell Definitive Technologies. One love!",
-        action: { type: 'setting', value: 'premium' }
+        keywords: ['likkle wisdom website', 'likklewisdom', 'likkle wisdom site', 'visit likkle wisdom'],
+        response: "Check out di Likkle Wisdom website for more Jamaican Patois wisdom and affirmations! Tap below to open https://www.likklewisdom.com/",
+        action: { type: 'setting', value: 'website' }
+    },
+    {
+        keywords: ['website', 'maxwell', 'mdt', 'maxwell definitive', 'mdt website', 'maxwell definitive technologies'],
+        response: "Want to see more from us? Maxwell Definitive Technologies — design, technology and intelligent solutions. Tap below to open our website! One love!",
+        action: { type: 'setting', value: 'mdt_website' }
     },
     {
         keywords: ['ai', 'brew', 'custom', 'mood', 'brewster', 'generate'],
@@ -50,7 +55,7 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     },
     {
         keywords: ['help', 'navigate', 'how to', 'guide', 'what can you do'],
-        response: "I'm Likkle Guide! I can help yuh find di Bible, Journal, Profile, AI Brewster, Settings, and more. What yuh lookin' for today?",
+        response: "I'm Likkle Guide! I can help yuh find di Bible, Journal, Profile, AI Brewster, Settings, di Likkle Wisdom website (likklewisdom.com), di Maxwell Definitive Technologies website, and more. What yuh lookin' for today?",
     },
     {
         keywords: ['bookmark', 'favorite', 'save', 'cabinet', 'saved'],
@@ -143,4 +148,4 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     }
 ];
 
-export const FALLBACK_RESPONSE = "I neva quite catch dat. Try asking me 'bout di Bible, Journal, Profile, AI Brewster, or how to navigate di app!";
+export const FALLBACK_RESPONSE = "I neva quite catch dat. Try asking me 'bout di Bible, Journal, Profile, AI Brewster, di Likkle Wisdom or Maxwell Definitive website, or how to navigate di app!";

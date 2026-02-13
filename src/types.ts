@@ -3,7 +3,7 @@
  * Used by App, views, and services for type-safe props and API shapes.
  */
 
-/** Logged-in or guest user; isGuest true when continuing without account; isPremium from RevenueCat. */
+/** Logged-in or guest user; isGuest true when continuing without account; isPremium from profiles (optional). */
 export interface User {
   id: string;
   username: string;
@@ -81,8 +81,8 @@ export interface UserWisdom {
   timestamp: number;
 }
 
-/** Top-level app view: splash → onboarding → auth → main; privacy/terms are full-screen legal. */
-export type View = 'splash' | 'onboarding' | 'auth' | 'main' | 'privacy' | 'terms';
+/** Top-level app view: splash → onboarding → auth → main; privacy/terms are full-screen legal; jamaicanHistory from Discover. */
+export type View = 'splash' | 'onboarding' | 'auth' | 'main' | 'privacy' | 'terms' | 'jamaicanHistory';
 /** Main tab when view is 'main': home, discover, bible, book (journal), me (profile). */
 export type Tab = 'home' | 'discover' | 'bible' | 'book' | 'me';
 /** Mood for journal entries and AI wisdom generation. */

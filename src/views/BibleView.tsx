@@ -281,10 +281,10 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
   };
 
   return (
-    <div className="p-6 sm:p-10 pb-24 animate-fade-in font-display">
-      <header className="pt-12 mb-8 flex items-center justify-between">
+    <div className="p-6 sm:p-10 pb-24 animate-fade-in font-display" role="region" aria-label="Bible reader">
+      <header className="pt-12 mb-8 flex items-center justify-between" role="banner">
         <div>
-          <span className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.4em]">The Living Word</span>
+          <span className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.4em]" aria-hidden="true">The Living Word</span>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white">KJV Bible</h1>
         </div>
         <div className="flex gap-2">
@@ -292,19 +292,20 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
           <button
             onClick={() => setShowNotes(true)}
             className="size-14 sm:size-16 rounded-2xl glass flex items-center justify-center text-jamaican-gold relative shadow-xl"
+            aria-label={bibleNotes.length > 0 ? `My Bible notes, ${bibleNotes.length} notes` : 'My Bible notes'}
           >
-            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">sticky_note_2</span>
+            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black" aria-hidden="true">sticky_note_2</span>
             {bibleNotes.length > 0 && (
-              <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark">{bibleNotes.length > 9 ? '9+' : bibleNotes.length}</span>
+              <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark" aria-hidden="true">{bibleNotes.length > 9 ? '9+' : bibleNotes.length}</span>
             )}
           </button>
           <button
             onClick={handleDownloadBook}
             disabled={downloading || isBookDownloaded(book) || !isOnline}
             className={`size-14 sm:size-16 rounded-2xl flex flex-col items-center justify-center shadow-xl transition-all ${isBookDownloaded(book) ? 'bg-primary/20 text-primary' : 'glass text-slate-900/40 dark:text-white/40'} ${!isOnline && !isBookDownloaded(book) ? 'opacity-20 cursor-not-allowed' : ''}`}
-            title={isBookDownloaded(book) ? 'Book stashed for offline' : 'Stash full book for offline'}
+            aria-label={isBookDownloaded(book) ? `${book} stashed for offline` : `Stash ${book} for offline`}
           >
-            <span className={`material-symbols-outlined text-3xl sm:text-4xl font-black ${downloading && downloadProgress && !('type' in downloadProgress) ? 'animate-bounce' : ''}`}>
+            <span className={`material-symbols-outlined text-3xl sm:text-4xl font-black ${downloading && downloadProgress && !('type' in downloadProgress) ? 'animate-bounce' : ''}`} aria-hidden="true">
               {isBookDownloaded(book) ? 'download_done' : 'cloud_download'}
             </span>
             {downloadProgress && !('type' in downloadProgress) && (
@@ -314,24 +315,25 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpg
           <button
             onClick={playChapter}
             className={`size-14 sm:size-16 rounded-2xl flex items-center justify-center shadow-xl transition-all ${isPlayingAudio ? 'bg-primary text-background-dark' : 'glass text-primary'}`}
+            aria-label={isPlayingAudio ? 'Stop reading aloud' : 'Play chapter aloud'}
           >
-            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black" aria-hidden="true">
               {isPlayingAudio ? 'stop_circle' : 'play_circle'}
             </span>
           </button>
-          <button onClick={() => { setShowSelector(true); setSelectorStage('book'); }} className="size-14 sm:size-16 rounded-2xl bg-primary text-background-dark flex items-center justify-center shadow-xl">
-            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">search</span>
+          <button onClick={() => { setShowSelector(true); setSelectorStage('book'); }} className="size-14 sm:size-16 rounded-2xl bg-primary text-background-dark flex items-center justify-center shadow-xl" aria-label="Choose book and chapter">
+            <span className="material-symbols-outlined text-3xl sm:text-4xl font-black" aria-hidden="true">search</span>
           </button>
         </div>
       </header>
 
       {/* Book/Chapter Selector */}
       {showSelector && (
-        <div className="fixed inset-0 z-[110] bg-background-dark/95 backdrop-blur-xl animate-fade-in p-6 sm:p-12 flex flex-col items-center">
+        <div className="fixed inset-0 z-[110] bg-background-dark/95 backdrop-blur-xl animate-fade-in p-6 sm:p-12 flex flex-col items-center" role="dialog" aria-modal="true" aria-labelledby="bible-selector-title">
           <div className="w-full max-w-2xl flex flex-col h-full">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl sm:text-4xl font-black text-white">{selectorStage === 'book' ? 'Select Book' : `Select Chapter - ${book}`}</h2>
-              <button onClick={() => { setShowSelector(false); setSelectorStage('book'); }} className="size-12 sm:size-16 rounded-full glass flex items-center justify-center text-white"><span className="material-symbols-outlined text-2xl">close</span></button>
+              <h2 id="bible-selector-title" className="text-2xl sm:text-4xl font-black text-white">{selectorStage === 'book' ? 'Select Book' : `Select Chapter - ${book}`}</h2>
+              <button onClick={() => { setShowSelector(false); setSelectorStage('book'); }} className="size-12 sm:size-16 rounded-full glass flex items-center justify-center text-white" aria-label="Close book and chapter selector"><span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span></button>
             </div>
             {selectorStage === 'book' && (
               <div className="relative mb-6">

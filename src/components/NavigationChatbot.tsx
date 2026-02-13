@@ -187,8 +187,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`size-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 ${isOpen ? 'bg-slate-900 dark:bg-background-dark text-primary rotate-90' : 'bg-primary text-slate-950'}`}
+                aria-label={isOpen ? 'Close Likkle Guide' : 'Open Likkle Guide chat'}
+                aria-expanded={isOpen}
+                aria-haspopup="dialog"
             >
-                <span className="material-symbols-outlined text-3xl">
+                <span className="material-symbols-outlined text-3xl" aria-hidden="true">
                     {isOpen ? 'close' : 'smart_toy'}
                 </span>
             </button>
@@ -201,11 +204,15 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
                 className={`absolute right-0 w-80 h-[450px] glass rounded-[2.5rem] flex flex-col shadow-2xl overflow-hidden border border-slate-900/10 dark:border-white/10 bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Likkle Guide chat - ask for help navigating the app"
+                aria-hidden={!isOpen}
             >
                 {/* Header */}
                 <div className="p-6 pb-4 border-b border-white/5 bg-gradient-to-r from-primary/10 to-transparent">
                     <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-slate-950">
+                        <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-slate-950" aria-hidden="true">
                             <span className="material-symbols-outlined text-2xl">support_agent</span>
                         </div>
                         <div>
@@ -303,11 +310,13 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                         <button
                             onClick={toggleListening}
                             className={`size-12 shrink-0 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'glass text-slate-900/60 dark:text-white/40'}`}
-                            title={isListening ? 'Stop listening' : 'Voice input'}
+                            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
                         >
-                            <span className="material-symbols-outlined text-xl">{isListening ? 'mic_off' : 'mic'}</span>
+                            <span className="material-symbols-outlined text-xl" aria-hidden="true">{isListening ? 'mic_off' : 'mic'}</span>
                         </button>
+                        <label htmlFor="likkle-guide-input" className="sr-only">Ask Likkle Guide a question</label>
                         <input
+                            id="likkle-guide-input"
                             ref={inputRef}
                             type="text"
                             value={input}
@@ -322,13 +331,15 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                             inputMode="text"
                             enterKeyHint="send"
                             autoComplete="off"
+                            aria-label="Ask Likkle Guide about the Bible, upgrade, or app navigation"
                             className="flex-1 bg-white/5 dark:bg-slate-900/5 border border-slate-900/10 dark:border-white/10 rounded-2xl h-12 px-4 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-900/40 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
                         />
                         <button
                             onClick={handleSend}
                             className="size-12 shrink-0 rounded-2xl bg-primary text-slate-950 flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                            aria-label="Send message"
                         >
-                            <span className="material-symbols-outlined text-xl">send</span>
+                            <span className="material-symbols-outlined text-xl" aria-hidden="true">send</span>
                         </button>
                     </div>
                 </div>

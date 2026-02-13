@@ -124,7 +124,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
         <div className="fixed inset-0 z-modal bg-background-dark flex flex-col pt-safe animate-slide-up">
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-4 pb-4 border-b border-white/5">
-                <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all">
+                <button onClick={onClose} className="size-10 rounded-full glass flex items-center justify-center text-white/60 active:scale-95 transition-all" aria-label="Close alerts">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
                 <h2 className="text-xl font-black text-white uppercase tracking-widest">Alerts</h2>

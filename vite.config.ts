@@ -124,10 +124,9 @@ export default defineConfig({
         main: './index.html'
       },
       output: {
-        manualChunks(id) {
+        manualChunks(id: string) {
           if (id.includes('node_modules')) {
             if (id.includes('@supabase/supabase-js')) return 'supabase';
-            if (id.includes('@revenuecat')) return 'revenuecat';
             if (id.includes('@google/genai')) return 'genai';
             if (id.includes('react-dom') || id.includes('react/')) return 'vendor';
           }

@@ -167,24 +167,25 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   };
 
   return (
-    <div className="p-6 pt-safe pb-24 animate-fade-in relative min-h-full font-display">
-      <header className="flex items-center justify-between py-12">
+    <div className="p-6 pt-safe pb-24 animate-fade-in relative min-h-full font-display" role="region" aria-label="Profile">
+      <header className="flex items-center justify-between py-12" role="banner">
         <div className="flex items-center gap-4">
           {!isOwnProfile && onClose && (
             <button
               onClick={onClose}
               className="size-11 rounded-full glass flex items-center justify-center text-white/60 shadow-lg active:scale-90 transition-transform"
+              aria-label="Back"
             >
-              <span className="material-symbols-outlined">arrow_back</span>
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
             </button>
           )}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary" aria-hidden="true">
               {isOwnProfile ? 'My profile' : 'Viewing profile'}
             </span>
-            <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
               {isOwnProfile ? 'Wise One' : displayUser.username}
-            </h2>
+            </h1>
           </div>
         </div>
         {isOwnProfile && (
@@ -193,18 +194,18 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
               <button
                 onClick={() => onRefresh ? onRefresh() : window.location.reload()}
                 className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
-                title="Refresh App"
+                aria-label="Refresh app"
               >
-                <span className="material-symbols-outlined">refresh</span>
+                <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
               </button>
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Sync</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40" aria-hidden="true">Sync</span>
             </div>
 
             <div className="flex flex-col items-center gap-1.5">
-              <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
-                <span className="material-symbols-outlined">settings</span>
+              <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform" aria-label="Open settings">
+                <span className="material-symbols-outlined" aria-hidden="true">settings</span>
               </button>
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Settings</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40" aria-hidden="true">Settings</span>
             </div>
           </div>
         )}
@@ -213,7 +214,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
       <div className="glass rounded-[3rem] p-10 flex flex-col items-center text-center relative overflow-hidden mb-10 shadow-2xl border-white/5 bg-gradient-to-br from-primary/5 via-transparent to-jamaican-gold/5">
         <div className="relative mb-8 group cursor-pointer" onClick={() => isOwnProfile && fileInputRef.current?.click()}>
           <div className="size-32 rounded-[2.5rem] border-4 border-primary/20 overflow-hidden shadow-2xl bg-background-dark rotate-3 group-hover:rotate-0 transition-all duration-700">
-            <img className="w-full h-full object-cover" src={displayUser.avatarUrl || `https://picsum.photos/seed/${displayUser.id}/200`} alt="Avatar" />
+            <img className="w-full h-full object-cover" src={displayUser.avatarUrl || `https://picsum.photos/seed/${displayUser.id}/200`} alt={isOwnProfile ? 'Your profile photo' : `${displayUser.username} profile photo`} />
           </div>
           {/* Admin green checkmark visible to all */}
           {displayUser.isAdmin && (
@@ -237,7 +238,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
         </div>
 
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{displayUser.username}</h1>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{displayUser.username}</h2>
         </div>
 
         {/* 24h Note Area */}

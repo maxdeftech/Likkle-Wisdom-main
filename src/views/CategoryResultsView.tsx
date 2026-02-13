@@ -22,8 +22,8 @@ const CategoryResultsView: React.FC<CategoryResultsViewProps> = ({ categoryId, o
   return (
     <div className="min-h-full p-6 pb-24 animate-fade-in">
       <header className="pt-12 flex items-center justify-between mb-8">
-        <button onClick={onClose} className="size-11 rounded-full glass flex items-center justify-center text-primary">
-          <span className="material-symbols-outlined">arrow_back</span>
+        <button onClick={onClose} className="size-11 rounded-full glass flex items-center justify-center text-primary" aria-label="Back to Discover">
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
         </button>
         <div className="text-right">
           <span className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">{cat?.name}</span>

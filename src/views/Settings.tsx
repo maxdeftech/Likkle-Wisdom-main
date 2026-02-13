@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
-import { Capacitor } from '@capacitor/core';
-import { initializePurchases, presentPaywall } from '../services/revenueCat';
 
-const LIKKLE_WISDOM_WEBSITE = 'https://likklewisdom.com/';
+const LIKKLE_WISDOM_WEBSITE = 'https://www.likklewisdom.com/';
+const MAXWELL_DEFINITIVE_WEBSITE = 'https://maxdeftech.wixsite.com/mdt-ja';
 
 interface SettingsProps {
   user: User;
@@ -26,7 +25,6 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [supportLoading, setSupportLoading] = useState(false);
 
   // Notification preferences (from profiles)
   const [quoteTime, setQuoteTime] = useState('08:00');
@@ -85,39 +83,28 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     window.open(LIKKLE_WISDOM_WEBSITE, '_blank');
   };
 
-  const handleSupportLikkleWisdom = async () => {
-    if (!Capacitor.isNativePlatform()) return;
-    setSupportLoading(true);
-    try {
-      await initializePurchases();
-      await presentPaywall();
-    } catch (e) {
-      console.warn('Support paywall:', e);
-    } finally {
-      setSupportLoading(false);
-    }
+  const handleVisitMDTWebsite = () => {
+    window.open(MAXWELL_DEFINITIVE_WEBSITE, '_blank');
   };
 
-  const isNative = Capacitor.isNativePlatform();
-
   return (
-    <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 pt-safe transition-colors duration-300">
-      <header className="sticky top-0 z-sticky flex items-center glass backdrop-blur-md px-6 py-4 justify-between">
+    <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-y-auto pb-10 pt-safe transition-colors duration-300" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <header className="sticky top-0 z-sticky flex items-center glass backdrop-blur-md px-6 py-4 justify-between" role="banner">
         <div className="flex items-center gap-2">
-          <button onClick={onClose} aria-label="Go back" className="text-primary material-symbols-outlined text-3xl">chevron_left</button>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
+          <button onClick={onClose} aria-label="Close settings" className="text-primary material-symbols-outlined text-3xl"><span aria-hidden="true">chevron_left</span></button>
+          <h1 id="settings-title" className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
         </div>
         <div className="size-10 rounded-full overflow-hidden border-2 border-primary/30">
-          <button aria-label="User Avatar">
-            <img src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100`} alt="Avatar" className="w-full h-full object-cover" />
+          <button aria-label="User avatar">
+            <img src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/100`} alt="" className="w-full h-full object-cover" aria-hidden="true" />
           </button>
         </div>
       </header>
 
       <div className="flex flex-col gap-6 px-4 py-6">
-        {/* Visit Likkle Wisdom + Support (same design as Home; Support only on iOS/Android, guests can use) */}
+        {/* Websites: Likkle Wisdom & Maxwell Definitive */}
         <section>
-          <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Likkle Wisdom</h3>
+          <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Websites</h3>
           <div className="flex flex-col gap-3">
             <button
               type="button"
@@ -132,7 +119,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                   </div>
                   <div className="text-left">
                     <h3 className="text-white font-black text-sm uppercase tracking-wide">Visit Likkle Wisdom</h3>
-                    <p className="text-white/50 text-[10px] font-bold tracking-wider">Check out di Likkle Wisdom link</p>
+                    <p className="text-white/50 text-[10px] font-bold tracking-wider">likklewisdom.com — Jamaican Patois wisdom & affirmations</p>
                   </div>
                 </div>
                 <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
@@ -140,31 +127,27 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                 </div>
               </div>
             </button>
-
-            {isNative && (
-              <button
-                type="button"
-                onClick={handleSupportLikkleWisdom}
-                disabled={supportLoading}
-                className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left disabled:opacity-70"
-              >
-                <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
-                <div className="relative bg-background-dark/95 dark:bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
-                      <span className="material-symbols-outlined text-xl">volunteer_activism</span>
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-white font-black text-sm uppercase tracking-wide">Support Likkle Wisdom</h3>
-                      <p className="text-white/50 text-[10px] font-bold tracking-wider">One-time or subscription via secure payment</p>
-                    </div>
+            <button
+              type="button"
+              onClick={handleVisitMDTWebsite}
+              className="w-full relative overflow-hidden group bg-gradient-to-r from-slate-700 to-slate-800 dark:from-slate-600 dark:to-slate-700 rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
+            >
+              <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-colors pointer-events-none" />
+              <div className="relative bg-background-dark/95 dark:bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="size-10 shrink-0 rounded-full bg-white/10 flex items-center justify-center text-white/80 border border-white/20">
+                    <span className="material-symbols-outlined text-xl">business</span>
                   </div>
-                  <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
-                    <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                  <div className="text-left">
+                    <h3 className="text-white font-black text-sm uppercase tracking-wide">Maxwell Definitive Technologies</h3>
+                    <p className="text-white/50 text-[10px] font-bold tracking-wider">Design, technology & intelligent solutions</p>
                   </div>
                 </div>
-              </button>
-            )}
+                <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
+                  <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                </div>
+              </div>
+            </button>
           </div>
         </section>
 

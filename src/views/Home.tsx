@@ -156,29 +156,29 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
   );
 
   return (
-    <div className="p-6 sm:p-10 pb-24 animate-fade-in">
-      <header className="flex flex-col gap-8 mb-8 pt-6">
+    <div className="p-6 sm:p-10 pb-24 animate-fade-in" role="region" aria-label="Home">
+      <header className="flex flex-col gap-8 mb-8 pt-6" role="banner">
         <div className="flex items-center gap-5">
           {/* Profile & Theme Cluster */}
           <div className="flex flex-col items-center gap-3">
             <button
               onClick={() => onTabChange('me')}
-              aria-label="View Profile"
+              aria-label="View your profile"
               className="size-16 sm:size-20 rounded-[2rem] border-4 border-primary/20 overflow-hidden active:scale-90 transition-transform shadow-2xl bg-background-dark rotate-3 hover:rotate-0 transition-all duration-500"
             >
               <img
                 className="w-full h-full object-cover"
                 src={user.avatarUrl || `https://picsum.photos/seed/${user.id}/200`}
-                alt="Profile"
+                alt="Your profile photo"
               />
             </button>
             <button
               onClick={onToggleTheme}
-              aria-label="Toggle theme"
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               className={`h-6 w-11 rounded-full relative transition-all duration-300 flex items-center px-1 shadow-inner ${isDarkMode ? 'bg-primary/40' : 'bg-slate-200'}`}
             >
               <div className={`size-4 bg-white rounded-full shadow-md transition-transform duration-300 transform ${isDarkMode ? 'translate-x-5' : 'translate-x-0'} flex items-center justify-center`}>
-                <span className="material-symbols-outlined text-[10px] text-slate-900 font-black">
+                <span className="material-symbols-outlined text-[10px] text-slate-900 font-black" aria-hidden="true">
                   {isDarkMode ? 'dark_mode' : 'light_mode'}
                 </span>
               </div>
@@ -197,30 +197,30 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           {/* Header Icons */}
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center gap-1">
-              <button onClick={() => onTabChange('discover')} aria-label="Explore" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform">
-                <span className="material-symbols-outlined text-xl">explore</span>
+              <button onClick={() => onTabChange('discover')} aria-label="Explore categories and search wisdom" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform">
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">explore</span>
               </button>
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Explore</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40" aria-hidden="true">Explore</span>
             </div>
             {onOpenAlerts && (
               <div className="flex flex-col items-center gap-1">
-                <button onClick={onOpenAlerts} aria-label="Alerts" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
-                  <span className="material-symbols-outlined text-xl">notifications</span>
+                <button onClick={onOpenAlerts} aria-label={alertsCount > 0 ? `Alerts, ${alertsCount} unread` : 'View alerts'} className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
+                  <span className="material-symbols-outlined text-xl" aria-hidden="true">notifications</span>
                   {alertsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark border-2 border-white dark:border-background-dark animate-pop">
+                    <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark border-2 border-white dark:border-background-dark animate-pop" aria-hidden="true">
                       {alertsCount > 9 ? '9+' : alertsCount}
                     </span>
                   )}
                 </button>
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Alerts</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40" aria-hidden="true">Alerts</span>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      <section className="mb-10">
-        <div className="flex justify-center gap-3 mb-4 pb-1">
+      <section className="mb-10" aria-label="Daily wisdom">
+        <div className="flex justify-center gap-3 mb-4 pb-1" role="tablist" aria-label="Choose daily content type">
           {[
             { id: 'quote', label: 'Quote', icon: 'wb_sunny' },
             { id: 'wisdom', label: 'Wisdom', icon: 'auto_stories' },
@@ -228,17 +228,21 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           ].map(tab => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeDaily === tab.id}
+              aria-controls="daily-content-panel"
+              id={`daily-tab-${tab.id}`}
               onClick={() => { setActiveDaily(tab.id as any); setReveal(false); }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full text-[10px] sm:text-[12px] font-black uppercase tracking-widest transition-all ${activeDaily === tab.id ? 'bg-primary text-background-dark shadow-lg scale-105' : 'glass text-slate-900/40 dark:text-white/40'}`}
             >
-              <span className="material-symbols-outlined text-sm sm:text-base">{tab.icon}</span>
+              <span className="material-symbols-outlined text-sm sm:text-base" aria-hidden="true">{tab.icon}</span>
               {tab.label}
             </button>
           ))}
         </div>
 
-        <div className="glass rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-12 flex flex-col items-center text-center gap-6 shadow-2xl relative overflow-hidden border-white/5 bg-gradient-to-br from-primary/5 to-transparent min-h-[50vh] justify-center">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
+        <div id="daily-content-panel" role="tabpanel" aria-labelledby={`daily-tab-${activeDaily}`} className="glass rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-12 flex flex-col items-center text-center gap-6 shadow-2xl relative overflow-hidden border-white/5 bg-gradient-to-br from-primary/5 to-transparent min-h-[50vh] justify-center">
+          <div className="absolute top-0 right-0 p-8 opacity-5" aria-hidden="true">
             <span className="material-symbols-outlined text-[120px] sm:text-[180px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               {activeDaily === 'quote' ? 'wb_sunny' : activeDaily === 'wisdom' ? 'auto_stories' : 'menu_book'}
             </span>
@@ -247,12 +251,12 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           <button
             onClick={(e) => { e.stopPropagation(); refreshSingle(activeDaily); setReveal(false); }}
             className="absolute top-6 right-6 size-10 rounded-full glass border border-white/10 flex items-center justify-center text-slate-900/40 dark:text-white/40 active:scale-95 transition-all z-20 hover:text-primary hover:border-primary/20"
-            title="Refresh this card"
+            aria-label="Refresh this card with new content"
           >
-            <span className="material-symbols-outlined text-lg">refresh</span>
+            <span className="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>
           </button>
 
-          <span className="material-symbols-outlined text-primary text-5xl sm:text-7xl opacity-40">
+          <span className="material-symbols-outlined text-primary text-5xl sm:text-7xl opacity-40" aria-hidden="true">
             format_quote
           </span>
 
@@ -277,8 +281,9 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
               <button
                 onClick={() => setReveal(true)}
                 className="w-full bg-primary text-background-dark font-black py-5 sm:py-7 rounded-2xl sm:rounded-3xl flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all uppercase tracking-widest text-xs sm:text-sm"
+                aria-label="Reveal meaning or translation"
               >
-                <span className="material-symbols-outlined text-lg sm:text-xl">translate</span>
+                <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">translate</span>
                 <span>Reveal Meaning</span>
               </button>
             ) : (
@@ -299,18 +304,20 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
                         speak(textToSpeak);
                       }
                     }}
+                    aria-label={isSpeaking ? 'Stop listening' : 'Listen to this content'}
                     className={`flex-1 glass py-4 sm:py-6 rounded-2xl sm:rounded-3xl text-[10px] sm:text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-colors ${isSpeaking ? 'text-primary' : 'text-slate-900 dark:text-white'}`}
                   >
-                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${isSpeaking ? 'animate-pulse' : ''}`}>
+                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${isSpeaking ? 'animate-pulse' : ''}`} aria-hidden="true">
                       {isSpeaking ? 'stop_circle' : 'volume_up'}
                     </span>
                     {isSpeaking ? 'Stop' : 'Listen'}
                   </button>
                   <button
                     onClick={() => onFavorite(currentItem.id, activeDaily === 'verse' ? 'bible' : 'quote')}
+                    aria-label={isItemFavored(currentItem) ? 'Saved to cabinet' : 'Save to cabinet'}
                     className={`flex-1 py-4 sm:py-6 rounded-2xl sm:rounded-3xl text-[10px] sm:text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-all ${isItemFavored(currentItem) ? 'bg-primary text-background-dark' : 'glass text-slate-900 dark:text-white'}`}
                   >
-                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${isItemFavored(currentItem) ? 'fill-1 animate-pop' : ''}`}>favorite</span>
+                    <span className={`material-symbols-outlined text-lg sm:text-2xl ${isItemFavored(currentItem) ? 'fill-1 animate-pop' : ''}`} aria-hidden="true">favorite</span>
                     {isItemFavored(currentItem) ? 'Saved' : 'Save'}
                   </button>
                 </div>
@@ -324,7 +331,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
       <div className="mb-10 px-1">
         <button
           type="button"
-          onClick={() => window.open('https://likklewisdom.com/', '_blank')}
+          onClick={() => window.open('https://www.likklewisdom.com/', '_blank')}
           className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
         >
           <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
@@ -345,26 +352,28 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         </button>
       </div>
 
-      <section className="mb-8">
+      <section className="mb-8" role="region" aria-label="Island Vibes categories">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Island Vibes</h2>
-          <button onClick={() => onTabChange('discover')} className="text-sm sm:text-base font-semibold text-primary">Explore Categories</button>
+          <button onClick={() => onTabChange('discover')} className="text-sm sm:text-base font-semibold text-primary" aria-label="Go to Discover and explore all categories">Explore Categories</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {CATEGORIES.slice(0, 3).map(cat => (
-            <div
+            <button
+              type="button"
               key={cat.id}
               onClick={() => { onTabChange('discover'); onCategoryClick(cat.id); }}
-              className="glass p-6 sm:p-8 rounded-[2rem] flex items-center gap-4 group active:scale-95 transition-all border-white/5 cursor-pointer hover:border-primary/20"
+              className="glass p-6 sm:p-8 rounded-[2rem] flex items-center gap-4 group active:scale-95 transition-all border-white/5 cursor-pointer hover:border-primary/20 text-left w-full"
+              aria-label={`Open ${cat.name}: ${cat.description}`}
             >
-              <div className={`size-14 sm:size-16 shrink-0 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20`}>
+              <div className={`size-14 sm:size-16 shrink-0 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20`} aria-hidden="true">
                 <span className="material-symbols-outlined text-3xl">{cat.icon}</span>
               </div>
               <div className="flex flex-col">
-                <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">{cat.name}</h3>
-                <p className="text-[10px] text-slate-900/40 dark:text-white/40 uppercase tracking-widest font-bold">{cat.description}</p>
+                <span className="font-black text-base sm:text-lg text-slate-900 dark:text-white">{cat.name}</span>
+                <span className="text-[10px] text-slate-900/40 dark:text-white/40 uppercase tracking-widest font-bold">{cat.description}</span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>

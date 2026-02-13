@@ -5,6 +5,7 @@ import { Quote, IconicQuote, BibleAffirmation } from '../types';
 
 interface DiscoverProps {
   onCategoryClick: (id: string) => void;
+  onOpenJamaicanHistory?: () => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   isOnline: boolean;
@@ -13,7 +14,7 @@ interface DiscoverProps {
   bible?: BibleAffirmation[];
 }
 
-const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [] }) => {
+const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHistory, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [] }) => {
   const q = searchQuery.toLowerCase().trim();
 
   // Search content when query > 1 char
@@ -41,36 +42,41 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSea
   const isSearching = q.length >= 2;
 
   return (
-    <div className="p-6 sm:p-10 pb-24 animate-fade-in">
-      <header className="py-12 sm:py-16 flex flex-col gap-2">
-         <span className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.4em]">Wisdom Market</span>
+    <div className="p-6 sm:p-10 pb-24 animate-fade-in" role="region" aria-label="Discover wisdom">
+      <header className="py-12 sm:py-16 flex flex-col gap-2" role="banner">
+         <span className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.4em]" aria-hidden="true">Wisdom Market</span>
          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white">Pick Yuh Vibe</h1>
          <p className="text-slate-500 dark:text-slate-400 font-medium sm:text-lg">Find di inspiration weh fit yuh spirit.</p>
          
          {!isOnline && (
-           <div className="mt-4 glass-gold px-4 py-2 rounded-2xl border-jamaican-gold/20 flex items-center gap-3 w-fit">
-              <span className="material-symbols-outlined text-jamaican-gold text-sm">inventory_2</span>
+           <div className="mt-4 glass-gold px-4 py-2 rounded-2xl border-jamaican-gold/20 flex items-center gap-3 w-fit" role="status" aria-label="Viewing stashed library while offline">
+              <span className="material-symbols-outlined text-jamaican-gold text-sm" aria-hidden="true">inventory_2</span>
               <span className="text-[9px] font-black uppercase text-jamaican-gold tracking-widest">Viewing Stashed Library</span>
            </div>
          )}
       </header>
 
       <div className="relative mb-10 sm:mb-16">
-        <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40 text-2xl">search</span>
-        <input 
-          className="w-full bg-white/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl py-5 sm:py-7 pl-14 pr-6 text-slate-900 dark:text-white placeholder-slate-500 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent transition-all shadow-xl" 
-          placeholder="Search wisdom, verses..." 
+        <label htmlFor="discover-search" className="sr-only">Search wisdom, verses, and categories</label>
+        <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/40 text-2xl" aria-hidden="true">search</span>
+        <input
+          id="discover-search"
+          type="search"
+          className="w-full bg-white/5 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl py-5 sm:py-7 pl-14 pr-6 text-slate-900 dark:text-white placeholder-slate-500 text-base sm:text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent transition-all shadow-xl"
+          placeholder="Search wisdom, verses..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          aria-label="Search wisdom, verses, and categories"
+          autoComplete="off"
         />
       </div>
 
       {/* Search Results */}
       {isSearching && (
-        <div className="space-y-8 mb-12">
+        <div className="space-y-8 mb-12" role="region" aria-label="Search results" aria-live="polite">
           {!hasResults && (
-            <div className="text-center py-12 glass rounded-[2rem]">
-              <span className="material-symbols-outlined text-5xl text-white/10 mb-3">search_off</span>
+            <div className="text-center py-12 glass rounded-[2rem]" role="status">
+              <span className="material-symbols-outlined text-5xl text-white/10 mb-3" aria-hidden="true">search_off</span>
               <p className="text-white/20 text-xs font-black uppercase tracking-widest">No results fi "{searchQuery}"</p>
             </div>
           )}
@@ -145,6 +151,29 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, searchQuery, onSea
       {/* Original content (hidden when searching) */}
       {!isSearching && (
         <>
+          {/* Jamaican History — featured section */}
+          {onOpenJamaicanHistory && (
+            <button
+              type="button"
+              onClick={onOpenJamaicanHistory}
+              className="w-full mb-10 sm:mb-12 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 relative overflow-hidden group text-left border-2 border-jamaican-gold/30 bg-gradient-to-br from-jamaican-gold/20 via-primary/10 to-transparent hover:border-jamaican-gold/50 active:scale-[0.99] transition-all duration-300 shadow-xl hover:shadow-2xl"
+              aria-label="Open Jamaican History"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-jamaican-gold/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+              <div className="relative z-10 flex items-center gap-4 sm:gap-6">
+                <div className="size-16 sm:size-20 rounded-2xl bg-jamaican-gold/30 border border-jamaican-gold/40 flex items-center justify-center text-jamaican-gold group-hover:scale-105 transition-transform">
+                  <span className="material-symbols-outlined text-4xl sm:text-5xl">history_edu</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] sm:text-xs font-black text-jamaican-gold uppercase tracking-[0.25em]">Discover</span>
+                  <h2 className="text-slate-900 dark:text-white text-xl sm:text-2xl font-black mt-1 group-hover:text-jamaican-gold transition-colors">Jamaican History</h2>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1">National heroes, iconic places, slavery & overcoming, cuisine, symbols & more</p>
+                </div>
+                <span className="material-symbols-outlined text-2xl sm:text-3xl text-jamaican-gold/70 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </div>
+            </button>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-20">
             {CATEGORIES.map(cat => (
               <div 

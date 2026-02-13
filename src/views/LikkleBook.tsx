@@ -34,12 +34,13 @@ const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searc
             <button
               onClick={() => setShowAdd(false)}
               className="size-10 rounded-xl flex items-center justify-center glass border-slate-200 dark:border-white/10 text-slate-900 dark:text-white active:scale-90 transition-transform"
+              aria-label="Cancel and close write entry"
             >
-              <span className="material-symbols-outlined text-lg">close</span>
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
             <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Write Move</h2>
           </div>
-          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary" aria-hidden="true">
             <span className="material-symbols-outlined text-2xl">draw</span>
           </div>
         </header>
@@ -107,10 +108,10 @@ const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searc
   );
 
   return (
-    <div className="min-h-full flex flex-col pb-40 animate-fade-in">
-      <header className="p-6 pt-16 flex justify-between items-end">
+    <div className="min-h-full flex flex-col pb-40 animate-fade-in" role="region" aria-label="Journal - Likkle Book">
+      <header className="p-6 pt-16 flex justify-between items-end" role="banner">
         <div className="flex flex-col gap-1">
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Your Journey</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary" aria-hidden="true">Your Journey</span>
           <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Likkle Book</h1>
         </div>
         <button
@@ -118,18 +119,22 @@ const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searc
           className="size-14 rounded-2xl bg-primary text-background-dark shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 border-2 border-white dark:border-white/10"
           aria-label="Add journal entry"
         >
-          <span className="material-symbols-outlined text-3xl">draw</span>
+          <span className="material-symbols-outlined text-3xl" aria-hidden="true">draw</span>
         </button>
       </header>
 
       <div className="px-6 mb-8">
+        <label htmlFor="journal-search" className="sr-only">Search journal by title or content</label>
         <div className="glass flex items-center px-5 h-16 rounded-2xl shadow-xl border-slate-200 dark:border-white/5 focus-within:border-primary/40 transition-all">
-          <span className="material-symbols-outlined text-slate-900/20 dark:text-white/20 mr-3">search</span>
+          <span className="material-symbols-outlined text-slate-900/20 dark:text-white/20 mr-3" aria-hidden="true">search</span>
           <input
+            id="journal-search"
+            type="search"
             className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-900/20 dark:placeholder:text-white/20 font-medium text-slate-900 dark:text-white"
             placeholder="Search titles or content..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            aria-label="Search journal entries by title or content"
           />
         </div>
       </div>

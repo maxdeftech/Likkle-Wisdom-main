@@ -4,7 +4,6 @@ import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, Us
 import { useIsDesktop } from './hooks/useIsDesktop';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
-import { initializePurchases } from './services/revenueCat';
 import { PushService } from './services/pushService';
 import { EncryptionService } from './services/encryption';
 import { WisdomService } from './services/wisdomService';
@@ -20,10 +19,10 @@ import LikkleBook from './views/LikkleBook';
 import Profile from './views/Profile';
 import AIWisdom from './views/AIWisdom';
 import Settings from './views/Settings';
-import PremiumUpgrade from './views/PremiumUpgrade';
 import AlertsView from './views/AlertsView';
 import BottomNav from './components/BottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
+import JamaicanHistoryView from './views/JamaicanHistoryView';
 import LegalView from './views/LegalView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import NavigationChatbot from './components/NavigationChatbot';
@@ -63,10 +62,11 @@ const NotificationBanner: React.FC<{
       onTouchMove={handleTouchMove}
       role="button"
       tabIndex={0}
+      aria-label={`Notification: ${payload.message}. Activate to open.`}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { onTap(); onDismiss(); } }}
     >
-      <div className="glass backdrop-blur-xl py-3 px-4 rounded-2xl flex items-center gap-3 shadow-2xl border border-white/10 bg-white/10 dark:bg-white/5 min-h-[52px]">
-        <span className="material-symbols-outlined text-primary text-xl shrink-0">
+      <div className="glass backdrop-blur-xl py-3 px-4 rounded-2xl flex items-center gap-3 shadow-2xl border border-white/10 bg-white/10 dark:bg-white/5 min-h-[52px]" aria-live="polite" aria-atomic="true">
+        <span className="material-symbols-outlined text-primary text-xl shrink-0" aria-hidden="true">
           {payload.type === 'verse' ? 'menu_book' : 'notifications_active'}
         </span>
         <p className="text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-wider flex-1 truncate">
@@ -86,7 +86,6 @@ const App: React.FC = () => {
   const [manualRefreshMessage, setManualRefreshMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAI, setShowAI] = useState(false);
-  const [showPremium, setShowPremium] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -230,9 +229,6 @@ const App: React.FC = () => {
     };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Initialize RevenueCat
-    initializePurchases();
 
     // Load cached content from localStorage for immediate display
     const cachedQuotes = localStorage.getItem('lkkle_quotes');
@@ -622,10 +618,6 @@ const App: React.FC = () => {
     setShowSettings(true);
   };
 
-  const handleOpenPremium = () => {
-    setShowPremium(true);
-  };
-
   const handleNotificationTap = useCallback((action?: NotificationPayload['action']) => {
     setNotification(null);
     if (action?.type === 'bible') {
@@ -672,19 +664,22 @@ const App: React.FC = () => {
       setView('main');
       setShowSettings(false);
       setShowAI(false);
-      setShowPremium(false);
       setPublicProfileId(null);
     } else if (type === 'setting') {
       if (value === 'settings') handleOpenSettings();
-      if (value === 'premium') handleOpenPremium();
+      if (value === 'website') window.open('https://www.likklewisdom.com/', '_blank');
+      if (value === 'mdt_website') window.open('https://maxdeftech.wixsite.com/mdt-ja', '_blank');
       if (value === 'ai') handleOpenAI();
       if (value === 'alerts') handleOpenAlerts();
+    } else if (type === 'external' && value) {
+      window.open(value, '_blank');
     }
   };
 
   const renderContent = () => {
     if (view === 'privacy') return <LegalView type="privacy" onClose={() => setView('main')} />;
     if (view === 'terms') return <LegalView type="terms" onClose={() => setView('main')} />;
+    if (view === 'jamaicanHistory') return <JamaicanHistoryView onClose={() => setView('main')} />;
     if (activeCategory) return <CategoryResultsView categoryId={activeCategory} onClose={() => setActiveCategory(null)} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} onFavorite={handleToggleFavorite} />;
 
     if (!user) {
@@ -694,8 +689,8 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
-      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
-      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={handleOpenPremium} isOnline={isOnline} />;
+      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
+      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => {}} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
@@ -714,7 +709,7 @@ const App: React.FC = () => {
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     // Ignore swipes when overlays are open
-    if (showSettings || showAI || showPremium || publicProfileId || activeCategory) return;
+    if (showSettings || showAI || publicProfileId || activeCategory || view === 'jamaicanHistory') return;
     if (view !== 'main') return;
 
     const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -737,7 +732,10 @@ const App: React.FC = () => {
     }
   };
 
-  // Pull-to-refresh handlers
+  // Pull-to-refresh: user must pull down this far (px) before release triggers refresh
+  const PULL_REFRESH_THRESHOLD = 140;
+  const PULL_MAX_DISTANCE = 220;
+
   const handlePullStart = (e: React.TouchEvent) => {
     const scrollTop = mainScrollRef.current?.scrollTop || 0;
     if (scrollTop === 0) {
@@ -750,14 +748,14 @@ const App: React.FC = () => {
     if (scrollTop > 0 || pullStartY.current === 0) return;
 
     const dy = e.touches[0].clientY - pullStartY.current;
-    if (dy > 0 && dy < 150) {
+    if (dy > 0 && dy < PULL_MAX_DISTANCE) {
       setPullDistance(dy);
       setIsPulling(true);
     }
   };
 
   const handlePullEnd = async () => {
-    if (pullDistance > 80) {
+    if (pullDistance > PULL_REFRESH_THRESHOLD) {
       // Trigger refresh
       await handleRefreshApp();
     }
@@ -774,12 +772,13 @@ const App: React.FC = () => {
 
   return (
     <div className={containerClass}>
-      <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0"></div>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0" aria-hidden="true"></div>
 
       {!isOnline && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none" role="status" aria-live="polite" aria-label="You are offline. Stashed wisdom is active.">
           <div className="glass px-6 py-2 rounded-full border-red-500/20 bg-background-dark/80 flex items-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/5">
-            <span className="material-symbols-outlined text-red-500 text-sm animate-pulse">wifi_off</span>
+            <span className="material-symbols-outlined text-red-500 text-sm animate-pulse" aria-hidden="true">wifi_off</span>
             <div className="flex flex-col items-start leading-none">
               <span className="text-[9px] font-black uppercase text-white tracking-[0.2em]">Signal Low</span>
               <span className="text-[7px] font-bold uppercase text-white/40 tracking-[0.1em]">Stashed wisdom active</span>
@@ -795,25 +794,32 @@ const App: React.FC = () => {
           onTap={() => handleNotificationTap(notification.action)}
         />
       )}
-      <main 
+      <main
+        id="main-content"
         ref={mainScrollRef}
-        className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe" 
-        onTouchStart={(e) => { handleTouchStart(e); handlePullStart(e); }} 
+        className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe"
+        role="main"
+        aria-label="Main content"
+        tabIndex={-1}
+        onTouchStart={(e) => { handleTouchStart(e); handlePullStart(e); }}
         onTouchMove={handlePullMove}
         onTouchEnd={(e) => { handleTouchEnd(e); handlePullEnd(); }}
       >
         {/* Pull-to-refresh indicator */}
         {isPulling && (
-          <div 
+          <div
             className="absolute top-0 left-0 right-0 flex justify-center items-center z-50 transition-all duration-200"
             style={{ height: `${pullDistance}px` }}
+            role="status"
+            aria-live="polite"
+            aria-label={pullDistance > PULL_REFRESH_THRESHOLD ? 'Release to refresh' : 'Pull down to refresh'}
           >
-            <div className={`flex flex-col items-center gap-1 transition-opacity ${pullDistance > 80 ? 'opacity-100' : 'opacity-40'}`}>
-              <span className={`material-symbols-outlined text-primary text-2xl ${pullDistance > 80 ? 'animate-spin' : ''}`}>
+            <div className={`flex flex-col items-center gap-1 transition-opacity ${pullDistance > PULL_REFRESH_THRESHOLD ? 'opacity-100' : 'opacity-40'}`}>
+              <span className={`material-symbols-outlined text-primary text-2xl ${pullDistance > PULL_REFRESH_THRESHOLD ? 'animate-spin' : ''}`} aria-hidden="true">
                 refresh
               </span>
               <span className="text-[8px] font-black uppercase tracking-widest text-primary">
-                {pullDistance > 80 ? 'Release to refresh' : 'Pull down'}
+                {pullDistance > PULL_REFRESH_THRESHOLD ? 'Release to refresh' : 'Pull down'}
               </span>
             </div>
           </div>
@@ -848,19 +854,10 @@ const App: React.FC = () => {
           user={user}
           isOnline={isOnline}
           onClose={() => setShowAI(false)}
-          onUpgrade={handleOpenPremium}
+          onUpgrade={() => {}}
           onGuestRestricted={() => {
             setShowAI(false);
             setShowAuthGate(true);
-          }}
-        />
-      )}
-      {showPremium && (
-        <PremiumUpgrade
-          onClose={() => setShowPremium(false)}
-          onPurchaseSuccess={() => {
-            setShowPremium(false);
-            setNotification({ message: "Thanks fi di support!", type: 'info' });
           }}
         />
       )}
@@ -911,16 +908,16 @@ const App: React.FC = () => {
 };
 
 const GuestAuthModal: React.FC<{ onClose: () => void; onSignUp: () => void }> = ({ onClose, onSignUp }) => (
-  <div className="fixed inset-0 z-modal bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in">
+  <div className="fixed inset-0 z-modal bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="guest-modal-title" aria-describedby="guest-modal-desc">
     <div className="glass p-10 rounded-[3rem] w-full max-w-[340px] text-center border-white/10 shadow-2xl">
-      <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-6">
+      <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-6" aria-hidden="true">
         <span className="material-symbols-outlined text-4xl">person_add</span>
       </div>
-      <h2 className="text-2xl font-black text-white mb-3 uppercase tracking-tight">Join di Family!</h2>
-      <p className="text-white/50 text-xs font-bold mb-8 leading-relaxed">Guests can browse, but yuh need an account fi save wisdom, write inna journal, or use AI.</p>
+      <h2 id="guest-modal-title" className="text-2xl font-black text-white mb-3 uppercase tracking-tight">Join di Family!</h2>
+      <p id="guest-modal-desc" className="text-white/50 text-xs font-bold mb-8 leading-relaxed">Guests can browse, but yuh need an account fi save wisdom, write inna journal, or use AI.</p>
       <div className="space-y-4">
         <button onClick={onSignUp} className="w-full bg-primary py-4 rounded-xl font-black text-[12px] uppercase text-background-dark shadow-xl active:scale-95 transition-all">Sign Up / Sign In</button>
-        <button onClick={onClose} className="w-full glass py-4 rounded-xl font-black text-[10px] uppercase text-white/40 active:scale-95 transition-all">Keep Browsin'</button>
+        <button onClick={onClose} className="w-full glass py-4 rounded-xl font-black text-[10px] uppercase text-white/40 active:scale-95 transition-all" aria-label="Keep browsing as guest">Keep Browsin'</button>
       </div>
     </div>
   </div>
