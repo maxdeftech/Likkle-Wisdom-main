@@ -14,9 +14,10 @@ interface SettingsProps {
   onUpdateUser: (data: Partial<User>) => void;
   onOpenPrivacy: () => void;
   onOpenTerms: () => void;
+  onOpenAppGuide?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, onClose, onSignOut, onUpdateUser, onOpenPrivacy, onOpenTerms }) => {
+const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, onClose, onSignOut, onUpdateUser, onOpenPrivacy, onOpenTerms, onOpenAppGuide }) => {
   const [editingUsername, setEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState(user.username);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -277,6 +278,29 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                 />
               </div>
             </div>
+          </section>
+        )}
+
+        {onOpenAppGuide && (
+          <section>
+            <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Help</h3>
+            <button
+              onClick={onOpenAppGuide}
+              className="w-full glass rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 active:scale-[0.98] border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+                    <span className="material-symbols-outlined text-2xl">menu_book</span>
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">App guide</h4>
+                    <p className="text-xs text-slate-500 dark:text-white/60 mt-0.5">What’s in di app, updates, legal & feedback</p>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-primary opacity-60 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+              </div>
+            </button>
           </section>
         )}
 

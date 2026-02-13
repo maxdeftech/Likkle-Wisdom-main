@@ -13,6 +13,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingAlert, setEditingAlert] = useState<Alert | null>(null);
+    const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
 
     // Form state
     const [formTitle, setFormTitle] = useState('');
@@ -40,6 +41,11 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
     const handleMarkAsRead = async (alertId: string) => {
         await AlertsService.markAlertAsRead(alertId, user.id);
         if (onUnreadUpdate) onUnreadUpdate();
+    };
+
+    const handleOpenAlertDetail = (alert: Alert) => {
+        setSelectedAlert(alert);
+        handleMarkAsRead(alert.id);
     };
 
     const handleOpenCreate = () => {
@@ -154,8 +160,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
                     alerts.map(alert => (
                         <div
                             key={alert.id}
-                            onClick={() => handleMarkAsRead(alert.id)}
-                            className={`glass rounded-2xl p-6 border shadow-lg animate-fade-in ${getTypeStyles(alert.type)}`}
+                            onClick={() => handleOpenAlertDetail(alert)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenAlertDetail(alert); } }}
+                            className={`glass rounded-2xl p-6 border shadow-lg animate-fade-in cursor-pointer hover:border-white/20 active:scale-[0.99] transition-all ${getTypeStyles(alert.type)}`}
+                            aria-label={`Open alert: ${alert.title}`}
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-3">
@@ -186,7 +196,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
                                     </div>
                                 )}
                             </div>
-                            <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{alert.message}</p>
+                            <p className="text-white/80 text-sm leading-relaxed line-clamp-2">{alert.message}</p>
                             {alert.expiresAt && (
                                 <div className="mt-3 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-white/20 text-xs">schedule</span>
@@ -199,6 +209,44 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
                     ))
                 )}
             </div>
+
+            {/* Alert detail popup */}
+            {selectedAlert && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="alert-detail-title">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedAlert(null)} aria-hidden="true" />
+                    <div className="relative w-full max-w-md max-h-[85vh] overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl bg-white/10 dark:bg-white/5 backdrop-blur-xl animate-scale-up flex flex-col">
+                        <div className="flex items-center justify-between p-4 border-b border-white/10">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className={`size-10 rounded-xl shrink-0 ${selectedAlert.type === 'warning' ? 'bg-red-400/20 text-red-400' : selectedAlert.type === 'event' ? 'bg-jamaican-gold/20 text-jamaican-gold' : 'bg-primary/20 text-primary'} flex items-center justify-center`}>
+                                    <span className="material-symbols-outlined text-xl">{getTypeIcon(selectedAlert.type)}</span>
+                                </div>
+                                <h3 id="alert-detail-title" className="text-white font-black text-sm uppercase tracking-wide truncate">{selectedAlert.title}</h3>
+                            </div>
+                            <button
+                                onClick={() => setSelectedAlert(null)}
+                                className="size-10 rounded-xl glass flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95 shrink-0"
+                                aria-label="Close alert"
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-3">
+                                {new Date(selectedAlert.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                            </p>
+                            <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">{selectedAlert.message}</p>
+                            {selectedAlert.expiresAt && (
+                                <div className="mt-4 flex items-center gap-2 pt-3 border-t border-white/5">
+                                    <span className="material-symbols-outlined text-white/30 text-sm">schedule</span>
+                                    <span className="text-white/40 text-[10px] font-bold uppercase tracking-wider">
+                                        Expires {new Date(selectedAlert.expiresAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create/Edit Modal */}
             {showCreateModal && (

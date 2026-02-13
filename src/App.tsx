@@ -24,8 +24,10 @@ import BottomNav from './components/BottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
 import JamaicanHistoryView from './views/JamaicanHistoryView';
 import LegalView from './views/LegalView';
+import AppGuideView from './views/AppGuideView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import NavigationChatbot from './components/NavigationChatbot';
+import WelcomeModal from './components/WelcomeModal';
 
 export type NotificationPayload = {
   message: string;
@@ -85,6 +87,7 @@ const App: React.FC = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [manualRefreshMessage, setManualRefreshMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAppGuide, setShowAppGuide] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -129,6 +132,7 @@ const App: React.FC = () => {
 
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const [profileInitialTab, setProfileInitialTab] = useState<'cabinet' | 'wisdoms'>('cabinet');
   const [profileStartAdding, setProfileStartAdding] = useState(false);
@@ -152,6 +156,18 @@ const App: React.FC = () => {
       syncAlertsCount();
     }
   }, [user, syncAlertsCount]);
+
+  // First-time welcome: show once per user when they reach main (signed in, not guest)
+  useEffect(() => {
+    if (!user || user.isGuest || view !== 'main') return;
+    const key = `likkle_wisdom_welcome_seen_${user.id}`;
+    if (!localStorage.getItem(key)) setShowWelcomeModal(true);
+  }, [user?.id, user?.isGuest, view]);
+
+  const handleCloseWelcome = useCallback(() => {
+    if (user && !user.isGuest) localStorage.setItem(`likkle_wisdom_welcome_seen_${user.id}`, '1');
+    setShowWelcomeModal(false);
+  }, [user?.id, user?.isGuest]);
 
   // Native push: register device token for verse/quote/wisdom/alerts of the day
   useEffect(() => {
@@ -847,6 +863,26 @@ const App: React.FC = () => {
             setShowSettings(false);
             setView('terms');
           }}
+          onOpenAppGuide={() => {
+            setShowSettings(false);
+            setShowAppGuide(true);
+          }}
+        />
+      )}
+      {showAppGuide && user && (
+        <AppGuideView
+          onClose={() => {
+            setShowAppGuide(false);
+            setShowSettings(true);
+          }}
+          onOpenPrivacy={() => {
+            setShowAppGuide(false);
+            setView('privacy');
+          }}
+          onOpenTerms={() => {
+            setShowAppGuide(false);
+            setView('terms');
+          }}
         />
       )}
       {showAI && user && (
@@ -893,6 +929,14 @@ const App: React.FC = () => {
           user={user}
           onClose={() => setShowAlerts(false)}
           onUnreadUpdate={syncAlertsCount}
+        />
+      )}
+      {showWelcomeModal && user && !user.isGuest && (
+        <WelcomeModal
+          onClose={handleCloseWelcome}
+          onOpenPrivacy={() => { handleCloseWelcome(); setShowSettings(false); setView('privacy'); }}
+          onOpenTerms={() => { handleCloseWelcome(); setShowSettings(false); setView('terms'); }}
+          onOpenSettings={() => { handleCloseWelcome(); setShowSettings(true); }}
         />
       )}
       {user && view !== 'auth' && (
