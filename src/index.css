@@ -152,6 +152,58 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .travel-marker,
+  .travel-airport-marker,
+  .travel-plane-marker {
+    background: transparent;
+    border: 0;
+  }
+
+  .travel-marker > span {
+    align-items: center;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 9999px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    color: #07120a;
+    display: flex;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
+  .travel-marker i {
+    font-size: 18px;
+    font-style: normal;
+  }
+
+  .travel-airport-marker > span,
+  .travel-plane-marker > span {
+    align-items: center;
+    background: #13ec5b;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 9999px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    color: #07120a;
+    display: flex;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
+  .travel-plane-marker > span {
+    animation: flight-pulse 1.8s ease-in-out infinite;
+    background: #f4d125;
+  }
+}
+
+@keyframes flight-pulse {
+  0%, 100% {
+    transform: translateY(0) rotate(35deg) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) rotate(35deg) scale(1.08);
+  }
 }
 
 /* Animations are defined in tailwind.config.js */

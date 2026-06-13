@@ -4,19 +4,19 @@ import { Tab } from '../types';
 interface BottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
-  onOpenWisdomCreator: () => void;
   isCollapsed: boolean;
   onToggleCollapsed: () => void;
   onOpenSettings: () => void;
   onSignOut: () => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWisdomCreator, isCollapsed, onToggleCollapsed, onOpenSettings, onSignOut }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollapsed, onToggleCollapsed, onOpenSettings, onSignOut }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'discover', label: 'Discover', icon: 'explore' },
     { id: 'bible', label: 'Bible', icon: 'auto_stories' },
     { id: 'book', label: 'Journal', icon: 'edit_note' },
+    { id: 'travel', label: 'Travel', icon: 'flight' },
     { id: 'me', label: 'Profile', icon: 'person' },
   ];
 
@@ -71,22 +71,6 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWis
           </button>
         ))}
       </div>
-
-      <div className="w-px h-8 bg-white/10 mx-0.5 lg:w-auto lg:h-px lg:mx-2 lg:my-2" aria-hidden="true" />
-
-      <button
-        onClick={onOpenWisdomCreator}
-        aria-label="Create wisdom or proverb"
-        title={isCollapsed ? 'Create' : undefined}
-        className={`flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 rounded-2xl text-slate-900/40 dark:text-white/40
-          lg:flex-none lg:h-14 lg:flex-row lg:justify-start lg:px-4 lg:gap-3 lg:hover:text-slate-900 lg:dark:hover:text-white lg:hover:bg-white/5
-          ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}
-      >
-        <span className="material-symbols-outlined text-[24px]" aria-hidden="true">edit_square</span>
-        <span className={`text-[9px] font-black uppercase tracking-tighter sm:tracking-widest lg:text-[11px] lg:tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>
-          Create
-        </span>
-      </button>
 
       <div className="hidden lg:mt-auto lg:flex lg:flex-col lg:gap-2 lg:border-t lg:border-white/10 lg:px-0 lg:pt-4">
         <button

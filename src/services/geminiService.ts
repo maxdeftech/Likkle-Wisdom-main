@@ -74,5 +74,37 @@ export async function generatePatoisWisdom(mood: string) {
   }
 }
 
-export { KEY_MISSING_RESPONSE };
+export async function generateTravelText(prompt: string, fallback: string) {
+  const env = (import.meta as any).env ?? {};
+  const apiKey = (env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || "").trim();
 
+  if (!apiKey) {
+    console.info("Gemini API key is missing. Travel AI will show a fallback response.");
+    return fallback;
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }]
+        }
+      ],
+      config: {
+        systemInstruction: "You are a practical Jamaica-aware travel planner. Give specific, budget-conscious advice with clear headings, concise bullets, and realistic cost estimates. Do not invent live prices; label all prices as estimates.",
+        temperature: 0.65,
+        topP: 0.9
+      }
+    });
+
+    return response.text?.trim() || fallback;
+  } catch (error) {
+    console.info("Travel AI used fallback response:", error);
+    return fallback;
+  }
+}
+
+export { KEY_MISSING_RESPONSE };

@@ -24,6 +24,7 @@ import CategoryResultsView from './views/CategoryResultsView';
 import JamaicanHistoryView from './views/JamaicanHistoryView';
 import LegalView from './views/LegalView';
 import AppGuideView from './views/AppGuideView';
+import TravelView from './views/TravelView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import NavigationChatbot from './components/NavigationChatbot';
@@ -644,13 +645,6 @@ const App: React.FC = () => {
     setActiveCategory(categoryId);
   };
 
-  const handleGoToWisdomCreator = () => {
-    setProfileInitialTab('wisdoms');
-    setProfileStartAdding(true);
-    setActiveTab('me');
-    setActiveCategory(null);
-  };
-
   const handleRefreshApp = async () => {
     setManualRefreshMessage("Syncing latest wisdom...");
     setLoadingProgress(35);
@@ -713,13 +707,14 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} userWisdoms={userWisdoms} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
+      case 'travel': return <TravelView user={user} onBack={() => { setActiveTab('home'); setActiveCategory(null); }} onGuestRestricted={() => setShowAuthGate(true)} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
   };
 
   // Swipe navigation
-  const TAB_ORDER: Tab[] = ['home', 'discover', 'bible', 'book', 'me'];
+  const TAB_ORDER: Tab[] = ['home', 'discover', 'bible', 'book', 'travel', 'me'];
   const touchStartX = React.useRef(0);
   const touchStartY = React.useRef(0);
   const touchStartedInHorizontalScroller = React.useRef(false);
@@ -964,7 +959,6 @@ const App: React.FC = () => {
         <BottomNav
           activeTab={activeTab}
           onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
-          onOpenWisdomCreator={handleGoToWisdomCreator}
           isCollapsed={isNavCollapsed}
           onToggleCollapsed={() => setIsNavCollapsed(prev => !prev)}
           onOpenSettings={handleOpenSettings}
