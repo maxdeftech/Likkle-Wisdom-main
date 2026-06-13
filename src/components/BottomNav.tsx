@@ -7,9 +7,11 @@ interface BottomNavProps {
   onOpenWisdomCreator: () => void;
   isCollapsed: boolean;
   onToggleCollapsed: () => void;
+  onOpenSettings: () => void;
+  onSignOut: () => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWisdomCreator, isCollapsed, onToggleCollapsed }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWisdomCreator, isCollapsed, onToggleCollapsed, onOpenSettings, onSignOut }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'discover', label: 'Discover', icon: 'explore' },
@@ -85,6 +87,27 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWis
           Create
         </span>
       </button>
+
+      <div className="hidden lg:mt-auto lg:flex lg:flex-col lg:gap-2 lg:border-t lg:border-white/10 lg:px-0 lg:pt-4">
+        <button
+          onClick={onOpenSettings}
+          aria-label="Open settings"
+          title={isCollapsed ? 'Settings' : undefined}
+          className={`h-14 rounded-2xl text-slate-900/40 dark:text-white/40 transition-all lg:flex lg:items-center lg:gap-3 lg:px-4 lg:hover:text-slate-900 lg:dark:hover:text-white lg:hover:bg-white/5 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}
+        >
+          <span className="material-symbols-outlined text-[24px]" aria-hidden="true">settings</span>
+          <span className={`text-[11px] font-black uppercase tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>Settings</span>
+        </button>
+        <button
+          onClick={onSignOut}
+          aria-label="Log out"
+          title={isCollapsed ? 'Log out' : undefined}
+          className={`h-14 rounded-2xl text-red-400/80 transition-all lg:flex lg:items-center lg:gap-3 lg:px-4 lg:hover:bg-red-400/10 lg:hover:text-red-300 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}
+        >
+          <span className="material-symbols-outlined text-[24px]" aria-hidden="true">logout</span>
+          <span className={`text-[11px] font-black uppercase tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>Log out</span>
+        </button>
+      </div>
     </nav>
   );
 };

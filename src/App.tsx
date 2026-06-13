@@ -25,6 +25,7 @@ import JamaicanHistoryView from './views/JamaicanHistoryView';
 import LegalView from './views/LegalView';
 import AppGuideView from './views/AppGuideView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import NavigationChatbot from './components/NavigationChatbot';
 import WelcomeModal from './components/WelcomeModal';
 import { validateWisdomText } from './utils/validation';
@@ -1008,9 +1009,12 @@ const App: React.FC = () => {
           onOpenWisdomCreator={handleGoToWisdomCreator}
           isCollapsed={isNavCollapsed}
           onToggleCollapsed={() => setIsNavCollapsed(prev => !prev)}
+          onOpenSettings={handleOpenSettings}
+          onSignOut={handleSignOut}
         />
       )}
       <PWAInstallPrompt />
+      <PWAUpdatePrompt />
     </div>
   );
 };

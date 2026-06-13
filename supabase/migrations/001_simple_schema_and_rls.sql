@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   avatar_url text,
   is_admin boolean DEFAULT false,
   is_public boolean DEFAULT true,
+  encryption_salt text,
   status_note text,
   status_note_at timestamptz DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -27,6 +28,9 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'is_public') THEN
     ALTER TABLE public.profiles ADD COLUMN is_public boolean DEFAULT true;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'encryption_salt') THEN
+    ALTER TABLE public.profiles ADD COLUMN encryption_salt text;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'notify_quote_time') THEN
     ALTER TABLE public.profiles ADD COLUMN notify_quote_time time DEFAULT '08:00';
@@ -74,7 +78,7 @@ CREATE POLICY "Users can view own or public users' bookmarks" ON public.bookmark
     (select auth.uid()) = user_id
     OR EXISTS (
       SELECT 1 FROM public.profiles p
-      WHERE p.id = bookmarks.user_id AND (p.is_public = true OR p.is_public IS NULL)
+      WHERE p.id = bookmarks.user_id AND p.is_public = true
     )
   );
 
@@ -107,7 +111,31 @@ CREATE POLICY "Users can manage their own entries" ON public.journal_entries
   FOR ALL USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 
 -- =============================================================================
--- 4. MY_WISDOM
+-- 4. BIBLE_NOTES
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.bible_notes (
+  id text NOT NULL PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  book text NOT NULL,
+  chapter integer NOT NULL,
+  verse integer NOT NULL,
+  verse_text text NOT NULL,
+  note text DEFAULT '',
+  highlight_color text DEFAULT '',
+  timestamp bigint NOT NULL DEFAULT (EXTRACT(epoch FROM now()) * 1000)::bigint,
+  updated_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
+  created_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
+  UNIQUE(user_id, book, chapter, verse)
+);
+
+ALTER TABLE public.bible_notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own bible notes" ON public.bible_notes;
+CREATE POLICY "Users can manage their own bible notes" ON public.bible_notes
+  FOR ALL USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
+
+-- =============================================================================
+-- 5. MY_WISDOM
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.my_wisdom (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from '../types';
 import { useTTS } from '../hooks/useTTS';
+import { supabase } from '../services/supabase';
 
 interface BibleViewProps {
   user: User;
@@ -65,6 +66,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const [bibleNotes, setBibleNotes] = useState<BibleNote[]>(() => {
     try { return JSON.parse(localStorage.getItem(`bible_notes_${user.id}`) || '[]'); } catch { return []; }
   });
+  const [notesSyncError, setNotesSyncError] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [activeVerseMenu, setActiveVerseMenu] = useState<number | null>(null);
   const [editingNote, setEditingNote] = useState<{ book: string; chapter: number; verse: number; verseText: string } | null>(null);
@@ -72,10 +74,121 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const [noteColor, setNoteColor] = useState('bg-jamaican-gold/20 border-jamaican-gold/30');
   const [notesSearch, setNotesSearch] = useState('');
 
-  // Persist notes
+  const cacheBibleNotes = useCallback((notes: BibleNote[]) => {
+    localStorage.setItem(`bible_notes_${user.id}`, JSON.stringify(notes));
+  }, [user.id]);
+
+  const updateBibleNotes = useCallback((updater: (prev: BibleNote[]) => BibleNote[]) => {
+    setBibleNotes(prev => {
+      const next = updater(prev);
+      cacheBibleNotes(next);
+      return next;
+    });
+  }, [cacheBibleNotes]);
+
+  const rowToBibleNote = (row: any): BibleNote => ({
+    id: row.id,
+    book: row.book,
+    chapter: row.chapter,
+    verse: row.verse,
+    verseText: row.verse_text,
+    note: row.note || '',
+    highlightColor: row.highlight_color || '',
+    timestamp: row.timestamp || new Date(row.updated_at || row.created_at).getTime()
+  });
+
   useEffect(() => {
-    localStorage.setItem(`bible_notes_${user.id}`, JSON.stringify(bibleNotes));
-  }, [bibleNotes, user.id]);
+    let isMounted = true;
+
+    const loadBibleNotes = async () => {
+      try {
+        let cachedNotes: BibleNote[] = [];
+        const cached = localStorage.getItem(`bible_notes_${user.id}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            cachedNotes = parsed;
+            if (isMounted) setBibleNotes(parsed);
+          }
+        }
+
+        if (user.isGuest || !supabase || !navigator.onLine) return;
+
+        const { data, error } = await supabase
+          .from('bible_notes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+        if (!isMounted) return;
+
+        const remoteNotes = (data || []).map(rowToBibleNote);
+        const remoteKeys = new Set(remoteNotes.map(note => `${note.book}-${note.chapter}-${note.verse}`));
+        const localOnlyNotes = cachedNotes.filter(note => !remoteKeys.has(`${note.book}-${note.chapter}-${note.verse}`));
+        const mergedNotes = [...remoteNotes, ...localOnlyNotes].sort((a, b) => b.timestamp - a.timestamp);
+
+        setBibleNotes(mergedNotes);
+        cacheBibleNotes(mergedNotes);
+        localOnlyNotes.forEach(note => { void syncBibleNote(note); });
+        setNotesSyncError(null);
+      } catch (error) {
+        console.error('Bible notes load failed:', error);
+        if (isMounted) setNotesSyncError('Bible notes could not sync. Local notes are still available.');
+      }
+    };
+
+    loadBibleNotes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cacheBibleNotes, user.id, user.isGuest]);
+
+  const syncBibleNote = async (note: BibleNote) => {
+    if (user.isGuest || !supabase || !navigator.onLine) return;
+
+    try {
+      const { error } = await supabase
+        .from('bible_notes')
+        .upsert({
+          id: note.id,
+          user_id: user.id,
+          book: note.book,
+          chapter: note.chapter,
+          verse: note.verse,
+          verse_text: note.verseText,
+          note: note.note,
+          highlight_color: note.highlightColor,
+          timestamp: note.timestamp,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,book,chapter,verse' });
+
+      if (error) throw error;
+      setNotesSyncError(null);
+    } catch (error) {
+      console.error('Bible note sync failed:', error);
+      setNotesSyncError('Bible note saved locally, but cloud sync failed.');
+    }
+  };
+
+  const deleteBibleNoteRemote = async (noteId: string) => {
+    if (user.isGuest || !supabase || !navigator.onLine) return;
+
+    try {
+      const { error } = await supabase
+        .from('bible_notes')
+        .delete()
+        .eq('id', noteId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setNotesSyncError(null);
+    } catch (error) {
+      console.error('Bible note delete sync failed:', error);
+      setNotesSyncError('Bible note was removed locally, but cloud sync failed.');
+    }
+  };
 
   const getVerseNote = useCallback((b: string, c: number, v: number): BibleNote | undefined => {
     return bibleNotes.find(n => n.book === b && n.chapter === c && n.verse === v);
@@ -86,9 +199,14 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
     const existing = getVerseNote(editingNote.book, editingNote.chapter, editingNote.verse);
     if (noteText.trim() === '' && noteColor === '') {
       // Remove note if empty
-      setBibleNotes(prev => prev.filter(n => n.id !== existing?.id));
+      if (existing) {
+        updateBibleNotes(prev => prev.filter(n => n.id !== existing.id));
+        deleteBibleNoteRemote(existing.id);
+      }
     } else if (existing) {
-      setBibleNotes(prev => prev.map(n => n.id === existing.id ? { ...n, note: noteText, highlightColor: noteColor, timestamp: Date.now() } : n));
+      const updatedNote = { ...existing, note: noteText, highlightColor: noteColor, timestamp: Date.now() };
+      updateBibleNotes(prev => prev.map(n => n.id === existing.id ? updatedNote : n));
+      syncBibleNote(updatedNote);
     } else {
       const newNote: BibleNote = {
         id: `${editingNote.book}-${editingNote.chapter}-${editingNote.verse}-${Date.now()}`,
@@ -100,7 +218,8 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
         highlightColor: noteColor,
         timestamp: Date.now()
       };
-      setBibleNotes(prev => [...prev, newNote]);
+      updateBibleNotes(prev => [...prev, newNote]);
+      syncBibleNote(newNote);
     }
     setEditingNote(null);
     setNoteText('');
@@ -108,7 +227,39 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   };
 
   const deleteNote = (noteId: string) => {
-    setBibleNotes(prev => prev.filter(n => n.id !== noteId));
+    updateBibleNotes(prev => prev.filter(n => n.id !== noteId));
+    deleteBibleNoteRemote(noteId);
+  };
+
+  const saveVerseHighlight = (v: any, highlightColor: string) => {
+    const existing = getVerseNote(book, chapter, v.verse);
+
+    if (existing) {
+      if (!highlightColor && !existing.note.trim()) {
+        deleteNote(existing.id);
+        return;
+      }
+
+      const updatedNote = { ...existing, highlightColor, timestamp: Date.now() };
+      updateBibleNotes(prev => prev.map(n => n.id === existing.id ? updatedNote : n));
+      syncBibleNote(updatedNote);
+      return;
+    }
+
+    if (!highlightColor) return;
+
+    const newNote: BibleNote = {
+      id: `${book}-${chapter}-${v.verse}-${Date.now()}`,
+      book,
+      chapter,
+      verse: v.verse,
+      verseText: v.text,
+      note: '',
+      highlightColor,
+      timestamp: Date.now()
+    };
+    updateBibleNotes(prev => [...prev, newNote]);
+    syncBibleNote(newNote);
   };
 
   const openNoteEditor = (v: any) => {
@@ -326,6 +477,12 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
         </div>
       </header>
 
+      {notesSyncError && (
+        <div className="mb-6 rounded-2xl border border-jamaican-gold/20 bg-jamaican-gold/10 px-5 py-3 text-[10px] font-black uppercase tracking-wider text-jamaican-gold" role="status">
+          {notesSyncError}
+        </div>
+      )}
+
       {/* Book/Chapter Selector */}
       {showSelector && (
         <div className="fixed inset-0 z-[110] bg-background-dark/95 backdrop-blur-xl animate-fade-in p-6 sm:p-12 flex flex-col items-center" role="dialog" aria-modal="true" aria-labelledby="bible-selector-title">
@@ -491,18 +648,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
                         <button
                           key={c.name}
                           onClick={() => {
-                            const existing = getVerseNote(book, chapter, v.verse);
-                            if (c.value === '' && existing) {
-                              setBibleNotes(prev => prev.map(n => n.id === existing.id ? { ...n, highlightColor: '' } : n));
-                            } else if (existing) {
-                              setBibleNotes(prev => prev.map(n => n.id === existing.id ? { ...n, highlightColor: c.value } : n));
-                            } else {
-                              setBibleNotes(prev => [...prev, {
-                                id: `${book}-${chapter}-${v.verse}-${Date.now()}`,
-                                book, chapter, verse: v.verse, verseText: v.text,
-                                note: '', highlightColor: c.value, timestamp: Date.now()
-                              }]);
-                            }
+                            saveVerseHighlight(v, c.value);
                             setActiveVerseMenu(null);
                           }}
                           className={`size-8 rounded-full ${c.dot} border-2 ${verseNote?.highlightColor === c.value ? 'border-white ring-2 ring-white/30' : 'border-transparent'} transition-all active:scale-90`}

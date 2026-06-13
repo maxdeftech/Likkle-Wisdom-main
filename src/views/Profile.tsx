@@ -247,7 +247,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40" aria-hidden="true">Sync</span>
             </div>
 
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5 lg:hidden">
               <button onClick={onOpenSettings} className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform" aria-label="Open settings">
                 <span className="material-symbols-outlined" aria-hidden="true">settings</span>
               </button>

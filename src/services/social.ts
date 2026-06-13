@@ -34,6 +34,16 @@ export const SocialService = {
         if (!supabase) return { quotes: [], iconic: [], bible: [], kjv: [] };
 
         try {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('is_public')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (profileError || profile?.is_public !== true) {
+                return { quotes: [], iconic: [], bible: [], kjv: [] };
+            }
+
             const { data: bookmarks, error } = await supabase
                 .from('bookmarks')
                 .select('*')
