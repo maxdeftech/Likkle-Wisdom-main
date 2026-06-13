@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, UserWisdom } from './types';
-import { useIsDesktop } from './hooks/useIsDesktop';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
 import { PushService } from './services/pushService';
@@ -28,6 +27,7 @@ import AppGuideView from './views/AppGuideView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import NavigationChatbot from './components/NavigationChatbot';
 import WelcomeModal from './components/WelcomeModal';
+import { validateWisdomText } from './utils/validation';
 
 export type NotificationPayload = {
   message: string;
@@ -80,10 +80,10 @@ const NotificationBanner: React.FC<{
 };
 
 const App: React.FC = () => {
-  const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>('splash');
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [manualRefreshMessage, setManualRefreshMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -146,7 +146,9 @@ const App: React.FC = () => {
 
   const syncAlertsCount = useCallback(() => {
     if (user && !user.isGuest && supabase) {
-      AlertsService.getUnreadCount(user.id).then(setUnreadAlertsCount);
+      AlertsService.getUnreadCount(user.id)
+        .then(setUnreadAlertsCount)
+        .catch(error => console.error('Unread alerts sync failed:', error));
     }
   }, [user]);
 
@@ -260,6 +262,7 @@ const App: React.FC = () => {
     if (cachedEntries) setJournalEntries(JSON.parse(cachedEntries));
     if (cachedVerses) setBookmarkedVerses(JSON.parse(cachedVerses));
     if (cachedUserWisdoms) setUserWisdoms(JSON.parse(cachedUserWisdoms));
+    setLoadingProgress(prev => Math.max(prev, 25));
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -287,7 +290,6 @@ const App: React.FC = () => {
           id: userId,
           username: profile.username ?? prev?.username ?? 'Seeker',
           avatarUrl: profile.avatar_url ?? prev?.avatarUrl ?? undefined,
-          isPremium: profile.is_premium ?? prev?.isPremium ?? false,
           isAdmin: profile.is_admin ?? false,
           isPublic: profile.is_public !== undefined ? profile.is_public : true,
           isGuest: false
@@ -298,9 +300,21 @@ const App: React.FC = () => {
       const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', userId);
       if (bookmarks) {
         const bookmarkedIds = new Set(bookmarks.map(b => b.item_id));
-        setQuotes(prev => prev.map(q => ({ ...q, isFavorite: bookmarkedIds.has(q.id) })));
-        setIconicQuotes(prev => prev.map(q => ({ ...q, isFavorite: bookmarkedIds.has(q.id) })));
-        setBibleAffirmations(prev => prev.map(b => ({ ...b, isFavorite: bookmarkedIds.has(b.id) })));
+        setQuotes(prev => {
+          const updatedQuotes = prev.map(q => ({ ...q, isFavorite: bookmarkedIds.has(q.id) }));
+          localStorage.setItem('lkkle_quotes', JSON.stringify(updatedQuotes));
+          return updatedQuotes;
+        });
+        setIconicQuotes(prev => {
+          const updatedIconic = prev.map(q => ({ ...q, isFavorite: bookmarkedIds.has(q.id) }));
+          localStorage.setItem('lkkle_iconic', JSON.stringify(updatedIconic));
+          return updatedIconic;
+        });
+        setBibleAffirmations(prev => {
+          const updatedBible = prev.map(b => ({ ...b, isFavorite: bookmarkedIds.has(b.id) }));
+          localStorage.setItem('lkkle_bible', JSON.stringify(updatedBible));
+          return updatedBible;
+        });
 
         const kjvBookmarks = bookmarks
           .filter(b => b.item_type === 'kjv')
@@ -315,13 +329,8 @@ const App: React.FC = () => {
               reference: meta?.reference || 'KJV Bible',
               timestamp: b.created_at ? new Date(b.created_at).getTime() : Date.now()
             };
-          });
+        });
         setBookmarkedVerses(kjvBookmarks);
-
-        // Cache to localStorage
-        localStorage.setItem('lkkle_quotes', JSON.stringify(quotes));
-        localStorage.setItem('lkkle_iconic', JSON.stringify(iconicQuotes));
-        localStorage.setItem('lkkle_bible', JSON.stringify(bibleAffirmations));
         localStorage.setItem('lkkle_verses', JSON.stringify(kjvBookmarks));
       }
 
@@ -344,29 +353,55 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!supabase) return;
+    let cancelled = false;
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.warn("Session error:", error);
-        if (error.message && error.message.includes("refresh_token_not_found")) {
-          supabase?.auth.signOut();
-          setUser(null);
-          if (view !== 'splash') setView('auth');
-        }
-      } else if (session) {
-        syncUserContent(session.user.id);
-        if (view === 'splash' || view === 'auth') setView('main');
-      } else if (view === 'main' && (!user || !user.isGuest)) {
-        // Only force back to auth if we *expected* a real Supabase session
-        setView('auth');
+    const completeInitialization = (nextView: View) => {
+      if (cancelled) return;
+      setLoadingProgress(100);
+      setManualRefreshMessage(null);
+      setView(nextView);
+    };
+
+    const initializeAuth = async () => {
+      setLoadingProgress(prev => Math.max(prev, 45));
+
+      if (!supabase) {
+        completeInitialization('onboarding');
+        return;
       }
-    }).catch((err) => {
-      console.warn("getSession failed:", err);
-      // Avoid unhandled rejection; don't force auth so user can still use guest/offline
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.warn("Session error:", error);
+          if (error.message && error.message.includes("refresh_token_not_found")) {
+            await supabase.auth.signOut();
+            setUser(null);
+            completeInitialization('auth');
+            return;
+          }
+          completeInitialization('onboarding');
+          return;
+        }
+
+        setLoadingProgress(prev => Math.max(prev, 65));
+
+        if (session) {
+          await syncUserContent(session.user.id);
+          completeInitialization('main');
+        } else {
+          completeInitialization('onboarding');
+        }
+      } catch (err) {
+        console.warn("getSession failed:", err);
+        completeInitialization('onboarding');
+      }
+    };
+
+    const subscription = supabase?.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+
       if (session) {
         // Prefer existing profile (prev) over session user_metadata to avoid name/avatar
         // glitching when JWT metadata is stale (e.g. after profile update or token refresh).
@@ -376,38 +411,23 @@ const App: React.FC = () => {
           username: prev?.username ?? session.user.user_metadata?.username ?? 'Seeker',
           avatarUrl: prev?.avatarUrl ?? session.user.user_metadata?.avatar_url,
           isGuest: false,
-          isPremium: prev?.isPremium ?? true,
           isAdmin: prev?.isAdmin ?? false
         }));
-        syncUserContent(session.user.id);
-        if (view === 'auth' || view === 'splash') setView('main');
+        void syncUserContent(session.user.id).catch(error => console.error('Auth content sync failed:', error));
+        setView('main');
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setView('auth');
       }
-    });
+    }).data.subscription;
 
-    return () => subscription.unsubscribe();
+    initializeAuth();
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
   }, [syncUserContent]);
-
-  useEffect(() => {
-    if (view === 'splash') {
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-              if (!user) setView('onboarding');
-              else setView('main');
-            }, 500);
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 150);
-      return () => clearInterval(interval);
-    }
-  }, [view, user]);
 
   const handleUpdateUser = async (data: Partial<User>) => {
     if (!user) return;
@@ -418,7 +438,6 @@ const App: React.FC = () => {
         await supabase.from('profiles').update({
           username: data.username || user.username,
           avatar_url: data.avatarUrl || user.avatarUrl,
-          is_premium: data.isPremium !== undefined ? data.isPremium : user.isPremium,
           is_public: data.isPublic !== undefined ? data.isPublic : user.isPublic
         }).eq('id', user.id);
       } catch (e) { console.error("Update sync error:", e); }
@@ -588,6 +607,14 @@ const App: React.FC = () => {
   const handleAddWisdom = async (patois: string, english: string) => {
     if (!user) return;
 
+    const cleanPatois = patois.trim();
+    const cleanEnglish = english.trim();
+    const validationError = validateWisdomText('Patois wisdom', cleanPatois) || validateWisdomText('English translation', cleanEnglish);
+    if (validationError) {
+      setNotification({ message: validationError, type: 'info' });
+      return;
+    }
+
     // Guests must sign up before saving wisdom
     if (user.isGuest) {
       setShowAuthGate(true);
@@ -600,7 +627,7 @@ const App: React.FC = () => {
       return;
     }
 
-    const { data, error } = await WisdomService.createUserWisdom(user.id, patois, english);
+    const { data, error } = await WisdomService.createUserWisdom(user.id, cleanPatois, cleanEnglish);
     if (data) {
       setUserWisdoms(prev => [data, ...prev]);
       setNotification({ message: "Wisdom planted in yuh garden! 🌱", type: 'info' });
@@ -665,12 +692,31 @@ const App: React.FC = () => {
     setActiveCategory(null);
   };
 
-  const handleRefreshApp = () => {
-    setManualRefreshMessage("we deh cook up the vibes, we soon let yuh back in");
+  const handleRefreshApp = async () => {
+    setManualRefreshMessage("Syncing latest wisdom...");
+    setLoadingProgress(35);
     setView('splash');
-    setTimeout(() => {
-      window.location.reload();
-    }, 1200);
+
+    try {
+      if (user && !user.isGuest) {
+        setLoadingProgress(65);
+        await syncUserContent(user.id);
+
+        if (supabase) {
+          const unreadCount = await AlertsService.getUnreadCount(user.id);
+          setUnreadAlertsCount(unreadCount);
+        }
+      }
+
+      setLoadingProgress(100);
+      setNotification({ message: 'Wisdom synced.', type: 'info' });
+    } catch (error) {
+      console.error('Refresh failed:', error);
+      setNotification({ message: 'Sync could not finish. Try again soon.', type: 'info' });
+    } finally {
+      setManualRefreshMessage(null);
+      setView('main');
+    }
   };
 
   const handleBotNavigate = (type: string, value: string) => {
@@ -700,13 +746,13 @@ const App: React.FC = () => {
 
     if (!user) {
       if (view === 'onboarding') return <Onboarding onFinish={() => setView('auth')} />;
-      return <Auth onAuthComplete={(u) => { setUser(u); setView('main'); if (!u.isGuest) syncUserContent(u.id); }} />;
+      return <Auth onAuthComplete={(u) => { setUser(u); setView('main'); if (!u.isGuest) void syncUserContent(u.id).catch(error => console.error('Auth completion sync failed:', error)); }} />;
     }
 
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
-      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} onUpgrade={() => {}} isOnline={isOnline} />;
+      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
@@ -714,19 +760,38 @@ const App: React.FC = () => {
   };
 
   // Swipe navigation
-  const TAB_ORDER: Tab[] = ['home', 'bible', 'book', 'me'];
+  const TAB_ORDER: Tab[] = ['home', 'discover', 'bible', 'book', 'me'];
   const touchStartX = React.useRef(0);
   const touchStartY = React.useRef(0);
+  const touchStartedInHorizontalScroller = React.useRef(false);
+
+  const didTouchStartInHorizontalScroller = (target: EventTarget | null) => {
+    let element = target instanceof HTMLElement ? target : null;
+
+    while (element && element !== mainScrollRef.current) {
+      const style = window.getComputedStyle(element);
+      const canScrollHorizontally =
+        (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
+        element.scrollWidth > element.clientWidth;
+
+      if (canScrollHorizontally) return true;
+      element = element.parentElement;
+    }
+
+    return false;
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    touchStartedInHorizontalScroller.current = didTouchStartInHorizontalScroller(e.target);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     // Ignore swipes when overlays are open
     if (showSettings || showAI || publicProfileId || activeCategory || view === 'jamaicanHistory') return;
     if (view !== 'main') return;
+    if (touchStartedInHorizontalScroller.current) return;
 
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
@@ -782,9 +847,7 @@ const App: React.FC = () => {
 
   if (view === 'splash') return <SplashScreen progress={loadingProgress} message={manualRefreshMessage || undefined} />;
 
-  const containerClass = isDesktop
-    ? 'relative flex flex-col h-screen w-full max-w-5xl min-w-[640px] mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300'
-    : 'relative flex flex-col h-screen w-full max-w-2xl mx-auto overflow-hidden bg-white dark:bg-background-dark shadow-2xl transition-colors duration-300';
+  const containerClass = 'relative flex flex-col h-screen w-full overflow-hidden bg-white dark:bg-background-dark transition-colors duration-300';
 
   return (
     <div className={containerClass}>
@@ -813,7 +876,7 @@ const App: React.FC = () => {
       <main
         id="main-content"
         ref={mainScrollRef}
-        className="flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe"
+        className={`flex-1 relative z-10 overflow-y-auto no-scrollbar scroll-smooth pt-safe transition-[padding] duration-300 ${user && view !== 'auth' ? (isNavCollapsed ? 'lg:pl-24' : 'lg:pl-72') : ''}`}
         role="main"
         aria-label="Main content"
         tabIndex={-1}
@@ -890,7 +953,6 @@ const App: React.FC = () => {
           user={user}
           isOnline={isOnline}
           onClose={() => setShowAI(false)}
-          onUpgrade={() => {}}
           onGuestRestricted={() => {
             setShowAI(false);
             setShowAuthGate(true);
@@ -944,6 +1006,8 @@ const App: React.FC = () => {
           activeTab={activeTab}
           onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
           onOpenWisdomCreator={handleGoToWisdomCreator}
+          isCollapsed={isNavCollapsed}
+          onToggleCollapsed={() => setIsNavCollapsed(prev => !prev)}
         />
       )}
       <PWAInstallPrompt />

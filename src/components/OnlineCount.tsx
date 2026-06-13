@@ -2,18 +2,22 @@
 import React, { useEffect, useState } from 'react';
 import { SocialService } from '../services/social';
 
-const OnlineCount: React.FC = () => {
+interface OnlineCountProps {
+    userId: string;
+}
+
+const OnlineCount: React.FC<OnlineCountProps> = ({ userId }) => {
     const [count, setCount] = useState(1);
 
     useEffect(() => {
-        const channel = SocialService.subscribeToPresence((newCount) => {
+        const channel = SocialService.subscribeToPresence(userId, (newCount) => {
             setCount(Math.max(1, newCount));
         });
 
         return () => {
             channel?.unsubscribe();
         };
-    }, []);
+    }, [userId]);
 
     return (
         <div className="flex items-center gap-2 mt-1 animate-fade-in">

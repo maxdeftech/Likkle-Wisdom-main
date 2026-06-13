@@ -4,6 +4,7 @@ import { JournalEntry, User, Tab, Quote, IconicQuote, BibleAffirmation, UserWisd
 import UserBadge from '../components/UserBadge';
 import { SocialService } from '../services/social';
 import { WisdomService } from '../services/wisdomService';
+import { WISDOM_MAX_LENGTH, validateWisdomText } from '../utils/validation';
 
 interface ProfileProps {
   user: User;
@@ -47,36 +48,55 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const [publicWisdoms, setPublicWisdoms] = useState<UserWisdom[]>([]);
   const [isAddingWisdom, setIsAddingWisdom] = useState(startAdding);
   const [newWisdom, setNewWisdom] = useState({ patois: '', english: '' });
+  const [wisdomError, setWisdomError] = useState<string | null>(null);
 
   // Fetch stats and public data
   React.useEffect(() => {
-    SocialService.getUserStats(targetUserId).then(stats => {
-      setJoinedAt(stats.createdAt);
-      setLoadingStats(false);
+    let isMounted = true;
 
-      // Handle 24h expiration
-      if (stats.statusNote && stats.statusNoteAt) {
-        const noteDate = new Date(stats.statusNoteAt).getTime();
-        const now = Date.now();
-        if (now - noteDate < 86400000) {
-          setStatusNote(stats.statusNote);
-          setNoteInput(stats.statusNote);
-        } else if (isOwnProfile) {
-          SocialService.updateProfileNote(targetUserId, '');
+    const loadProfileData = async () => {
+      try {
+        const stats = await SocialService.getUserStats(targetUserId);
+        if (!isMounted) return;
+
+        setJoinedAt(stats.createdAt);
+        setLoadingStats(false);
+
+        // Handle 24h expiration
+        if (stats.statusNote && stats.statusNoteAt) {
+          const noteDate = new Date(stats.statusNoteAt).getTime();
+          const now = Date.now();
+          if (now - noteDate < 86400000) {
+            setStatusNote(stats.statusNote);
+            setNoteInput(stats.statusNote);
+          } else if (isOwnProfile) {
+            await SocialService.updateProfileNote(targetUserId, '');
+          }
         }
+      } catch (error) {
+        console.error('Profile stats load failed:', error);
+        if (isMounted) setLoadingStats(false);
       }
-    }).catch(() => {
-      setLoadingStats(false);
-    });
+    };
 
-    if (!isOwnProfile) {
-      SocialService.getPublicProfile(targetUserId).then(setPublicUser).catch(() => {});
-      WisdomService.getUserWisdoms(targetUserId).then(setPublicWisdoms).catch(() => {});
-      SocialService.getPublicCabinet(targetUserId).then(cab => {
-        const quoteIds = cab.quoteIds || [];
-        const iconicIds = cab.iconicIds || [];
-        const bibleIds = cab.bibleIds || [];
-        const kjvItems = cab.kjv || [];
+    const loadPublicData = async () => {
+      if (isOwnProfile) return;
+
+      try {
+        const [profile, wisdoms, cabinet] = await Promise.all([
+          SocialService.getPublicProfile(targetUserId),
+          WisdomService.getUserWisdoms(targetUserId),
+          SocialService.getPublicCabinet(targetUserId)
+        ]);
+        if (!isMounted) return;
+
+        setPublicUser(profile);
+        setPublicWisdoms(wisdoms);
+
+        const quoteIds = cabinet.quoteIds || [];
+        const iconicIds = cabinet.iconicIds || [];
+        const bibleIds = cabinet.bibleIds || [];
+        const kjvItems = cabinet.kjv || [];
         const combined: any[] = [
           ...quotes.filter(q => quoteIds.includes(q.id)).map(q => ({ id: q.id, type: 'wisdom', label: 'Old Wisdom', data: q, timestamp: 1 })),
           ...iconic.filter(q => iconicIds.includes(q.id)).map(q => ({ id: q.id, type: 'legend', label: 'Iconic Soul', data: q, timestamp: 2 })),
@@ -84,9 +104,18 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           ...kjvItems.map((v: any) => ({ id: v.id, type: 'kjv', label: 'Holy Scripture', data: v, timestamp: v.timestamp }))
         ];
         setPublicCabinet(combined.sort((a, b) => b.timestamp - a.timestamp));
-      }).catch(() => {});
-    }
-  }, [targetUserId, isOwnProfile]);
+      } catch (error) {
+        console.error('Public profile load failed:', error);
+      }
+    };
+
+    loadProfileData();
+    loadPublicData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [targetUserId, isOwnProfile, quotes, iconic, bible]);
 
   const handleSaveNote = async () => {
     await SocialService.updateProfileNote(user.id, noteInput);
@@ -130,7 +159,7 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   }, [savedWisdom, savedIconic, savedBible, bookmarkedVerses]);
 
   const displayFeed = isOwnProfile ? combinedFeed : publicCabinet;
-  const displayUser = isOwnProfile ? user : (publicUser || { id: targetUserId, username: 'Wisdom Seeker', avatarUrl: '', isGuest: false, isPremium: false });
+  const displayUser = isOwnProfile ? user : (publicUser || { id: targetUserId, username: 'Wisdom Seeker', avatarUrl: '', isGuest: false });
   const displayMemberSince = isOwnProfile ? memberSinceText : (user.isGuest ? 'Wisdom Seeker (Guest)' : (loadingStats ? 'Joining...' : (joinedAt ? memberSinceText : 'Lifelong Seeker')));
 
   // Track actual app usage days (not just journal entries)
@@ -166,6 +195,22 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
     cabinetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleSaveWisdom = () => {
+    const patois = newWisdom.patois.trim();
+    const english = newWisdom.english.trim();
+    const error = validateWisdomText('Patois wisdom', patois) || validateWisdomText('English translation', english);
+
+    if (error) {
+      setWisdomError(error);
+      return;
+    }
+
+    onAddWisdom(patois, english);
+    setIsAddingWisdom(false);
+    setNewWisdom({ patois: '', english: '' });
+    setWisdomError(null);
+  };
+
   return (
     <div className="p-6 pt-safe pb-24 animate-fade-in relative min-h-full font-display" role="region" aria-label="Profile">
       <header className="flex items-center justify-between py-12" role="banner">
@@ -192,7 +237,8 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
           <div className="flex items-center gap-3">
             <div className="flex flex-col items-center gap-1.5">
               <button
-                onClick={() => onRefresh ? onRefresh() : window.location.reload()}
+                onClick={onRefresh}
+                disabled={!onRefresh}
                 className="size-11 rounded-full glass flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform"
                 aria-label="Refresh app"
               >
@@ -437,35 +483,48 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
             <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">Patois (Di Real Vibe)</label>
             <textarea
               value={newWisdom.patois}
-              onChange={(e) => setNewWisdom({ ...newWisdom, patois: e.target.value })}
+              onChange={(e) => {
+                setNewWisdom({ ...newWisdom, patois: e.target.value });
+                if (wisdomError) setWisdomError(null);
+              }}
               placeholder="e.g. Life sweet like cane juice..."
               className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5 mb-4"
+              maxLength={WISDOM_MAX_LENGTH}
+              aria-invalid={!!wisdomError}
               autoFocus
             />
 
             <label className="text-[10px] font-black uppercase tracking-widest text-white/40 block mb-2">English Translation</label>
             <textarea
               value={newWisdom.english}
-              onChange={(e) => setNewWisdom({ ...newWisdom, english: e.target.value })}
+              onChange={(e) => {
+                setNewWisdom({ ...newWisdom, english: e.target.value });
+                if (wisdomError) setWisdomError(null);
+              }}
               placeholder="The meaning dem..."
               className="w-full h-36 glass rounded-2xl p-5 text-white text-lg placeholder:text-white/10 resize-none focus:border-primary/50 transition-colors bg-white/5 mb-4"
+              maxLength={WISDOM_MAX_LENGTH}
+              aria-invalid={!!wisdomError}
             />
+
+            {wisdomError && (
+              <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-[10px] font-black uppercase tracking-wider text-red-300" role="alert">
+                {wisdomError}
+              </div>
+            )}
 
             <div className="flex gap-1">
               <button
-                onClick={() => setIsAddingWisdom(false)}
+                onClick={() => {
+                  setIsAddingWisdom(false);
+                  setWisdomError(null);
+                }}
                 className="flex-1 py-5 glass rounded-2xl text-white/60 font-black text-xs uppercase tracking-widest"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (newWisdom.patois && newWisdom.english) {
-                    onAddWisdom(newWisdom.patois, newWisdom.english);
-                    setIsAddingWisdom(false);
-                    setNewWisdom({ patois: '', english: '' });
-                  }
-                }}
+                onClick={handleSaveWisdom}
                 className="flex-1 py-5 bg-primary text-background-dark rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
               >
                 Save Vibe

@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   username text UNIQUE,
   avatar_url text,
-  is_premium boolean DEFAULT false,
   is_admin boolean DEFAULT false,
   is_public boolean DEFAULT true,
   status_note text,
@@ -108,25 +107,7 @@ CREATE POLICY "Users can manage their own entries" ON public.journal_entries
   FOR ALL USING ((select auth.uid()) = user_id) WITH CHECK ((select auth.uid()) = user_id);
 
 -- =============================================================================
--- 4. SUBSCRIPTIONS
--- =============================================================================
-CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-  status text NOT NULL DEFAULT 'active',
-  payment_method text,
-  amount numeric DEFAULT 5.00,
-  created_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
-ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own subscription" ON public.subscriptions;
-CREATE POLICY "Users can manage own subscription" ON public.subscriptions
-  FOR ALL USING ((select auth.uid()) = user_id);
-
--- =============================================================================
--- 5. MY_WISDOM
+-- 4. MY_WISDOM
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.my_wisdom (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,

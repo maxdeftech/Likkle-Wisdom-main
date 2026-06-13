@@ -5,45 +5,85 @@ interface BottomNavProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   onOpenWisdomCreator: () => void;
+  isCollapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWisdomCreator }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, onOpenWisdomCreator, isCollapsed, onToggleCollapsed }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
+    { id: 'discover', label: 'Discover', icon: 'explore' },
     { id: 'bible', label: 'Bible', icon: 'auto_stories' },
     { id: 'book', label: 'Journal', icon: 'edit_note' },
     { id: 'me', label: 'Profile', icon: 'person' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-auto min-h-[4rem] pb-safe glass border-t border-white/10 z-dropdown flex items-center justify-around px-2 rounded-t-2xl shadow-[0_-10px_30px_rgba(0,0,0,0.3)]" aria-label="Main navigation">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          aria-label={tab.label}
-          aria-current={activeTab === tab.id ? 'page' : undefined}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 ${activeTab === tab.id ? 'text-primary' : 'text-slate-900/40 dark:text-white/40'
-            }`}
-        >
-          <div className={`transition-all duration-300 ${activeTab === tab.id ? 'scale-110' : 'scale-100'}`}>
-            <span className={`material-symbols-outlined text-[24px] ${activeTab === tab.id ? 'fill-1' : ''}`} aria-hidden="true">
-              {tab.icon}
-            </span>
+    <nav
+      className={`fixed z-dropdown glass border-white/10 shadow-2xl transition-all duration-300
+        bottom-0 left-0 right-0 min-h-[4rem] pb-safe border-t flex items-center justify-around px-2 rounded-t-2xl
+        lg:top-0 lg:bottom-0 lg:right-auto lg:h-screen lg:min-h-0 lg:pb-0 lg:pt-safe lg:border-t-0 lg:border-r lg:rounded-none lg:flex-col lg:justify-start lg:items-stretch lg:gap-2 lg:px-3 lg:py-5
+        ${isCollapsed ? 'lg:w-24' : 'lg:w-72'}`}
+      aria-label="Main navigation"
+    >
+      <div className="hidden lg:flex items-center justify-between px-2 py-3">
+        {!isCollapsed && (
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Likkle</p>
+            <p className="truncate text-xl font-black text-slate-900 dark:text-white">Wisdom</p>
           </div>
-          <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">{tab.label}</span>
+        )}
+        <button
+          onClick={onToggleCollapsed}
+          aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-expanded={!isCollapsed}
+          className="size-11 rounded-2xl glass flex items-center justify-center text-slate-900/70 dark:text-white/70 hover:text-primary transition-colors"
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">
+            {isCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}
+          </span>
         </button>
-      ))}
+      </div>
 
-      <div className="w-px h-8 bg-white/10 mx-0.5" aria-hidden="true" />
+      <div className="contents lg:flex lg:flex-col lg:gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            aria-label={tab.label}
+            title={isCollapsed ? tab.label : undefined}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 rounded-2xl
+              lg:flex-none lg:h-14 lg:flex-row lg:justify-start lg:px-4 lg:gap-3
+              ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}
+              ${activeTab === tab.id ? 'text-primary lg:bg-primary/10 lg:border lg:border-primary/20' : 'text-slate-900/40 dark:text-white/40 lg:hover:text-slate-900 lg:dark:hover:text-white lg:hover:bg-white/5'}`}
+          >
+            <div className={`transition-all duration-300 ${activeTab === tab.id ? 'scale-110 lg:scale-100' : 'scale-100'}`}>
+              <span className={`material-symbols-outlined text-[24px] ${activeTab === tab.id ? 'fill-1' : ''}`} aria-hidden="true">
+                {tab.icon}
+              </span>
+            </div>
+            <span className={`text-[9px] font-black uppercase tracking-tighter sm:tracking-widest lg:text-[11px] lg:tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>
+              {tab.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="w-px h-8 bg-white/10 mx-0.5 lg:w-auto lg:h-px lg:mx-2 lg:my-2" aria-hidden="true" />
 
       <button
         onClick={onOpenWisdomCreator}
         aria-label="Create wisdom or proverb"
-        className="flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 text-slate-900/40 dark:text-white/40"
+        title={isCollapsed ? 'Create' : undefined}
+        className={`flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 rounded-2xl text-slate-900/40 dark:text-white/40
+          lg:flex-none lg:h-14 lg:flex-row lg:justify-start lg:px-4 lg:gap-3 lg:hover:text-slate-900 lg:dark:hover:text-white lg:hover:bg-white/5
+          ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}
       >
         <span className="material-symbols-outlined text-[24px]" aria-hidden="true">edit_square</span>
-        <span className="text-[9px] font-black uppercase tracking-tighter sm:tracking-widest">Create</span>
+        <span className={`text-[9px] font-black uppercase tracking-tighter sm:tracking-widest lg:text-[11px] lg:tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>
+          Create
+        </span>
       </button>
     </nav>
   );

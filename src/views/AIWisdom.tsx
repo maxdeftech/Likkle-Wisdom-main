@@ -8,11 +8,10 @@ interface AIWisdomProps {
   user: User;
   isOnline: boolean;
   onClose: () => void;
-  onUpgrade: () => void;
   onGuestRestricted: () => void;
 }
 
-const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onUpgrade, onGuestRestricted }) => {
+const AIWisdom: React.FC<AIWisdomProps> = ({ user, isOnline, onClose, onGuestRestricted }) => {
   const [mood, setMood] = useState('Peace');
   const [loading, setLoading] = useState(false);
   const [wisdom, setWisdom] = useState<{ patois: string; english: string } | null>(null);

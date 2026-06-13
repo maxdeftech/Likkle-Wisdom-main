@@ -14,6 +14,7 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingAlert, setEditingAlert] = useState<Alert | null>(null);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Form state
     const [formTitle, setFormTitle] = useState('');
@@ -33,14 +34,25 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
 
     const loadAlerts = async () => {
         setLoading(true);
-        const a = await AlertsService.getAlerts();
-        setAlerts(a);
-        setLoading(false);
+        setErrorMessage(null);
+        try {
+            const a = await AlertsService.getAlerts();
+            setAlerts(a);
+        } catch (error) {
+            console.error('Alerts view load failed:', error);
+            setErrorMessage('Alerts could not load. Try again soon.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleMarkAsRead = async (alertId: string) => {
-        await AlertsService.markAlertAsRead(alertId, user.id);
-        if (onUnreadUpdate) onUnreadUpdate();
+        try {
+            await AlertsService.markAlertAsRead(alertId, user.id);
+            if (onUnreadUpdate) onUnreadUpdate();
+        } catch (error) {
+            console.error('Mark alert read failed:', error);
+        }
     };
 
     const handleOpenAlertDetail = (alert: Alert) => {
@@ -69,42 +81,54 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
     const handleSubmit = async () => {
         if (!formTitle.trim() || !formMessage.trim()) return;
         setSubmitting(true);
+        setErrorMessage(null);
 
         const expiresMs = formExpires ? new Date(formExpires).getTime() : undefined;
 
-        if (editingAlert) {
-            const { error } = await AlertsService.updateAlert(editingAlert.id, {
-                title: formTitle,
-                message: formMessage,
-                type: formType,
-                expiresAt: expiresMs
-            });
-            if (!error) {
-                setAlerts(prev => prev.map(a => a.id === editingAlert.id ? { ...a, title: formTitle, message: formMessage, type: formType, expiresAt: expiresMs } : a));
-                setShowCreateModal(false);
+        try {
+            if (editingAlert) {
+                const { error } = await AlertsService.updateAlert(editingAlert.id, {
+                    title: formTitle,
+                    message: formMessage,
+                    type: formType,
+                    expiresAt: expiresMs
+                });
+                if (!error) {
+                    setAlerts(prev => prev.map(a => a.id === editingAlert.id ? { ...a, title: formTitle, message: formMessage, type: formType, expiresAt: expiresMs } : a));
+                    setShowCreateModal(false);
+                } else {
+                    setErrorMessage('Failed to update alert: ' + error);
+                }
             } else {
-                alert('Failed to update alert: ' + error);
+                const { alert: newAlert, error } = await AlertsService.createAlert(user.id, formTitle, formMessage, formType, expiresMs);
+                if (newAlert) {
+                    setAlerts(prev => [newAlert, ...prev]);
+                    setShowCreateModal(false);
+                } else {
+                    setErrorMessage('Failed to create alert: ' + error);
+                }
             }
-        } else {
-            const { alert: newAlert, error } = await AlertsService.createAlert(user.id, formTitle, formMessage, formType, expiresMs);
-            if (newAlert) {
-                setAlerts(prev => [newAlert, ...prev]);
-                setShowCreateModal(false);
-            } else {
-                alert('Failed to create alert: ' + error);
-            }
+        } catch (error) {
+            console.error('Alert submit failed:', error);
+            setErrorMessage('Alert could not be saved. Try again soon.');
+        } finally {
+            setSubmitting(false);
         }
-
-        setSubmitting(false);
     };
 
     const handleDelete = async (alertId: string) => {
         if (!confirm('Delete this alert?')) return;
-        const { error } = await AlertsService.deleteAlert(alertId);
-        if (!error) {
-            setAlerts(prev => prev.filter(a => a.id !== alertId));
-        } else {
-            alert('Failed to delete: ' + error);
+        setErrorMessage(null);
+        try {
+            const { error } = await AlertsService.deleteAlert(alertId);
+            if (!error) {
+                setAlerts(prev => prev.filter(a => a.id !== alertId));
+            } else {
+                setErrorMessage('Failed to delete: ' + error);
+            }
+        } catch (error) {
+            console.error('Alert delete failed:', error);
+            setErrorMessage('Alert could not be deleted. Try again soon.');
         }
     };
 
@@ -142,6 +166,12 @@ const AlertsView: React.FC<AlertsViewProps> = ({ user, onClose, onUnreadUpdate }
                     <div className="size-10"></div>
                 )}
             </div>
+
+            {errorMessage && (
+                <div className="mx-6 mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-red-300" role="alert">
+                    {errorMessage}
+                </div>
+            )}
 
             {/* Alerts List */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">

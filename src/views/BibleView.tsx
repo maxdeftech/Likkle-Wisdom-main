@@ -7,7 +7,6 @@ interface BibleViewProps {
   user: User;
   isOnline: boolean;
   onBookmark: (verse: any) => void;
-  onUpgrade: () => void;
 }
 
 interface BibleNote {
@@ -46,7 +45,7 @@ const BOOK_CHAPTERS: Record<string, number> = {
   "Jude": 1, "Revelation": 22
 };
 
-const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, onUpgrade }) => {
+const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => {
   const [book, setBook] = useState('Psalms');
   const [chapter, setChapter] = useState(23);
   const [verses, setVerses] = useState<any[]>([]);

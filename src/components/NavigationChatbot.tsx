@@ -32,6 +32,7 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
     const windowRef = useRef<HTMLDivElement>(null);
     const [speakingId, setSpeakingId] = useState<string | null>(null);
     const [isListening, setIsListening] = useState(false);
+    const [speechError, setSpeechError] = useState<string | null>(null);
     const recognitionRef = useRef<any>(null);
 
     // TTS: Speak a message (guarded for platforms without speechSynthesis, e.g. Android WebView)
@@ -59,7 +60,10 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
         }
 
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) { alert('Speech recognition not supported in this browser.'); return; }
+        if (!SpeechRecognition) {
+            setSpeechError('Voice input is not supported in this browser.');
+            return;
+        }
 
         const recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
@@ -70,14 +74,24 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
             const transcript = event.results[0][0].transcript;
             setInput(prev => prev + transcript);
             setIsListening(false);
+            setSpeechError(null);
         };
 
-        recognition.onerror = () => setIsListening(false);
+        recognition.onerror = () => {
+            setSpeechError('Voice input could not start. Type your question instead.');
+            setIsListening(false);
+        };
         recognition.onend = () => setIsListening(false);
 
         recognitionRef.current = recognition;
-        recognition.start();
-        setIsListening(true);
+        try {
+            recognition.start();
+            setSpeechError(null);
+            setIsListening(true);
+        } catch {
+            setSpeechError('Voice input could not start. Type your question instead.');
+            setIsListening(false);
+        }
     };
 
     // Cleanup TTS on close
@@ -306,6 +320,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
 
                 {/* Input */}
                 <div className="p-4 bg-slate-900/5 dark:bg-white/5 border-t border-slate-900/5 dark:border-white/5">
+                    {speechError && (
+                        <div className="mb-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-red-500 dark:text-red-300" role="alert">
+                            {speechError}
+                        </div>
+                    )}
                     <div className="flex gap-2">
                         <button
                             onClick={toggleListening}
@@ -327,11 +346,11 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                                     windowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
                                 }, 300);
                             }}
-                            placeholder={isListening ? "Listening..." : "Ask 'bout di Bible, upgrade..."}
+                            placeholder={isListening ? "Listening..." : "Ask 'bout di Bible, app..."}
                             inputMode="text"
                             enterKeyHint="send"
                             autoComplete="off"
-                            aria-label="Ask Likkle Guide about the Bible, upgrade, or app navigation"
+                            aria-label="Ask Likkle Guide about the Bible or app navigation"
                             className="flex-1 bg-white/5 dark:bg-slate-900/5 border border-slate-900/10 dark:border-white/10 rounded-2xl h-12 px-4 text-xs font-bold text-slate-900 dark:text-white placeholder:text-slate-900/40 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 transition-all"
                         />
                         <button

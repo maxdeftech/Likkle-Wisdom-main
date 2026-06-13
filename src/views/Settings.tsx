@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
+import { USERNAME_MAX_LENGTH, validateUsername } from '../utils/validation';
 
 const LIKKLE_WISDOM_WEBSITE = 'https://www.likklewisdom.com/';
 const MAXWELL_DEFINITIVE_WEBSITE = 'https://maxdeftech.wixsite.com/mdt-ja';
@@ -20,6 +21,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, onClose, onSignOut, onUpdateUser, onOpenPrivacy, onOpenTerms, onOpenAppGuide }) => {
   const [editingUsername, setEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState(user.username);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -34,18 +36,47 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
 
   useEffect(() => {
     if (user.isGuest || !supabase) return;
-    supabase.from('profiles').select('notify_quote_time, notify_verse_time, notify_wisdom_time').eq('id', user.id).maybeSingle().then(({ data }) => {
-      if (data) {
+    const client = supabase;
+    let isMounted = true;
+
+    const loadNotificationPrefs = async () => {
+      try {
+        const { data, error } = await client
+          .from('profiles')
+          .select('notify_quote_time, notify_verse_time, notify_wisdom_time')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data || !isMounted) return;
+
         setQuoteTime(data.notify_quote_time ? String(data.notify_quote_time).slice(0, 5) : '08:00');
         setVerseTime(data.notify_verse_time ? String(data.notify_verse_time).slice(0, 5) : '12:00');
         setWisdomTime(data.notify_wisdom_time ? String(data.notify_wisdom_time).slice(0, 5) : '08:00');
+      } catch (error) {
+        console.error('Notification preferences load failed:', error);
       }
-    }).then(() => {}, () => {});
+    };
+
+    loadNotificationPrefs();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user.id, user.isGuest]);
 
-  const saveNotificationPref = (field: string, value: string) => {
+  const saveNotificationPref = async (field: string, value: string) => {
     if (!supabase || user.isGuest) return;
-    supabase.from('profiles').update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', user.id).then(() => {}, () => {});
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Notification preference save failed:', error);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -69,9 +100,17 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   };
 
   const handleSaveUsername = () => {
-    if (tempUsername.trim() && tempUsername !== user.username) {
-      onUpdateUser({ username: tempUsername });
+    const nextUsername = tempUsername.trim();
+    const error = validateUsername(nextUsername);
+    if (error) {
+      setUsernameError(error);
+      return;
     }
+
+    if (nextUsername !== user.username) {
+      onUpdateUser({ username: nextUsername });
+    }
+    setUsernameError(null);
     setEditingUsername(false);
   };
 
@@ -157,14 +196,27 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
           <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">
             <div className="p-4 flex flex-col gap-3">
               {editingUsername ? (
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 bg-slate-100 dark:bg-white/5 border-none rounded-xl px-4 text-sm font-bold text-slate-900 dark:text-white h-12 focus:ring-1 focus:ring-primary"
-                    value={tempUsername}
-                    onChange={(e) => setTempUsername(e.target.value)}
-                    autoFocus
-                  />
-                  <button onClick={handleSaveUsername} className="bg-primary text-background-dark px-4 rounded-xl font-bold text-xs uppercase">Save</button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 bg-slate-100 dark:bg-white/5 border-none rounded-xl px-4 text-sm font-bold text-slate-900 dark:text-white h-12 focus:ring-1 focus:ring-primary"
+                      value={tempUsername}
+                      onChange={(e) => {
+                        setTempUsername(e.target.value);
+                        if (usernameError) setUsernameError(null);
+                      }}
+                      maxLength={USERNAME_MAX_LENGTH}
+                      aria-invalid={!!usernameError}
+                      aria-describedby={usernameError ? 'username-error' : undefined}
+                      autoFocus
+                    />
+                    <button onClick={handleSaveUsername} className="bg-primary text-background-dark px-4 rounded-xl font-bold text-xs uppercase">Save</button>
+                  </div>
+                  {usernameError && (
+                    <p id="username-error" className="text-[10px] font-black uppercase tracking-wider text-red-400" role="alert">
+                      {usernameError}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="flex justify-between items-center">

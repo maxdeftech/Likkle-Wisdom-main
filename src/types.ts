@@ -3,13 +3,12 @@
  * Used by App, views, and services for type-safe props and API shapes.
  */
 
-/** Logged-in or guest user; isGuest true when continuing without account; isPremium from profiles (optional). */
+/** Logged-in or guest user; isGuest true when continuing without account. */
 export interface User {
   id: string;
   username: string;
   avatarUrl?: string;
   isGuest: boolean;
-  isPremium: boolean;
   isAdmin?: boolean;
   isPublic?: boolean;
 }

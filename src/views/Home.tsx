@@ -191,7 +191,7 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-[300px]">
               {firstName}
             </h1>
-            <OnlineCount />
+            <OnlineCount userId={user.id} />
           </div>
 
           {/* Header Icons */}
