@@ -13,6 +13,8 @@ type NotificationHandlers = {
 let notificationHandlers: NotificationHandlers = {};
 let listenersAttached = false;
 
+const getNotificationPreferenceKey = (userId: string) => `likkle_wisdom_notifications_enabled_${userId}`;
+
 function attachListeners(): void {
   if (PLATFORM === 'web' || listenersAttached) return;
   listenersAttached = true;
@@ -86,6 +88,17 @@ export const PushService = {
     return Capacitor.isNativePlatform();
   },
 
+  isEnabled(userId: string): boolean {
+    if (!userId || userId === 'guest') return false;
+    return localStorage.getItem(getNotificationPreferenceKey(userId)) === 'true';
+  },
+
+  getBrowserPermission(): NotificationPermission | 'unsupported' {
+    if (PLATFORM !== 'web') return 'granted';
+    if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) return 'unsupported';
+    return Notification.permission;
+  },
+
   setNotificationHandlers(handlers: NotificationHandlers): void {
     notificationHandlers = handlers;
     if (PushService.isNative()) attachListeners();
@@ -142,6 +155,29 @@ export const PushService = {
     } catch (_) {
       // Plugin or permission not available
     }
+  },
+
+  async setEnabled(userId: string, enabled: boolean): Promise<boolean> {
+    if (!supabase || userId === 'guest') return false;
+
+    if (!enabled) {
+      localStorage.setItem(getNotificationPreferenceKey(userId), 'false');
+      await PushService.removeToken(userId);
+      return false;
+    }
+
+    localStorage.setItem(getNotificationPreferenceKey(userId), 'true');
+    await PushService.registerAndSyncToken(userId);
+
+    if (PLATFORM === 'web') {
+      const granted = PushService.getBrowserPermission() === 'granted';
+      if (!granted) {
+        localStorage.setItem(getNotificationPreferenceKey(userId), 'false');
+      }
+      return granted;
+    }
+
+    return true;
   },
 
   async removeToken(userId: string): Promise<void> {

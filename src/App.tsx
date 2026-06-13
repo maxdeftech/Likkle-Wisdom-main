@@ -176,6 +176,7 @@ const App: React.FC = () => {
   // Push notifications: native apps use APNs/FCM; PWA uses Web Push
   useEffect(() => {
     if (!user || user.isGuest) return;
+    if (!PushService.isEnabled(user.id)) return;
     PushService.registerAndSyncToken(user.id);
   }, [user?.id, user?.isGuest]);
 

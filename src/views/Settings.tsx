@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
+import { PushService } from '../services/pushService';
 import { USERNAME_MAX_LENGTH, validateUsername } from '../utils/validation';
 
 const LIKKLE_WISDOM_WEBSITE = 'https://www.likklewisdom.com/';
@@ -33,6 +34,10 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [quoteTime, setQuoteTime] = useState('08:00');
   const [verseTime, setVerseTime] = useState('12:00');
   const [wisdomTime, setWisdomTime] = useState('08:00');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => PushService.isEnabled(user.id));
+  const [notificationPermission, setNotificationPermission] = useState(() => PushService.getBrowserPermission());
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (user.isGuest || !supabase) return;
@@ -65,6 +70,11 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     };
   }, [user.id, user.isGuest]);
 
+  useEffect(() => {
+    setNotificationsEnabled(PushService.isEnabled(user.id));
+    setNotificationPermission(PushService.getBrowserPermission());
+  }, [user.id]);
+
   const saveNotificationPref = async (field: string, value: string) => {
     if (!supabase || user.isGuest) return;
     try {
@@ -76,6 +86,40 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
       if (error) throw error;
     } catch (error) {
       console.error('Notification preference save failed:', error);
+    }
+  };
+
+  const handleToggleNotifications = async () => {
+    if (user.isGuest) return;
+
+    const nextEnabled = !notificationsEnabled;
+    setNotificationSaving(true);
+    setNotificationMessage(null);
+
+    try {
+      const enabled = await PushService.setEnabled(user.id, nextEnabled);
+      const permission = PushService.getBrowserPermission();
+
+      setNotificationPermission(permission);
+      setNotificationsEnabled(enabled);
+
+      if (nextEnabled && !enabled) {
+        if (permission === 'denied') {
+          setNotificationMessage('Notifications are blocked in this browser. Enable them in browser settings, then try again.');
+        } else if (permission === 'unsupported') {
+          setNotificationMessage('Notifications are not supported on this browser.');
+        } else {
+          setNotificationMessage('Notifications were not enabled. Try again when yuh ready.');
+        }
+        return;
+      }
+
+      setNotificationMessage(enabled ? 'Notifications enabled.' : 'Notifications turned off.');
+    } catch (error) {
+      console.error('Notification toggle failed:', error);
+      setNotificationMessage('Could not update notifications right now. Try again soon.');
+    } finally {
+      setNotificationSaving(false);
     }
   };
 
@@ -293,6 +337,32 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
           <section>
             <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Daily notifications</h3>
             <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <span className="material-symbols-outlined">notifications</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-700 dark:text-white/80">Allow notifications</span>
+                    <span className="text-[9px] text-slate-400 dark:text-white/40 font-bold uppercase tracking-wider">
+                      {notificationPermission === 'denied' ? 'Blocked by browser' : notificationsEnabled ? 'Daily reminders active' : 'No push reminders'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleNotifications}
+                  disabled={notificationSaving || notificationPermission === 'unsupported'}
+                  aria-label={notificationsEnabled ? 'Turn notifications off' : 'Turn notifications on'}
+                  className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 disabled:opacity-40 ${notificationsEnabled ? 'bg-primary' : 'bg-slate-200'}`}
+                >
+                  <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${notificationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </button>
+              </div>
+              {notificationMessage && (
+                <div className="px-4 py-3 bg-primary/5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-primary/80">{notificationMessage}</p>
+                </div>
+              )}
               <div className="p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-lg">schedule</span>
