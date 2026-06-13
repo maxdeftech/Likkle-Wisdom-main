@@ -161,35 +161,39 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   const displayFeed = isOwnProfile ? combinedFeed : publicCabinet;
   const displayUser = isOwnProfile ? user : (publicUser || { id: targetUserId, username: 'Wisdom Seeker', avatarUrl: '', isGuest: false });
   const displayMemberSince = isOwnProfile ? memberSinceText : (user.isGuest ? 'Wisdom Seeker (Guest)' : (loadingStats ? 'Joining...' : (joinedAt ? memberSinceText : 'Lifelong Seeker')));
+  const [activeDays, setActiveDays] = useState<string[]>([]);
 
   // Track actual app usage days (not just journal entries)
-  const activeDaysThisMonth = useMemo(() => {
+  useEffect(() => {
     const storageKey = `active_days_${user.id}`;
     const today = new Date().toDateString();
+    let storedDays: string[] = [];
+
+    try {
+      storedDays = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    } catch {
+      storedDays = [];
+    }
+
+    const nextDays = storedDays.includes(today) ? storedDays : [...storedDays, today];
+    if (nextDays !== storedDays) {
+      localStorage.setItem(storageKey, JSON.stringify(nextDays));
+    }
+    setActiveDays(nextDays);
+  }, [user.id]);
+
+  const activeDaysThisMonth = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Load stored active days
-    let storedDays: string[] = [];
-    try {
-      storedDays = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    } catch { storedDays = []; }
-
-    // Add today if not already tracked
-    if (!storedDays.includes(today)) {
-      storedDays.push(today);
-      localStorage.setItem(storageKey, JSON.stringify(storedDays));
-    }
-
-    // Filter to only this month's days
-    const thisMonthDays = storedDays.filter(dayStr => {
+    const thisMonthDays = activeDays.filter(dayStr => {
       const d = new Date(dayStr);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
     return thisMonthDays.length;
-  }, [user.id]);
+  }, [activeDays]);
 
   const scrollToCabinet = () => {
     cabinetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });

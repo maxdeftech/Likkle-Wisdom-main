@@ -22,14 +22,20 @@ export default defineConfig({
             src: '/icons/icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
-          }
+            purpose: 'any'
+          },
+          {
+            src: '/icons/maskable-icon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'maskable'
+          },
         ]
       },
       workbox: {
@@ -114,28 +120,6 @@ export default defineConfig({
               }
             }
           },
-          {
-            urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'tailwind-cdn',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/esm\.sh\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'esm-modules',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              }
-            }
-          }
         ]
       },
       devOptions: {

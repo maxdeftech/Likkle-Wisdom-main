@@ -1,5 +1,5 @@
 // Supabase Edge Function: send daily verse, quote, wisdom, and alerts to iOS/Android
-// Schedule with pg_cron (e.g. every hour) to invoke this function.
+// Schedule with pg_cron at the top of every hour to invoke this function.
 // Requires: SUPABASE_SERVICE_ROLE_KEY, and for sending:
 //   Android: FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY (from Firebase service account)
 //   iOS: APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_PRIVATE_KEY (p8 content)
@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const NOTIFICATION_TIME_ZONE = "America/Jamaica";
 
 // Minimal seed for daily content (pick by day-of-year so same day = same content)
 const QUOTES = [
@@ -45,13 +46,26 @@ function getDailyWisdom() {
   return WISDOMS[day % WISDOMS.length];
 }
 
+function getNotificationClock() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: NOTIFICATION_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+
+  return { hour, minute };
+}
+
 Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const utcHour = new Date().getUTCHours();
-    const utcMinute = new Date().getUTCMinutes();
+    const { hour: notificationHour, minute: notificationMinute } = getNotificationClock();
     // Only run at the top of the hour to avoid duplicate sends
-    if (utcMinute >= 2) {
+    if (notificationMinute >= 2) {
       return new Response(JSON.stringify({ ok: true, skipped: "not at top of hour" }), {
         headers: { "Content-Type": "application/json" },
         status: 200,
@@ -119,7 +133,7 @@ Deno.serve(async (req) => {
       const verseHour = p.notify_verse_time ? parseInt(String(p.notify_verse_time).substring(0, 2), 10) : -1;
       const wisdomHour = p.notify_wisdom_time ? parseInt(String(p.notify_wisdom_time).substring(0, 2), 10) : -1;
 
-      if (quoteHour === utcHour) {
+      if (quoteHour === notificationHour) {
         toSend.push({
           token: row.token,
           platform: row.platform,
@@ -128,7 +142,7 @@ Deno.serve(async (req) => {
           body: `"${quote.patois}" — ${quote.english}`,
         });
       }
-      if (verseHour === utcHour) {
+      if (verseHour === notificationHour) {
         toSend.push({
           token: row.token,
           platform: row.platform,
@@ -137,7 +151,7 @@ Deno.serve(async (req) => {
           body: `${verse.reference}: "${verse.patois}"`,
         });
       }
-      if (wisdomHour === utcHour) {
+      if (wisdomHour === notificationHour) {
         toSend.push({
           token: row.token,
           platform: row.platform,

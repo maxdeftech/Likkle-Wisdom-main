@@ -28,6 +28,7 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import NavigationChatbot from './components/NavigationChatbot';
 import WelcomeModal from './components/WelcomeModal';
+import GuestAuthModal from './components/GuestAuthModal';
 import { validateWisdomText } from './utils/validation';
 
 export type NotificationPayload = {
@@ -188,53 +189,6 @@ const App: React.FC = () => {
         else setActiveTab('home');
       }
     });
-  }, []);
-
-  // Daily scheduled push notifications: wisdom/quote at 8am, verse at 12pm
-  useEffect(() => {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-
-    const checkAndSendDaily = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      const todayKey = now.toISOString().split('T')[0];
-
-      // 8:00 AM — Quote/Wisdom of the day
-      if (hour === 8 && minute < 5) {
-        const sentKey = `likkle_notif_quote_${todayKey}`;
-        if (!localStorage.getItem(sentKey)) {
-          const idx = Math.floor(Math.random() * INITIAL_QUOTES.length);
-          const q = INITIAL_QUOTES[idx];
-          new Notification('Likkle Wisdom — Quote of di Day', {
-            body: `"${q.patois}" — ${q.english}`,
-            icon: '/icon-192.png',
-            tag: `daily-quote-${todayKey}`
-          });
-          localStorage.setItem(sentKey, '1');
-        }
-      }
-
-      // 12:00 PM — Verse of the day
-      if (hour === 12 && minute < 5) {
-        const sentKey = `likkle_notif_verse_${todayKey}`;
-        if (!localStorage.getItem(sentKey)) {
-          const idx = Math.floor(Math.random() * BIBLE_AFFIRMATIONS.length);
-          const v = BIBLE_AFFIRMATIONS[idx];
-          new Notification('Likkle Wisdom — Verse of di Day', {
-            body: `${v.reference}: "${v.patois}"`,
-            icon: '/icon-192.png',
-            tag: `daily-verse-${todayKey}`
-          });
-          localStorage.setItem(sentKey, '1');
-        }
-      }
-    };
-
-    // Check immediately and then every minute
-    checkAndSendDaily();
-    const interval = setInterval(checkAndSendDaily, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -533,19 +487,22 @@ const App: React.FC = () => {
       try {
         const encryptedTitle = await EncryptionService.encrypt(title, user.id);
         const encryptedText = await EncryptionService.encrypt(text, user.id);
-        const { error: insertError } = await supabase.from('journal_entries').insert({
+        const { data: insertedEntry, error: insertError } = await supabase.from('journal_entries').insert({
           user_id: user.id,
           title: encryptedTitle,
           text: encryptedText,
           mood,
           date: newEntry.date,
           timestamp: newEntry.timestamp
-        });
+        }).select('id').single();
 
         if (insertError) {
           console.error("Supabase Journal Insert Error:", insertError);
           setNotification({ message: "Failed to sync journal to cloud. ⚠️", type: 'info' });
         } else {
+          if (insertedEntry?.id) {
+            setJournalEntries(prev => prev.map(entry => entry.id === newEntry.id ? { ...entry, id: insertedEntry.id } : entry));
+          }
           setNotification({ message: 'Journal saved! ✍️', type: 'info' });
         }
       }
@@ -561,7 +518,7 @@ const App: React.FC = () => {
   const handleDeleteJournalEntry = async (id: string) => {
     setJournalEntries(prev => prev.filter(entry => entry.id !== id));
     if (user && !user.isGuest && supabase && navigator.onLine) {
-      try { await supabase.from('journal_entries').delete().eq('timestamp', parseInt(id)); }
+      try { await supabase.from('journal_entries').delete().eq('id', id).eq('user_id', user.id); }
       catch (e) { console.error("Delete journal error:", e); }
     }
     setNotification({ message: 'Entry removed! 🗑️', type: 'info' });
@@ -752,7 +709,7 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
-      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} />;
+      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} userWisdoms={userWisdoms} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
@@ -1018,23 +975,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-const GuestAuthModal: React.FC<{ onClose: () => void; onSignUp: () => void }> = ({ onClose, onSignUp }) => (
-  <div className="fixed inset-0 z-modal bg-background-dark/95 flex flex-col items-center justify-center p-8 backdrop-blur-xl animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="guest-modal-title" aria-describedby="guest-modal-desc">
-    <div className="glass p-10 rounded-[3rem] w-full max-w-[340px] text-center border-white/10 shadow-2xl">
-      <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-6" aria-hidden="true">
-        <span className="material-symbols-outlined text-4xl">person_add</span>
-      </div>
-      <h2 id="guest-modal-title" className="text-2xl font-black text-white mb-3 uppercase tracking-tight">Join di Family!</h2>
-      <p id="guest-modal-desc" className="text-white/50 text-xs font-bold mb-8 leading-relaxed">Guests can browse, but yuh need an account fi save wisdom, write inna journal, or use AI.</p>
-      <div className="space-y-4">
-        <button onClick={onSignUp} className="w-full bg-primary py-4 rounded-xl font-black text-[12px] uppercase text-background-dark shadow-xl active:scale-95 transition-all">Sign Up / Sign In</button>
-        <button onClick={onClose} className="w-full glass py-4 rounded-xl font-black text-[10px] uppercase text-white/40 active:scale-95 transition-all" aria-label="Keep browsing as guest">Keep Browsin'</button>
-      </div>
-    </div>
-  </div>
-);
-
-
 
 export default App;

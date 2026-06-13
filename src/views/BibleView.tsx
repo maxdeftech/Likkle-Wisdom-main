@@ -29,6 +29,11 @@ const HIGHLIGHT_COLORS = [
   { name: 'None', value: '', text: 'text-white/40', dot: 'bg-white/20' },
 ];
 
+const isStorageQuotaError = (error: unknown) => (
+  error instanceof DOMException &&
+  (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22 || error.code === 1014)
+);
+
 const BOOK_CHAPTERS: Record<string, number> = {
   "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34,
   "Joshua": 24, "Judges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
@@ -57,6 +62,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const [selectorStage, setSelectorStage] = useState<'book' | 'chapter'>('book');
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number } | { type: 'full'; book: string; bookIndex: number; totalBooks: number; chapter: number; totalChapters: number } | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isServingCache, setIsServingCache] = useState(false);
   const [fullBibleStashed, setFullBibleStashed] = useState(() => localStorage.getItem('kjv_full_bible_offline') === 'true');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -77,6 +83,17 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const cacheBibleNotes = useCallback((notes: BibleNote[]) => {
     localStorage.setItem(`bible_notes_${user.id}`, JSON.stringify(notes));
   }, [user.id]);
+
+  const writeLocalCache = useCallback((key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      if (isStorageQuotaError(error)) throw error;
+      console.warn('Bible cache write failed:', error);
+      return false;
+    }
+  }, []);
 
   const updateBibleNotes = useCallback((updater: (prev: BibleNote[]) => BibleNote[]) => {
     setBibleNotes(prev => {
@@ -327,7 +344,13 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
         text: cleanGodName(v.text)
       }));
       setVerses(fetchedVerses);
-      if (fetchedVerses.length > 0) localStorage.setItem(getCacheKey(book, chapter), JSON.stringify(fetchedVerses));
+      if (fetchedVerses.length > 0) {
+        try {
+          writeLocalCache(getCacheKey(book, chapter), JSON.stringify(fetchedVerses));
+        } catch (cacheError) {
+          console.warn('Bible cache quota reached:', cacheError);
+        }
+      }
     } catch (e: any) {
       setError(e.message === 'Failed to fetch' ? "Network issues. Check connection." : e.message);
     } finally {
@@ -380,6 +403,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const handleDownloadBook = async () => {
     if (!isOnline) return;
     const totalChapters = BOOK_CHAPTERS[book] || 1;
+    setDownloadError(null);
     setDownloading(true);
     setDownloadProgress({ current: 0, total: totalChapters });
     try {
@@ -390,11 +414,17 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
         if (res.ok) {
           const data = await res.json();
           const clean = (data.verses || []).map((v: any) => ({ ...v, book_name: book, book_id: book.toLowerCase().replace(/\s/g, '_'), text: cleanGodName(v.text) }));
-          localStorage.setItem(getCacheKey(book, i), JSON.stringify(clean));
+          writeLocalCache(getCacheKey(book, i), JSON.stringify(clean));
         }
       }
-      localStorage.setItem(`kjv_book_offline_${book.replace(/\s/g, '_')}`, 'true');
-    } catch { /* ignore error */ } finally { setDownloading(false); setDownloadProgress(null); }
+      writeLocalCache(`kjv_book_offline_${book.replace(/\s/g, '_')}`, 'true');
+    } catch (downloadError) {
+      if (isStorageQuotaError(downloadError)) {
+        setDownloadError('Storage full. Free up space or clear some stashed Bible chapters, then try again.');
+      } else {
+        setDownloadError('Could not stash this book right now. Check connection and try again.');
+      }
+    } finally { setDownloading(false); setDownloadProgress(null); }
   };
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -402,6 +432,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const handleDownloadFullBible = async () => {
     if (!isOnline) return;
     const bookList = Object.keys(BOOK_CHAPTERS);
+    setDownloadError(null);
     setDownloading(true);
     setDownloadProgress({ type: 'full', book: bookList[0], bookIndex: 1, totalBooks: bookList.length, chapter: 0, totalChapters: BOOK_CHAPTERS[bookList[0]] || 1 });
     try {
@@ -416,18 +447,25 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
             if (res.ok) {
               const data = await res.json();
               const clean = (data.verses || []).map((v: any) => ({ ...v, book_name: b, book_id: b.toLowerCase().replace(/\s/g, '_'), text: cleanGodName(v.text) }));
-              localStorage.setItem(getCacheKey(b, ch), JSON.stringify(clean));
+              writeLocalCache(getCacheKey(b, ch), JSON.stringify(clean));
             }
             await delay(180);
-          } catch {
+          } catch (chapterError) {
+            if (isStorageQuotaError(chapterError)) throw chapterError;
             // Skip this chapter and continue (e.g. rate limit or network); don't abort whole download
           }
         }
-        localStorage.setItem(`kjv_book_offline_${b.replace(/\s/g, '_')}`, 'true');
+        writeLocalCache(`kjv_book_offline_${b.replace(/\s/g, '_')}`, 'true');
       }
-      localStorage.setItem('kjv_full_bible_offline', 'true');
+      writeLocalCache('kjv_full_bible_offline', 'true');
       setFullBibleStashed(true);
-    } catch { /* ignore */ } finally { setDownloading(false); setDownloadProgress(null); }
+    } catch (fullDownloadError) {
+      if (isStorageQuotaError(fullDownloadError)) {
+        setDownloadError('Storage full. The full Bible needs more local space than this device currently allows.');
+      } else {
+        setDownloadError('Could not finish stashing the Bible right now. Try again when the signal is steady.');
+      }
+    } finally { setDownloading(false); setDownloadProgress(null); }
   };
 
   return (
@@ -480,6 +518,11 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
       {notesSyncError && (
         <div className="mb-6 rounded-2xl border border-jamaican-gold/20 bg-jamaican-gold/10 px-5 py-3 text-[10px] font-black uppercase tracking-wider text-jamaican-gold" role="status">
           {notesSyncError}
+        </div>
+      )}
+      {downloadError && (
+        <div className="mb-6 rounded-2xl border border-red-400/20 bg-red-500/10 px-5 py-3 text-[10px] font-black uppercase tracking-wider text-red-300" role="alert">
+          {downloadError}
         </div>
       )}
 

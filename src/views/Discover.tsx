@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { CATEGORIES, ICONIC_QUOTES } from '../constants';
-import { Quote, IconicQuote, BibleAffirmation } from '../types';
+import { Quote, IconicQuote, BibleAffirmation, UserWisdom } from '../types';
 
 interface DiscoverProps {
   onCategoryClick: (id: string) => void;
@@ -12,9 +12,10 @@ interface DiscoverProps {
   quotes?: Quote[];
   iconic?: IconicQuote[];
   bible?: BibleAffirmation[];
+  userWisdoms?: UserWisdom[];
 }
 
-const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHistory, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [] }) => {
+const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHistory, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [], userWisdoms = [] }) => {
   const q = searchQuery.toLowerCase().trim();
 
   // Search content when query > 1 char
@@ -33,12 +34,17 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
     return iconic.filter(item => item.text.toLowerCase().includes(q) || item.author.toLowerCase().includes(q)).slice(0, 8);
   }, [q, iconic]);
 
+  const userWisdomResults = useMemo(() => {
+    if (q.length < 2) return [];
+    return userWisdoms.filter(item => item.patois.toLowerCase().includes(q) || item.english.toLowerCase().includes(q)).slice(0, 8);
+  }, [q, userWisdoms]);
+
   const categoryResults = useMemo(() => {
     if (q.length < 2) return [];
     return CATEGORIES.filter(c => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
   }, [q]);
 
-  const hasResults = quoteResults.length > 0 || bibleResults.length > 0 || iconicResults.length > 0 || categoryResults.length > 0;
+  const hasResults = quoteResults.length > 0 || bibleResults.length > 0 || iconicResults.length > 0 || userWisdomResults.length > 0 || categoryResults.length > 0;
   const isSearching = q.length >= 2;
 
   return (
@@ -139,6 +145,20 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
                   <div key={item.id} className="glass rounded-2xl p-4 border-jamaican-gold/10">
                     <p className="text-white font-bold text-sm italic">"{item.text}"</p>
                     <p className="text-jamaican-gold/60 text-[10px] font-black uppercase mt-2 tracking-wider">— {item.author}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {userWisdomResults.length > 0 && (
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-4">My Wisdom ({userWisdomResults.length})</h3>
+              <div className="space-y-2">
+                {userWisdomResults.map(item => (
+                  <div key={item.id} className="glass rounded-2xl p-4 border-primary/10">
+                    <p className="text-white font-bold text-sm italic">"{item.patois}"</p>
+                    <p className="text-white/40 text-xs mt-1">{item.english}</p>
                   </div>
                 ))}
               </div>
