@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from '../types';
 import { useTTS } from '../hooks/useTTS';
 import { supabase } from '../services/supabase';
+import { get, set } from 'idb-keyval';
 
 interface BibleViewProps {
   user: User;
@@ -29,6 +30,8 @@ const HIGHLIGHT_COLORS = [
   { name: 'None', value: '', text: 'text-white/40', dot: 'bg-white/20' },
 ];
 
+const FULL_BIBLE_ASSET_URL = '/data/kjv_bible.json';
+
 const isStorageQuotaError = (error: unknown) => (
   error instanceof DOMException &&
   (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22 || error.code === 1014)
@@ -49,6 +52,26 @@ const BOOK_CHAPTERS: Record<string, number> = {
   "1 Timothy": 6, "2 Timothy": 4, "Titus": 3, "Philemon": 1, "Hebrews": 13,
   "James": 5, "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1, "3 John": 1,
   "Jude": 1, "Revelation": 22
+};
+
+type KJVAssetVerse = {
+  verse: string | number;
+  text: string;
+};
+
+type KJVAssetChapter = {
+  chapter: string | number;
+  verses: KJVAssetVerse[];
+};
+
+type KJVAssetBook = {
+  book: string;
+  chapters: KJVAssetChapter[];
+};
+
+type KJVAsset = {
+  translation: string;
+  books: KJVAssetBook[];
 };
 
 const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => {
@@ -310,19 +333,78 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const isChapterCached = useCallback((b: string, ch: number) => !!localStorage.getItem(getCacheKey(b, ch)), []);
   const isFullBibleDownloaded = fullBibleStashed;
 
+  const normalizeBibleAssetChapter = useCallback((b: string, c: number, chapterData: KJVAssetChapter) => {
+    return (chapterData.verses || []).map((v: KJVAssetVerse) => ({
+      book_id: b.toLowerCase().replace(/\s/g, '_'),
+      book_name: b,
+      chapter: c,
+      verse: Number(v.verse),
+      text: cleanGodName(v.text),
+    }));
+  }, []);
+
+  const readCachedChapter = useCallback(async (b: string, c: number) => {
+    const key = getCacheKey(b, c);
+
+    try {
+      const indexedDbChapter = await get<any[]>(key);
+      if (Array.isArray(indexedDbChapter) && indexedDbChapter.length > 0) {
+        return indexedDbChapter;
+      }
+    } catch (error) {
+      console.warn('IndexedDB Bible cache read failed:', error);
+    }
+
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const writeCachedChapter = useCallback(async (b: string, c: number, chapterVerses: any[]) => {
+    const key = getCacheKey(b, c);
+
+    try {
+      await set(key, chapterVerses);
+      localStorage.setItem(key, 'indexeddb');
+      return;
+    } catch (error) {
+      if (isStorageQuotaError(error)) throw error;
+      console.warn('IndexedDB Bible cache write failed:', error);
+    }
+
+    writeLocalCache(key, JSON.stringify(chapterVerses));
+  }, [writeLocalCache]);
+
+  const loadBibleAsset = async (): Promise<KJVAsset> => {
+    const res = await fetch(FULL_BIBLE_ASSET_URL);
+    if (!res.ok) {
+      throw new Error('Full Bible file could not be downloaded.');
+    }
+
+    const data = await res.json();
+    if (!data || data.translation !== 'KJV' || !Array.isArray(data.books)) {
+      throw new Error('Full Bible file is not valid.');
+    }
+
+    return data;
+  };
+
   const fetchBible = async () => {
     setLoading(true);
     setError(null);
     setIsServingCache(false);
 
-    const cached = localStorage.getItem(getCacheKey(book, chapter));
+    const cached = await readCachedChapter(book, chapter);
     if (cached) {
-      try {
-        setVerses(JSON.parse(cached));
-        setIsServingCache(true);
-        setLoading(false);
-        return;
-      } catch { /* ignore cache error */ }
+      setVerses(cached);
+      setIsServingCache(true);
+      setLoading(false);
+      return;
     }
 
     if (!isOnline) {
@@ -346,7 +428,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
       setVerses(fetchedVerses);
       if (fetchedVerses.length > 0) {
         try {
-          writeLocalCache(getCacheKey(book, chapter), JSON.stringify(fetchedVerses));
+          await writeCachedChapter(book, chapter, fetchedVerses);
         } catch (cacheError) {
           console.warn('Bible cache quota reached:', cacheError);
         }
@@ -407,17 +489,24 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
     setDownloading(true);
     setDownloadProgress({ current: 0, total: totalChapters });
     try {
-      for (let i = 1; i <= totalChapters; i++) {
-        setDownloadProgress({ current: i, total: totalChapters });
-        const formattedBook = book.replace(/\s/g, '+');
-        const res = await fetch(`https://bible-api.com/${formattedBook}+${i}?translation=kjv`);
-        if (res.ok) {
-          const data = await res.json();
-          const clean = (data.verses || []).map((v: any) => ({ ...v, book_name: book, book_id: book.toLowerCase().replace(/\s/g, '_'), text: cleanGodName(v.text) }));
-          writeLocalCache(getCacheKey(book, i), JSON.stringify(clean));
-        }
+      const bibleData = await loadBibleAsset();
+      const bookData = bibleData.books.find(item => item.book === book);
+      if (!bookData) throw new Error(`${book} was not found in the full Bible file.`);
+
+      for (const chapterData of bookData.chapters) {
+        const chapterNumber = Number(chapterData.chapter);
+        setDownloadProgress({ current: chapterNumber, total: totalChapters });
+        const clean = normalizeBibleAssetChapter(book, chapterNumber, chapterData);
+        await writeCachedChapter(book, chapterNumber, clean);
       }
       writeLocalCache(`kjv_book_offline_${book.replace(/\s/g, '_')}`, 'true');
+      if (bookData.book === book) {
+        const currentChapter = bookData.chapters.find(chapterData => Number(chapterData.chapter) === chapter);
+        if (currentChapter) {
+          setVerses(normalizeBibleAssetChapter(book, chapter, currentChapter));
+          setIsServingCache(true);
+        }
+      }
     } catch (downloadError) {
       if (isStorageQuotaError(downloadError)) {
         setDownloadError('Storage full. Free up space or clear some stashed Bible chapters, then try again.');
@@ -427,8 +516,6 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
     } finally { setDownloading(false); setDownloadProgress(null); }
   };
 
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   const handleDownloadFullBible = async () => {
     if (!isOnline) return;
     const bookList = Object.keys(BOOK_CHAPTERS);
@@ -436,29 +523,36 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
     setDownloading(true);
     setDownloadProgress({ type: 'full', book: bookList[0], bookIndex: 1, totalBooks: bookList.length, chapter: 0, totalChapters: BOOK_CHAPTERS[bookList[0]] || 1 });
     try {
+      const bibleData = await loadBibleAsset();
+      const assetBooks = new Map(bibleData.books.map(assetBook => [assetBook.book, assetBook]));
+
+      if (!assetBooks.has('Genesis') || !assetBooks.has('Revelation') || bibleData.books.length < 66) {
+        throw new Error('Full Bible file is incomplete.');
+      }
+
       for (let bi = 0; bi < bookList.length; bi++) {
         const b = bookList[bi];
-        const totalChapters = BOOK_CHAPTERS[b] || 1;
-        for (let ch = 1; ch <= totalChapters; ch++) {
-          setDownloadProgress({ type: 'full', book: b, bookIndex: bi + 1, totalBooks: bookList.length, chapter: ch, totalChapters });
-          try {
-            const formattedBook = b.replace(/\s/g, '+');
-            const res = await fetch(`https://bible-api.com/${formattedBook}+${ch}?translation=kjv`);
-            if (res.ok) {
-              const data = await res.json();
-              const clean = (data.verses || []).map((v: any) => ({ ...v, book_name: b, book_id: b.toLowerCase().replace(/\s/g, '_'), text: cleanGodName(v.text) }));
-              writeLocalCache(getCacheKey(b, ch), JSON.stringify(clean));
-            }
-            await delay(180);
-          } catch (chapterError) {
-            if (isStorageQuotaError(chapterError)) throw chapterError;
-            // Skip this chapter and continue (e.g. rate limit or network); don't abort whole download
-          }
+        const bookData = assetBooks.get(b);
+        if (!bookData) throw new Error(`${b} was not found in the full Bible file.`);
+
+        const totalChapters = BOOK_CHAPTERS[b] || bookData.chapters.length;
+        for (const chapterData of bookData.chapters) {
+          const chapterNumber = Number(chapterData.chapter);
+          setDownloadProgress({ type: 'full', book: b, bookIndex: bi + 1, totalBooks: bookList.length, chapter: chapterNumber, totalChapters });
+          const clean = normalizeBibleAssetChapter(b, chapterNumber, chapterData);
+          await writeCachedChapter(b, chapterNumber, clean);
         }
         writeLocalCache(`kjv_book_offline_${b.replace(/\s/g, '_')}`, 'true');
       }
       writeLocalCache('kjv_full_bible_offline', 'true');
       setFullBibleStashed(true);
+
+      const currentBookData = assetBooks.get(book);
+      const currentChapter = currentBookData?.chapters.find(chapterData => Number(chapterData.chapter) === chapter);
+      if (currentChapter) {
+        setVerses(normalizeBibleAssetChapter(book, chapter, currentChapter));
+        setIsServingCache(true);
+      }
     } catch (fullDownloadError) {
       if (isStorageQuotaError(fullDownloadError)) {
         setDownloadError('Storage full. The full Bible needs more local space than this device currently allows.');
