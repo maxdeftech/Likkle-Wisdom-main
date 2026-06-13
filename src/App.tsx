@@ -173,9 +173,9 @@ const App: React.FC = () => {
     setShowWelcomeModal(false);
   }, [user?.id, user?.isGuest]);
 
-  // Native push: register device token for verse/quote/wisdom/alerts of the day
+  // Push notifications: native apps use APNs/FCM; PWA uses Web Push
   useEffect(() => {
-    if (!user || user.isGuest || !PushService.isNative()) return;
+    if (!user || user.isGuest) return;
     PushService.registerAndSyncToken(user.id);
   }, [user?.id, user?.isGuest]);
 

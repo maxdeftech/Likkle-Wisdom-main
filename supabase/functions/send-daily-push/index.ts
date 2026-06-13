@@ -1,14 +1,24 @@
-// Supabase Edge Function: send daily verse, quote, wisdom, and alerts to iOS/Android
+// Supabase Edge Function: send daily verse, quote, wisdom, and alerts to iOS/Android/PWA
 // Schedule with pg_cron at the top of every hour to invoke this function.
 // Requires: SUPABASE_SERVICE_ROLE_KEY, and for sending:
 //   Android: FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY (from Firebase service account)
 //   iOS: APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_PRIVATE_KEY (p8 content)
+//   PWA: WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY, WEB_PUSH_SUBJECT
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const NOTIFICATION_TIME_ZONE = "America/Jamaica";
+
+const WEB_PUSH_PUBLIC_KEY = Deno.env.get("WEB_PUSH_PUBLIC_KEY");
+const WEB_PUSH_PRIVATE_KEY = Deno.env.get("WEB_PUSH_PRIVATE_KEY");
+const WEB_PUSH_SUBJECT = Deno.env.get("WEB_PUSH_SUBJECT") || "mailto:admin@likklewisdom.com";
+
+if (WEB_PUSH_PUBLIC_KEY && WEB_PUSH_PRIVATE_KEY) {
+  webpush.setVapidDetails(WEB_PUSH_SUBJECT, WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY);
+}
 
 // Minimal seed for daily content (pick by day-of-year so same day = same content)
 const QUOTES = [
@@ -171,6 +181,9 @@ Deno.serve(async (req) => {
         } else if (msg.platform === "ios") {
           const ok = await sendAPNs(msg.token, msg.title, msg.body, msg.type);
           if (ok) sent++;
+        } else if (msg.platform === "web") {
+          const ok = await sendWebPush(msg.token, msg.title, msg.body, msg.type);
+          if (ok) sent++;
         }
       } catch (e) {
         console.error("Send error:", e);
@@ -295,4 +308,20 @@ async function sendAPNs(token: string, title: string, body: string, type: string
     body: apnsPayload,
   });
   return res.ok;
+}
+
+async function sendWebPush(token: string, title: string, body: string, type: string): Promise<boolean> {
+  if (!WEB_PUSH_PUBLIC_KEY || !WEB_PUSH_PRIVATE_KEY) return false;
+
+  const subscription = JSON.parse(token);
+  const payload = JSON.stringify({
+    title,
+    body,
+    type,
+    url: `/?push=${encodeURIComponent(type)}`,
+    tag: `likkle-wisdom-${type}`,
+  });
+
+  await webpush.sendNotification(subscription, payload);
+  return true;
 }

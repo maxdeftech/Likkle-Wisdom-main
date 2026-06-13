@@ -1,5 +1,5 @@
 -- =============================================================================
--- Push tokens for iOS (APNs) and Android (FCM) — daily verse, quote, wisdom, alerts
+-- Push tokens for iOS (APNs), Android (FCM), and PWA Web Push — daily verse, quote, wisdom, alerts
 -- Run after 001_simple_schema_and_rls.sql
 -- =============================================================================
 
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.push_tokens (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   token text NOT NULL,
-  platform text NOT NULL CHECK (platform IN ('ios', 'android')),
+  platform text NOT NULL CHECK (platform IN ('ios', 'android', 'web')),
   updated_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
   UNIQUE(user_id, platform)
 );

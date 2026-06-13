@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabase';
 
 const PLATFORM = Capacitor.getPlatform() as 'ios' | 'android' | 'web';
+const WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY?.trim();
 
 export type PushOpenTarget = 'verse' | 'quote' | 'wisdom' | 'alert' | 'home';
 
@@ -35,6 +36,51 @@ function attachListeners(): void {
   }).catch(() => {});
 }
 
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
+
+async function registerWebPush(userId: string): Promise<void> {
+  if (!supabase || userId === 'guest') return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+  if (!WEB_PUSH_PUBLIC_KEY) {
+    console.warn('[PushService] VITE_WEB_PUSH_PUBLIC_KEY is missing.');
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') return;
+
+  const registration = await navigator.serviceWorker.register('/web-push-sw.js', {
+    scope: '/web-push/'
+  });
+
+  const existingSubscription = await registration.pushManager.getSubscription();
+  const subscription = existingSubscription || await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(WEB_PUSH_PUBLIC_KEY)
+  });
+
+  await supabase.from('push_tokens').upsert(
+    {
+      user_id: userId,
+      token: JSON.stringify(subscription.toJSON()),
+      platform: 'web',
+      updated_at: new Date().toISOString()
+    },
+    { onConflict: 'user_id,platform' }
+  );
+}
+
 export const PushService = {
   isNative(): boolean {
     return Capacitor.isNativePlatform();
@@ -47,7 +93,15 @@ export const PushService = {
 
   async registerAndSyncToken(userId: string): Promise<void> {
     if (!supabase || userId === 'guest') return;
-    if (PLATFORM === 'web') return;
+
+    if (PLATFORM === 'web') {
+      try {
+        await registerWebPush(userId);
+      } catch (e) {
+        console.warn('[PushService] Web push subscription failed:', e);
+      }
+      return;
+    }
 
     try {
       const { PushNotifications } = await import('@capacitor/push-notifications');
@@ -91,9 +145,15 @@ export const PushService = {
   },
 
   async removeToken(userId: string): Promise<void> {
-    if (!supabase || PLATFORM === 'web') return;
+    if (!supabase) return;
     try {
       await supabase.from('push_tokens').delete().eq('user_id', userId).eq('platform', PLATFORM);
+
+      if (PLATFORM === 'web' && 'serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration('/web-push/');
+        const subscription = await registration?.pushManager.getSubscription();
+        await subscription?.unsubscribe();
+      }
     } catch (_) {}
   }
 };
