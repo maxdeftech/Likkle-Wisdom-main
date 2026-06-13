@@ -1,5 +1,5 @@
 // Supabase Edge Function: send daily verse, quote, wisdom, and alerts to iOS/Android/PWA
-// Schedule with pg_cron at the top of every hour to invoke this function.
+// Schedule with pg_cron every minute to invoke this function.
 // Requires: SUPABASE_SERVICE_ROLE_KEY, and for sending:
 //   Android: FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY (from Firebase service account)
 //   iOS: APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_PRIVATE_KEY (p8 content)
@@ -15,6 +15,7 @@ const NOTIFICATION_TIME_ZONE = "America/Jamaica";
 const WEB_PUSH_PUBLIC_KEY = Deno.env.get("WEB_PUSH_PUBLIC_KEY");
 const WEB_PUSH_PRIVATE_KEY = Deno.env.get("WEB_PUSH_PRIVATE_KEY");
 const WEB_PUSH_SUBJECT = Deno.env.get("WEB_PUSH_SUBJECT") || "mailto:admin@likklewisdom.com";
+const WEB_PUSH_TEST_SECRET = Deno.env.get("WEB_PUSH_TEST_SECRET");
 
 if (WEB_PUSH_PUBLIC_KEY && WEB_PUSH_PRIVATE_KEY) {
   webpush.setVapidDetails(WEB_PUSH_SUBJECT, WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY);
@@ -59,28 +60,56 @@ function getDailyWisdom() {
 function getNotificationClock() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: NOTIFICATION_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   }).formatToParts(new Date());
 
-  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
-  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+  const getPart = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  const hour = getPart("hour").padStart(2, "0");
+  const minute = getPart("minute").padStart(2, "0");
+  const year = getPart("year");
+  const month = getPart("month");
+  const day = getPart("day");
 
-  return { hour, minute };
+  return {
+    time: `${hour}:${minute}`,
+    date: `${year}-${month}-${day}`,
+  };
+}
+
+async function reserveDailyNotification(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  notificationType: string,
+  notificationDate: string,
+  scheduledTime: string,
+) {
+  const { error } = await supabase
+    .from("push_notification_sends")
+    .insert({
+      user_id: userId,
+      notification_type: notificationType,
+      notification_date: notificationDate,
+      scheduled_time: scheduledTime,
+    });
+
+  if (!error) return true;
+  if (error.code === "23505") return false;
+  throw error;
 }
 
 Deno.serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { hour: notificationHour, minute: notificationMinute } = getNotificationClock();
-    // Only run at the top of the hour to avoid duplicate sends
-    if (notificationMinute >= 2) {
-      return new Response(JSON.stringify({ ok: true, skipped: "not at top of hour" }), {
-        headers: { "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
+    const requestUrl = new URL(req.url);
+    const isWebTest = requestUrl.searchParams.get("test") === "web" &&
+      !!WEB_PUSH_TEST_SECRET &&
+      req.headers.get("x-web-push-test-secret") === WEB_PUSH_TEST_SECRET;
+    const { time: notificationTime, date: notificationDate } = getNotificationClock();
 
     const { data: tokensData, error: tokensError } = await supabase
       .from("push_tokens")
@@ -121,10 +150,12 @@ Deno.serve(async (req) => {
     );
 
     const tokens: Array<{
+      user_id: string;
       token: string;
       platform: string;
       profiles: { notify_quote_time?: string; notify_verse_time?: string; notify_wisdom_time?: string } | null;
     }> = pushRows.map((r) => ({
+      user_id: r.user_id,
       token: r.token,
       platform: r.platform,
       profiles: profilesMap.get(r.user_id) ?? null,
@@ -134,41 +165,68 @@ Deno.serve(async (req) => {
     const verse = getDailyVerse();
     const wisdom = getDailyWisdom();
 
+    const tokensByUser = new Map<string, typeof tokens>();
+    for (const row of tokens) {
+      const existing = tokensByUser.get(row.user_id) || [];
+      existing.push(row);
+      tokensByUser.set(row.user_id, existing);
+    }
+
     const toSend: Array<{ token: string; platform: string; type: string; title: string; body: string }> = [];
 
-    for (const row of tokens) {
-      const p = row.profiles;
-      if (!p) continue;
-      const quoteHour = p.notify_quote_time ? parseInt(String(p.notify_quote_time).substring(0, 2), 10) : -1;
-      const verseHour = p.notify_verse_time ? parseInt(String(p.notify_verse_time).substring(0, 2), 10) : -1;
-      const wisdomHour = p.notify_wisdom_time ? parseInt(String(p.notify_wisdom_time).substring(0, 2), 10) : -1;
+    if (isWebTest) {
+      for (const row of tokens) {
+        if (row.platform !== "web") continue;
+        toSend.push({
+          token: row.token,
+          platform: row.platform,
+          type: "home",
+          title: "Likkle Wisdom — Test Notification",
+          body: "Web Push is connected and ready.",
+        });
+      }
+    }
 
-      if (quoteHour === notificationHour) {
-        toSend.push({
-          token: row.token,
-          platform: row.platform,
-          type: "quote",
-          title: "Likkle Wisdom — Quote of di Day",
-          body: `"${quote.patois}" — ${quote.english}`,
-        });
+    for (const [userId, userTokens] of tokensByUser) {
+      if (isWebTest) continue;
+      const p = userTokens[0]?.profiles;
+      if (!p) continue;
+      const quoteTime = p.notify_quote_time ? String(p.notify_quote_time).slice(0, 5) : "";
+      const verseTime = p.notify_verse_time ? String(p.notify_verse_time).slice(0, 5) : "";
+      const wisdomTime = p.notify_wisdom_time ? String(p.notify_wisdom_time).slice(0, 5) : "";
+
+      if (quoteTime === notificationTime && await reserveDailyNotification(supabase, userId, "quote", notificationDate, quoteTime)) {
+        for (const row of userTokens) {
+          toSend.push({
+            token: row.token,
+            platform: row.platform,
+            type: "quote",
+            title: "Likkle Wisdom — Quote of di Day",
+            body: `"${quote.patois}" — ${quote.english}`,
+          });
+        }
       }
-      if (verseHour === notificationHour) {
-        toSend.push({
-          token: row.token,
-          platform: row.platform,
-          type: "verse",
-          title: "Likkle Wisdom — Verse of di Day",
-          body: `${verse.reference}: "${verse.patois}"`,
-        });
+      if (verseTime === notificationTime && await reserveDailyNotification(supabase, userId, "verse", notificationDate, verseTime)) {
+        for (const row of userTokens) {
+          toSend.push({
+            token: row.token,
+            platform: row.platform,
+            type: "verse",
+            title: "Likkle Wisdom — Verse of di Day",
+            body: `${verse.reference}: "${verse.patois}"`,
+          });
+        }
       }
-      if (wisdomHour === notificationHour) {
-        toSend.push({
-          token: row.token,
-          platform: row.platform,
-          type: "wisdom",
-          title: "Likkle Wisdom — Wisdom of di Day",
-          body: `"${wisdom.patois}" — ${wisdom.english}`,
-        });
+      if (wisdomTime === notificationTime && await reserveDailyNotification(supabase, userId, "wisdom", notificationDate, wisdomTime)) {
+        for (const row of userTokens) {
+          toSend.push({
+            token: row.token,
+            platform: row.platform,
+            type: "wisdom",
+            title: "Likkle Wisdom — Wisdom of di Day",
+            body: `"${wisdom.patois}" — ${wisdom.english}`,
+          });
+        }
       }
     }
 
