@@ -67,10 +67,13 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-1e60b829'], (function (workbox) { 'use strict';
+define(['./workbox-c1e4e281'], (function (workbox) { 'use strict';
 
-  self.skipWaiting();
-  workbox.clientsClaim();
+  self.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
+  });
 
   /**
    * The precacheAndRoute() method efficiently caches and responds to
@@ -82,7 +85,7 @@ define(['./workbox-1e60b829'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.h8vi3g7vkv8"
+    "revision": "0.39l5v45e84k"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -106,6 +109,24 @@ define(['./workbox-1e60b829'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
+  workbox.registerRoute(/^https:\/\/bible-api\.com\/.*/i, new workbox.NetworkFirst({
+    "cacheName": "bible-api-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 80,
+      maxAgeSeconds: 604800
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/images\.unsplash\.com\/.*/i, new workbox.StaleWhileRevalidate({
+    "cacheName": "unsplash-images",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 40,
+      maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
   workbox.registerRoute(/^https:\/\/fonts\.googleapis\.com\/.*/i, new workbox.StaleWhileRevalidate({
     "cacheName": "google-fonts-stylesheets",
     plugins: []
@@ -117,20 +138,6 @@ define(['./workbox-1e60b829'], (function (workbox) { 'use strict';
       maxAgeSeconds: 31536000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
-    })]
-  }), 'GET');
-  workbox.registerRoute(/^https:\/\/cdn\.tailwindcss\.com\/.*/i, new workbox.CacheFirst({
-    "cacheName": "tailwind-cdn",
-    plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 10,
-      maxAgeSeconds: 2592000
-    })]
-  }), 'GET');
-  workbox.registerRoute(/^https:\/\/esm\.sh\/.*/i, new workbox.CacheFirst({
-    "cacheName": "esm-modules",
-    plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 50,
-      maxAgeSeconds: 2592000
     })]
   }), 'GET');
 

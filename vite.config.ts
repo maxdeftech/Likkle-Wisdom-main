@@ -1,13 +1,33 @@
 
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const supabaseUrl = env.VITE_SUPABASE_URL?.trim();
+  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY?.trim();
+
+  if (command === 'build') {
+    const missing = [
+      !supabaseUrl ? 'VITE_SUPABASE_URL' : null,
+      !supabaseAnonKey ? 'VITE_SUPABASE_ANON_KEY' : null,
+    ].filter(Boolean);
+
+    if (missing.length > 0) {
+      throw new Error(`Missing required Supabase build env: ${missing.join(', ')}`);
+    }
+
+    if (!supabaseUrl?.startsWith('https://')) {
+      throw new Error('VITE_SUPABASE_URL must start with https://');
+    }
+  }
+
+  return {
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
       manifest: {
         name: 'Likkle Wisdom',
@@ -42,6 +62,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,png,svg,json,ico,woff,woff2}'],
         // Avoid terser minification of SW to prevent "Unexpected early exit" race with Rollup close phase
         mode: 'development',
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -146,4 +168,5 @@ export default defineConfig({
       }
     }
   }
+  };
 });
