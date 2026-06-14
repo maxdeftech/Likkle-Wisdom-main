@@ -11,10 +11,39 @@ export interface AviationRoute {
   origin: AirportPoint;
   destination: AirportPoint & { country: string; flag: string };
   airlines: string[];
+  airlineWebsites: Record<string, string>;
   estimatedCost?: string;
   durationHours?: number;
   frequency?: string;
 }
+
+const airlineUrls: Record<string, string> = {
+  'American Airlines': 'https://www.aa.com',
+  'Caribbean Airlines': 'https://www.caribbean-airlines.com',
+  'JetBlue': 'https://www.jetblue.com',
+  'Air Canada': 'https://www.aircanada.com',
+  'WestJet': 'https://www.westjet.com',
+  'British Airways': 'https://www.britishairways.com',
+  'Delta': 'https://www.delta.com',
+  'Spirit': 'https://www.spirit.com',
+  'Copa Airlines': 'https://www.copaair.com',
+  'InterCaribbean': 'https://www.intercaribbean.com',
+  'Bahamasair': 'https://www.bahamasair.com',
+  'Frontier': 'https://www.flyfrontier.com',
+  'Southwest': 'https://www.southwest.com',
+  'United Airlines': 'https://www.united.com',
+  'Virgin Atlantic': 'https://www.virginatlantic.com',
+  'KLM': 'https://www.klm.com',
+  'TUI fly': 'https://www.tui.com',
+  'TUI': 'https://www.tui.com',
+  'Condor': 'https://www.condor.com',
+  'Eurowings Discover': 'https://www.eurowings.com',
+  'Sunwing': 'https://www.sunwing.ca',
+  'Charter/seasonal': 'https://www.visitjamaica.com'
+};
+
+const buildWebsites = (airlines: string[]): Record<string, string> =>
+  Object.fromEntries(airlines.map(airline => [airline, airlineUrls[airline] ?? 'https://www.visitjamaica.com']));
 
 export const KIN: AirportPoint = {
   code: 'KIN',
@@ -56,29 +85,29 @@ const destinations = {
 };
 
 export const aviationRoutes: AviationRoute[] = [
-  { id: 'kin-mia', origin: KIN, destination: destinations.mia, airlines: ['American Airlines', 'Caribbean Airlines'], estimatedCost: 'From $320 USD', durationHours: 1.9, frequency: 'Daily' },
-  { id: 'kin-jfk', origin: KIN, destination: destinations.jfk, airlines: ['JetBlue', 'Caribbean Airlines'], estimatedCost: 'From $380 USD', durationHours: 3.8, frequency: 'Daily' },
-  { id: 'kin-yyz', origin: KIN, destination: destinations.yyz, airlines: ['Air Canada', 'WestJet'], estimatedCost: 'From $480 USD', durationHours: 4.3, frequency: 'Several weekly' },
-  { id: 'kin-lhr', origin: KIN, destination: destinations.lhr, airlines: ['British Airways'], estimatedCost: 'From $780 USD', durationHours: 9.2, frequency: 'Several weekly' },
-  { id: 'kin-atl', origin: KIN, destination: destinations.atl, airlines: ['Delta'], estimatedCost: 'From $430 USD', durationHours: 3.1, frequency: 'Daily' },
-  { id: 'kin-fll', origin: KIN, destination: destinations.fll, airlines: ['JetBlue', 'Spirit'], estimatedCost: 'From $280 USD', durationHours: 1.8, frequency: 'Daily' },
-  { id: 'kin-pty', origin: KIN, destination: destinations.pty, airlines: ['Copa Airlines'], estimatedCost: 'From $360 USD', durationHours: 2.1, frequency: 'Daily' },
-  { id: 'kin-hav', origin: KIN, destination: destinations.hav, airlines: ['InterCaribbean', 'Caribbean Airlines'], estimatedCost: 'From $300 USD', durationHours: 1.4, frequency: 'Several weekly' },
-  { id: 'kin-nas', origin: KIN, destination: destinations.nas, airlines: ['Bahamasair', 'InterCaribbean'], estimatedCost: 'From $350 USD', durationHours: 1.6, frequency: 'Several weekly' },
-  { id: 'kin-pos', origin: KIN, destination: destinations.pos, airlines: ['Caribbean Airlines'], estimatedCost: 'From $410 USD', durationHours: 2.6, frequency: 'Several weekly' },
-  { id: 'mbj-mia', origin: MBJ, destination: destinations.mia, airlines: ['American Airlines', 'Frontier'], estimatedCost: 'From $300 USD', durationHours: 1.8, frequency: 'Daily' },
-  { id: 'mbj-jfk', origin: MBJ, destination: destinations.jfk, airlines: ['JetBlue', 'Delta'], estimatedCost: 'From $370 USD', durationHours: 3.8, frequency: 'Daily' },
-  { id: 'mbj-yyz', origin: MBJ, destination: destinations.yyz, airlines: ['Air Canada', 'WestJet', 'Sunwing'], estimatedCost: 'From $460 USD', durationHours: 4.1, frequency: 'Daily seasonal' },
-  { id: 'mbj-lhr', origin: MBJ, destination: destinations.lhr, airlines: ['Virgin Atlantic', 'British Airways'], estimatedCost: 'From $790 USD', durationHours: 9.4, frequency: 'Several weekly' },
-  { id: 'mbj-atl', origin: MBJ, destination: destinations.atl, airlines: ['Delta'], estimatedCost: 'From $390 USD', durationHours: 3.0, frequency: 'Daily' },
-  { id: 'mbj-mco', origin: MBJ, destination: destinations.mco, airlines: ['Southwest', 'JetBlue'], estimatedCost: 'From $330 USD', durationHours: 2.1, frequency: 'Several weekly' },
-  { id: 'mbj-phl', origin: MBJ, destination: destinations.phl, airlines: ['American Airlines'], estimatedCost: 'From $420 USD', durationHours: 3.7, frequency: 'Weekly/seasonal' },
-  { id: 'mbj-clt', origin: MBJ, destination: destinations.clt, airlines: ['American Airlines'], estimatedCost: 'From $410 USD', durationHours: 3.0, frequency: 'Daily' },
-  { id: 'mbj-iad', origin: MBJ, destination: destinations.iad, airlines: ['United Airlines'], estimatedCost: 'From $430 USD', durationHours: 3.5, frequency: 'Several weekly' },
-  { id: 'mbj-iah', origin: MBJ, destination: destinations.iah, airlines: ['United Airlines'], estimatedCost: 'From $470 USD', durationHours: 3.6, frequency: 'Several weekly' },
-  { id: 'mbj-dfw', origin: MBJ, destination: destinations.dfw, airlines: ['American Airlines'], estimatedCost: 'From $510 USD', durationHours: 4.0, frequency: 'Several weekly' },
-  { id: 'mbj-cun', origin: MBJ, destination: destinations.cun, airlines: ['TUI', 'Charter/seasonal'], estimatedCost: 'From $390 USD', durationHours: 1.7, frequency: 'Seasonal' },
-  { id: 'mbj-bgi', origin: MBJ, destination: destinations.bgi, airlines: ['InterCaribbean', 'Caribbean Airlines'], estimatedCost: 'From $480 USD', durationHours: 3.0, frequency: 'Connecting' },
-  { id: 'mbj-ams', origin: MBJ, destination: destinations.ams, airlines: ['KLM', 'TUI fly'], estimatedCost: 'From $850 USD', durationHours: 10.0, frequency: 'Seasonal' },
-  { id: 'mbj-fra', origin: MBJ, destination: destinations.fra, airlines: ['Condor', 'Eurowings Discover'], estimatedCost: 'From $880 USD', durationHours: 10.4, frequency: 'Seasonal' }
+  { id: 'kin-mia', origin: KIN, destination: destinations.mia, airlines: ['American Airlines', 'Caribbean Airlines'], airlineWebsites: buildWebsites(['American Airlines', 'Caribbean Airlines']), estimatedCost: 'From $320 USD', durationHours: 1.9, frequency: 'Daily' },
+  { id: 'kin-jfk', origin: KIN, destination: destinations.jfk, airlines: ['JetBlue', 'Caribbean Airlines'], airlineWebsites: buildWebsites(['JetBlue', 'Caribbean Airlines']), estimatedCost: 'From $380 USD', durationHours: 3.8, frequency: 'Daily' },
+  { id: 'kin-yyz', origin: KIN, destination: destinations.yyz, airlines: ['Air Canada', 'WestJet'], airlineWebsites: buildWebsites(['Air Canada', 'WestJet']), estimatedCost: 'From $480 USD', durationHours: 4.3, frequency: 'Several weekly' },
+  { id: 'kin-lhr', origin: KIN, destination: destinations.lhr, airlines: ['British Airways'], airlineWebsites: buildWebsites(['British Airways']), estimatedCost: 'From $780 USD', durationHours: 9.2, frequency: 'Several weekly' },
+  { id: 'kin-atl', origin: KIN, destination: destinations.atl, airlines: ['Delta'], airlineWebsites: buildWebsites(['Delta']), estimatedCost: 'From $430 USD', durationHours: 3.1, frequency: 'Daily' },
+  { id: 'kin-fll', origin: KIN, destination: destinations.fll, airlines: ['JetBlue', 'Spirit'], airlineWebsites: buildWebsites(['JetBlue', 'Spirit']), estimatedCost: 'From $280 USD', durationHours: 1.8, frequency: 'Daily' },
+  { id: 'kin-pty', origin: KIN, destination: destinations.pty, airlines: ['Copa Airlines'], airlineWebsites: buildWebsites(['Copa Airlines']), estimatedCost: 'From $360 USD', durationHours: 2.1, frequency: 'Daily' },
+  { id: 'kin-hav', origin: KIN, destination: destinations.hav, airlines: ['InterCaribbean', 'Caribbean Airlines'], airlineWebsites: buildWebsites(['InterCaribbean', 'Caribbean Airlines']), estimatedCost: 'From $300 USD', durationHours: 1.4, frequency: 'Several weekly' },
+  { id: 'kin-nas', origin: KIN, destination: destinations.nas, airlines: ['Bahamasair', 'InterCaribbean'], airlineWebsites: buildWebsites(['Bahamasair', 'InterCaribbean']), estimatedCost: 'From $350 USD', durationHours: 1.6, frequency: 'Several weekly' },
+  { id: 'kin-pos', origin: KIN, destination: destinations.pos, airlines: ['Caribbean Airlines'], airlineWebsites: buildWebsites(['Caribbean Airlines']), estimatedCost: 'From $410 USD', durationHours: 2.6, frequency: 'Several weekly' },
+  { id: 'mbj-mia', origin: MBJ, destination: destinations.mia, airlines: ['American Airlines', 'Frontier'], airlineWebsites: buildWebsites(['American Airlines', 'Frontier']), estimatedCost: 'From $300 USD', durationHours: 1.8, frequency: 'Daily' },
+  { id: 'mbj-jfk', origin: MBJ, destination: destinations.jfk, airlines: ['JetBlue', 'Delta'], airlineWebsites: buildWebsites(['JetBlue', 'Delta']), estimatedCost: 'From $370 USD', durationHours: 3.8, frequency: 'Daily' },
+  { id: 'mbj-yyz', origin: MBJ, destination: destinations.yyz, airlines: ['Air Canada', 'WestJet', 'Sunwing'], airlineWebsites: buildWebsites(['Air Canada', 'WestJet', 'Sunwing']), estimatedCost: 'From $460 USD', durationHours: 4.1, frequency: 'Daily seasonal' },
+  { id: 'mbj-lhr', origin: MBJ, destination: destinations.lhr, airlines: ['Virgin Atlantic', 'British Airways'], airlineWebsites: buildWebsites(['Virgin Atlantic', 'British Airways']), estimatedCost: 'From $790 USD', durationHours: 9.4, frequency: 'Several weekly' },
+  { id: 'mbj-atl', origin: MBJ, destination: destinations.atl, airlines: ['Delta'], airlineWebsites: buildWebsites(['Delta']), estimatedCost: 'From $390 USD', durationHours: 3.0, frequency: 'Daily' },
+  { id: 'mbj-mco', origin: MBJ, destination: destinations.mco, airlines: ['Southwest', 'JetBlue'], airlineWebsites: buildWebsites(['Southwest', 'JetBlue']), estimatedCost: 'From $330 USD', durationHours: 2.1, frequency: 'Several weekly' },
+  { id: 'mbj-phl', origin: MBJ, destination: destinations.phl, airlines: ['American Airlines'], airlineWebsites: buildWebsites(['American Airlines']), estimatedCost: 'From $420 USD', durationHours: 3.7, frequency: 'Weekly/seasonal' },
+  { id: 'mbj-clt', origin: MBJ, destination: destinations.clt, airlines: ['American Airlines'], airlineWebsites: buildWebsites(['American Airlines']), estimatedCost: 'From $410 USD', durationHours: 3.0, frequency: 'Daily' },
+  { id: 'mbj-iad', origin: MBJ, destination: destinations.iad, airlines: ['United Airlines'], airlineWebsites: buildWebsites(['United Airlines']), estimatedCost: 'From $430 USD', durationHours: 3.5, frequency: 'Several weekly' },
+  { id: 'mbj-iah', origin: MBJ, destination: destinations.iah, airlines: ['United Airlines'], airlineWebsites: buildWebsites(['United Airlines']), estimatedCost: 'From $470 USD', durationHours: 3.6, frequency: 'Several weekly' },
+  { id: 'mbj-dfw', origin: MBJ, destination: destinations.dfw, airlines: ['American Airlines'], airlineWebsites: buildWebsites(['American Airlines']), estimatedCost: 'From $510 USD', durationHours: 4.0, frequency: 'Several weekly' },
+  { id: 'mbj-cun', origin: MBJ, destination: destinations.cun, airlines: ['TUI', 'Charter/seasonal'], airlineWebsites: buildWebsites(['TUI', 'Charter/seasonal']), estimatedCost: 'From $390 USD', durationHours: 1.7, frequency: 'Seasonal' },
+  { id: 'mbj-bgi', origin: MBJ, destination: destinations.bgi, airlines: ['InterCaribbean', 'Caribbean Airlines'], airlineWebsites: buildWebsites(['InterCaribbean', 'Caribbean Airlines']), estimatedCost: 'From $480 USD', durationHours: 3.0, frequency: 'Connecting' },
+  { id: 'mbj-ams', origin: MBJ, destination: destinations.ams, airlines: ['KLM', 'TUI fly'], airlineWebsites: buildWebsites(['KLM', 'TUI fly']), estimatedCost: 'From $850 USD', durationHours: 10.0, frequency: 'Seasonal' },
+  { id: 'mbj-fra', origin: MBJ, destination: destinations.fra, airlines: ['Condor', 'Eurowings Discover'], airlineWebsites: buildWebsites(['Condor', 'Eurowings Discover']), estimatedCost: 'From $880 USD', durationHours: 10.4, frequency: 'Seasonal' }
 ];

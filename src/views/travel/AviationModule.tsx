@@ -129,10 +129,17 @@ const AviationModule: React.FC = () => {
           {visibleRoutes.map(route => {
             const selected = selectedRoute.id === route.id;
             return (
-              <button
+              <article
                 key={route.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedRouteId(route.id)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedRouteId(route.id);
+                  }
+                }}
                 className={`rounded-2xl border p-4 text-left transition-all ${
                   selected
                     ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
@@ -149,9 +156,25 @@ const AviationModule: React.FC = () => {
                   <span className="rounded-full bg-slate-950/5 px-3 py-1 text-[10px] font-black text-slate-700 dark:bg-white/10 dark:text-white">{route.destination.flag}</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {route.airlines.map(airline => (
-                    <span key={airline} className="rounded-full bg-slate-950/5 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600 dark:bg-white/10 dark:text-white/60">{airline}</span>
-                  ))}
+                  {route.airlines.map(airline => {
+                    const url = route.airlineWebsites?.[airline];
+                    return url ? (
+                      <a
+                        key={airline}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        onClick={event => event.stopPropagation()}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-950/5 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600 transition-colors hover:bg-primary/10 hover:text-primary dark:bg-white/10 dark:text-white/60 dark:hover:bg-primary/20 dark:hover:text-primary"
+                        aria-label={`Book with ${airline}`}
+                      >
+                        {airline}
+                        <span className="material-symbols-outlined text-[12px]" aria-hidden="true">open_in_new</span>
+                      </a>
+                    ) : (
+                      <span key={airline} className="rounded-full bg-slate-950/5 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600 dark:bg-white/10 dark:text-white/60">{airline}</span>
+                    );
+                  })}
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-xl bg-slate-950/5 p-2 dark:bg-white/5">
@@ -167,7 +190,7 @@ const AviationModule: React.FC = () => {
                     <p className="mt-1 text-[10px] font-black text-slate-700 dark:text-white">{route.frequency}</p>
                   </div>
                 </div>
-              </button>
+              </article>
             );
           })}
         </div>

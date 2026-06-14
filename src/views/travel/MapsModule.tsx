@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import ReactMarkdown from 'react-markdown';
+import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { generateTravelText } from '../../services/geminiService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
+import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
+import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 
 type FilterId = TravelCategory | 'prices' | 'all';
 type TripList = { listName: string; placeIds: string[] };
@@ -13,7 +16,7 @@ const JAMAICA_CENTER: [number, number] = [18.1096, -77.2975];
 const SAVED_KEY = 'lkkle_travel_saved_places';
 const LISTS_KEY = 'lkkle_travel_trip_lists';
 
-const filterOrder: FilterId[] = ['hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure', 'prices', 'all'];
+const filterOrder: FilterId[] = ['all', 'hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure', 'airports', 'prices'];
 
 const readJson = <T,>(key: string, fallback: T): T => {
   try {
@@ -29,6 +32,13 @@ const makePlaceIcon = (category: TravelCategory) => L.divIcon({
   html: `<span style="background:${travelCategoryMeta[category].color}"><i class="material-symbols-outlined">${travelCategoryMeta[category].icon}</i></span>`,
   iconSize: [36, 36],
   iconAnchor: [18, 18]
+});
+
+const userLocationIcon = L.divIcon({
+  className: 'travel-user-location-marker',
+  html: '<span class="travel-user-location-dot"></span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14]
 });
 
 const MapRecenter: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
@@ -50,6 +60,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
   const [selectedPlace, setSelectedPlace] = useState<TravelPlace | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
   const [mapZoom, setMapZoom] = useState(10);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const [savedPlaceIds, setSavedPlaceIds] = useState<string[]>(() => readJson<string[]>(SAVED_KEY, []));
   const [tripLists, setTripLists] = useState<TripList[]>(() => readJson<TripList[]>(LISTS_KEY, []));
@@ -89,7 +100,9 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(position => {
-      setMapCenter([position.coords.latitude, position.coords.longitude]);
+      const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
+      setUserLocation(coords);
+      setMapCenter(coords);
       setMapZoom(13);
     });
   };
@@ -187,6 +200,9 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
             );
           })}
         </div>
+        <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
+          ← swipe to see more options →
+        </p>
       </div>
 
       <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
@@ -204,8 +220,15 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               eventHandlers={{
                 click: () => setSelectedPlace(place)
               }}
-            />
+            >
+              <Tooltip direction="auto" offset={[0, -10]} opacity={1} className="travel-marker-tooltip">
+                <span style={{ fontWeight: 800, fontSize: '11px', whiteSpace: 'nowrap', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  {place.name}
+                </span>
+              </Tooltip>
+            </Marker>
           ))}
+          {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
         </MapContainer>
 
         <div className="absolute bottom-4 right-4 z-[500]">
@@ -215,7 +238,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
           </button>
           {legendOpen && (
             <div className="glass mt-2 w-64 rounded-2xl p-4 shadow-2xl">
-              {(['hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure'] as TravelCategory[]).map(category => (
+              {(['hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure', 'airports'] as TravelCategory[]).map(category => (
                 <div key={category} className="flex items-center gap-3 py-1.5">
                   <span className="flex size-8 items-center justify-center rounded-full text-background-dark" style={{ background: travelCategoryMeta[category].color }}>
                     <span className="material-symbols-outlined text-[16px]" aria-hidden="true">{travelCategoryMeta[category].icon}</span>
@@ -249,14 +272,33 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                 <button type="button" onClick={startVoiceInput} className="glass flex size-12 items-center justify-center rounded-2xl text-slate-950 dark:text-white" aria-label="Use voice input">
                   <span className="material-symbols-outlined" aria-hidden="true">mic</span>
                 </button>
-                <button type="submit" disabled={isGuideLoading} className="rounded-2xl bg-primary px-5 text-[11px] font-black uppercase tracking-widest text-background-dark disabled:opacity-60">
-                  {isGuideLoading ? 'Thinking' : 'Guide Me'}
+                <button type="submit" disabled={isGuideLoading} className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 text-[11px] font-black uppercase tracking-widest text-background-dark disabled:opacity-60">
+                  <span className={`material-symbols-outlined mr-1 text-[14px] ${isGuideLoading ? 'animate-spin' : ''}`} aria-hidden="true">
+                    {isGuideLoading ? 'progress_activity' : 'auto_awesome'}
+                  </span>
+                  {isGuideLoading ? 'Thinking…' : 'Guide Me'}
                 </button>
               </div>
             </div>
-            {guideResponse && (
-              <div className="rounded-2xl bg-slate-950/5 p-4 text-sm font-semibold leading-relaxed text-slate-700 dark:bg-white/5 dark:text-white/70 whitespace-pre-wrap">
-                {guideResponse}
+            {(isGuideLoading || guideResponse) && (
+              <div className="travel-md rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+                {isGuideLoading ? (
+                  <AILoadingSkeleton />
+                ) : (
+                  <>
+                    <ReactMarkdown>{guideResponse}</ReactMarkdown>
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => generateGuidePDF(guidePrompt, guideResponse)}
+                        className="flex items-center gap-2 rounded-2xl border border-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/10"
+                      >
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
+                        Download PDF
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </form>

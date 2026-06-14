@@ -155,7 +155,8 @@
 
   .travel-marker,
   .travel-airport-marker,
-  .travel-plane-marker {
+  .travel-plane-marker,
+  .travel-user-location-marker {
     background: transparent;
     border: 0;
   }
@@ -196,6 +197,153 @@
     background: #f4d125;
   }
 
+  .travel-user-location-dot {
+    align-items: center;
+    background: #2563eb;
+    border: 3px solid #fff;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    display: flex;
+    height: 18px;
+    justify-content: center;
+    width: 18px;
+    animation: liveLocationPulse 1.7s ease-out infinite;
+  }
+
+  .travel-marker-tooltip {
+    background: rgba(15, 23, 42, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    color: #fff !important;
+    padding: 5px 10px !important;
+    backdrop-filter: blur(8px);
+  }
+
+  .travel-marker-tooltip::before {
+    display: none !important;
+  }
+
+  .travel-md {
+    color: inherit;
+    font-size: 0.875rem;
+    line-height: 1.7;
+  }
+
+  .travel-md h1,
+  .travel-md h2,
+  .travel-md h3 {
+    color: #13ec5b;
+    font-weight: 900;
+    letter-spacing: 0;
+    margin-bottom: 0.4rem;
+    margin-top: 1.25rem;
+  }
+
+  .travel-md h1 {
+    font-size: 1.25rem;
+  }
+
+  .travel-md h2 {
+    font-size: 1.05rem;
+  }
+
+  .travel-md h3 {
+    color: inherit;
+    font-size: 0.95rem;
+    opacity: 0.9;
+  }
+
+  .travel-md p {
+    margin-bottom: 0.65rem;
+  }
+
+  .travel-md ul,
+  .travel-md ol {
+    margin-bottom: 0.65rem;
+    padding-left: 1.25rem;
+  }
+
+  .travel-md ul {
+    list-style: disc;
+  }
+
+  .travel-md ol {
+    list-style: decimal;
+  }
+
+  .travel-md li {
+    margin-bottom: 0.25rem;
+  }
+
+  .travel-md strong {
+    font-weight: 800;
+  }
+
+  .travel-md em {
+    font-style: italic;
+    opacity: 0.85;
+  }
+
+  .travel-md code {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0.3rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    padding: 0.1em 0.4em;
+  }
+
+  .travel-md blockquote {
+    border-left: 3px solid #13ec5b;
+    margin: 0.75rem 0;
+    opacity: 0.75;
+    padding-left: 1rem;
+  }
+
+  .travel-md table {
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-bottom: 0.75rem;
+    width: 100%;
+  }
+
+  .travel-md th {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    padding: 0.4rem 0.75rem;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .travel-md td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.4rem 0.75rem;
+  }
+
+  .travel-md hr {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 1rem 0;
+  }
+
+  html:not(.dark) .travel-md th {
+    border-bottom-color: rgba(0, 0, 0, 0.15);
+  }
+
+  html:not(.dark) .travel-md td {
+    border-bottom-color: rgba(0, 0, 0, 0.07);
+  }
+
+  html:not(.dark) .travel-md code {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  html:not(.dark) .travel-md blockquote {
+    opacity: 0.65;
+  }
+
   .leaflet-container .leaflet-pane {
     z-index: 400 !important;
   }
@@ -223,6 +371,34 @@
   50% {
     transform: translateY(-8px) rotate(35deg) scale(1.08);
   }
+}
+
+@keyframes liveLocationPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    transform: scale(0.95);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(37, 99, 235, 0);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    transform: scale(0.95);
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.shimmer {
+  animation: shimmer 1.6s ease-in-out infinite;
 }
 
 /* Animations are defined in tailwind.config.js */

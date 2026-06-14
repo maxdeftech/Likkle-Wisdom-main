@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { aviationRoutes } from '../../data/aviationRoutes';
 import { travelPlaces } from '../../data/travelPlaces';
 import { generateTravelText } from '../../services/geminiService';
+import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
+import { generateTripPDF } from '../../utils/travel/generateTripPDF';
 
 type Currency = 'USD' | 'JMD';
 type Accommodation = 'Hotel' | 'Villa' | 'Airbnb' | 'Hostel' | 'Any';
@@ -181,6 +184,29 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
   const weeksRemaining = goal.targetDate ? Math.max(1, Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / (86400000 * 7))) : 0;
   const weeklyNeeded = weeksRemaining ? Math.ceil(goalRemaining / weeksRemaining) : goalRemaining;
 
+  const handleDownloadPDF = () => {
+    if (!result) return;
+    generateTripPDF({
+      destination: form.destination,
+      departureCity: form.departureCity,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      travellers: form.travellers,
+      budget,
+      currency: form.currency,
+      accommodation: form.accommodation,
+      interests: form.interests,
+      estimatedTotal,
+      flightEstimate: matchingRoute?.estimatedCost || 'From $450 USD',
+      nights,
+      aiPlanText: result,
+      goalTargetAmount: goal.targetAmount,
+      goalCurrentSavings: goal.currentSavings,
+      goalProgress,
+      weeklyNeeded
+    });
+  };
+
   return (
     <div className="space-y-5 animate-fade-in">
       <form onSubmit={generatePlan} className="glass rounded-2xl p-4 shadow-2xl">
@@ -248,8 +274,10 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
         </label>
 
         <button type="submit" disabled={isLoading} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-[11px] font-black uppercase tracking-widest text-background-dark disabled:opacity-60">
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span>
-          {isLoading ? 'Generating Plan' : 'Generate Trip Plan'}
+          <span className={`material-symbols-outlined text-[18px] ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true">
+            {isLoading ? 'progress_activity' : 'auto_awesome'}
+          </span>
+          {isLoading ? 'Generating…' : 'Generate Trip Plan'}
         </button>
       </form>
 
@@ -260,54 +288,70 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Plan Result</p>
               <h2 className="text-xl font-black text-slate-950 dark:text-white">{form.destination}</h2>
             </div>
-            <button type="button" onClick={savePlan} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-[10px] font-black uppercase tracking-widest text-background-dark disabled:opacity-50">
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark_add</span>
-              Save Plan
-            </button>
-          </div>
-
-          <div className="mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
-            <div className="mb-2 flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">
-              <span>Total vs Budget</span>
-              <span>{form.currency} {estimatedTotal.toLocaleString()} / {form.currency} {budget.toLocaleString()}</span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full bg-slate-950/10 dark:bg-white/10">
-              <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${progressPercent}%` }} />
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={savePlan} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-[10px] font-black uppercase tracking-widest text-background-dark disabled:opacity-50">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark_add</span>
+                Save Plan
+              </button>
+              <button type="button" onClick={handleDownloadPDF} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-primary px-4 text-[10px] font-black uppercase tracking-widest text-primary disabled:opacity-50">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+                Download PDF
+              </button>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ['flight', 'Flight', matchingRoute?.estimatedCost || 'From $450 USD'],
-              ['hotel', 'Stay', `${Math.max(nights, 1)} night(s)`],
-              ['restaurant', 'Meals', `$${55 * Math.max(nights, 1) * form.travellers} est.`],
-              ['shopping_bag', 'Essentials', `$${160 * form.travellers} est.`]
-            ].map(([icon, label, value]) => (
-              <div key={label} className="rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
-                <span className="material-symbols-outlined text-primary" aria-hidden="true">{icon}</span>
-                <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">{label}</p>
-                <p className="text-sm font-black text-slate-950 dark:text-white">{value}</p>
+          {isLoading ? (
+            <div className="mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+              <AILoadingSkeleton />
+            </div>
+          ) : result ? (
+            <>
+              <div className="mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+                <div className="mb-2 flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">
+                  <span>Total vs Budget</span>
+                  <span>{form.currency} {estimatedTotal.toLocaleString()} / {form.currency} {budget.toLocaleString()}</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-slate-950/10 dark:bg-white/10">
+                  <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${progressPercent}%` }} />
+                </div>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-4 space-y-2">
-            {[1, 2, 3].map(day => (
-              <div key={day} className="rounded-2xl border border-slate-950/10 dark:border-white/10">
-                <button type="button" onClick={() => setOpenDay(openDay === day ? 0 : day)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-black text-slate-950 dark:text-white">
-                  Day {day} Focus
-                  <span className="material-symbols-outlined text-primary" aria-hidden="true">{openDay === day ? 'expand_less' : 'expand_more'}</span>
-                </button>
-                {openDay === day && (
-                  <p className="px-4 pb-4 text-sm font-semibold leading-relaxed text-slate-600 dark:text-white/60">
-                    {day === 1 ? 'Arrive, settle in, and keep the first night low-pressure.' : day === 2 ? 'Use the strongest full day for the main attraction, food stop, and evening walk.' : 'Leave room for shopping, cosmetics, beach gear, and the return airport transfer.'}
-                  </p>
-                )}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['flight', 'Flight', matchingRoute?.estimatedCost || 'From $450 USD'],
+                  ['hotel', 'Stay', `${Math.max(nights, 1)} night(s)`],
+                  ['restaurant', 'Meals', `$${55 * Math.max(nights, 1) * form.travellers} est.`],
+                  ['shopping_bag', 'Essentials', `$${160 * form.travellers} est.`]
+                ].map(([icon, label, value]) => (
+                  <div key={label} className="rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
+                    <span className="material-symbols-outlined text-primary" aria-hidden="true">{icon}</span>
+                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">{label}</p>
+                    <p className="text-sm font-black text-slate-950 dark:text-white">{value}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {result && <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-950/5 p-4 font-body text-sm font-semibold leading-relaxed text-slate-700 dark:bg-white/5 dark:text-white/70">{result}</pre>}
+              <div className="mt-4 space-y-2">
+                {[1, 2, 3].map(day => (
+                  <div key={day} className="rounded-2xl border border-slate-950/10 dark:border-white/10">
+                    <button type="button" onClick={() => setOpenDay(openDay === day ? 0 : day)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-black text-slate-950 dark:text-white">
+                      Day {day} Focus
+                      <span className="material-symbols-outlined text-primary" aria-hidden="true">{openDay === day ? 'expand_less' : 'expand_more'}</span>
+                    </button>
+                    {openDay === day && (
+                      <p className="px-4 pb-4 text-sm font-semibold leading-relaxed text-slate-600 dark:text-white/60">
+                        {day === 1 ? 'Arrive, settle in, and keep the first night low-pressure.' : day === 2 ? 'Use the strongest full day for the main attraction, food stop, and evening walk.' : 'Leave room for shopping, cosmetics, beach gear, and the return airport transfer.'}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="travel-md mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+                <ReactMarkdown>{result}</ReactMarkdown>
+              </div>
+            </>
+          ) : null}
         </section>
       )}
 
