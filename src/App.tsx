@@ -20,6 +20,7 @@ import AIWisdom from './views/AIWisdom';
 import Settings from './views/Settings';
 import AlertsView from './views/AlertsView';
 import BottomNav from './components/BottomNav';
+import TravelBottomNav, { TravelTab } from './components/TravelBottomNav';
 import CategoryResultsView from './views/CategoryResultsView';
 import JamaicanHistoryView from './views/JamaicanHistoryView';
 import LegalView from './views/LegalView';
@@ -30,6 +31,7 @@ import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import NavigationChatbot from './components/NavigationChatbot';
 import WelcomeModal from './components/WelcomeModal';
 import GuestAuthModal from './components/GuestAuthModal';
+import { useIsDesktop } from './hooks/useIsDesktop';
 import { validateWisdomText } from './utils/validation';
 
 export type NotificationPayload = {
@@ -86,7 +88,9 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [travelTab, setTravelTab] = useState<TravelTab>('maps');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const isDesktop = useIsDesktop();
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [manualRefreshMessage, setManualRefreshMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -703,7 +707,19 @@ const App: React.FC = () => {
       case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} userWisdoms={userWisdoms} />;
       case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} isOnline={isOnline} />;
       case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
-      case 'travel': return <TravelView user={user} onBack={() => { setActiveTab('home'); setActiveCategory(null); }} onGuestRestricted={() => setShowAuthGate(true)} />;
+      case 'travel': return (
+        <TravelView
+          user={user}
+          onBack={() => {
+            setActiveTab('home');
+            setActiveCategory(null);
+            setTravelTab('maps');
+          }}
+          onGuestRestricted={() => setShowAuthGate(true)}
+          travelTab={travelTab}
+          onTravelTabChange={setTravelTab}
+        />
+      );
       case 'me': return <Profile user={user} entries={journalEntries} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} bookmarkedVerses={bookmarkedVerses} userWisdoms={userWisdoms} onOpenSettings={handleOpenSettings} onStatClick={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onUpdateUser={handleUpdateUser} onRemoveBookmark={handleRemoveBookmark} onAddWisdom={handleAddWisdom} onDeleteWisdom={handleDeleteWisdom} onRefresh={handleRefreshApp} initialTab={profileInitialTab} startAdding={profileStartAdding} />;
       default: return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
     }
@@ -844,14 +860,26 @@ const App: React.FC = () => {
         />
       )}
       {user && view !== 'auth' && (
-        <BottomNav
-          activeTab={activeTab}
-          onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
-          isCollapsed={isNavCollapsed}
-          onToggleCollapsed={() => setIsNavCollapsed(prev => !prev)}
-          onOpenSettings={handleOpenSettings}
-          onSignOut={handleSignOut}
-        />
+        activeTab === 'travel' && !isDesktop ? (
+          <TravelBottomNav
+            activeTab={travelTab}
+            onTabChange={setTravelTab}
+            onBack={() => {
+              setActiveTab('home');
+              setActiveCategory(null);
+              setTravelTab('maps');
+            }}
+          />
+        ) : (
+          <BottomNav
+            activeTab={activeTab}
+            onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); setProfileInitialTab('cabinet'); setProfileStartAdding(false); }}
+            isCollapsed={isNavCollapsed}
+            onToggleCollapsed={() => setIsNavCollapsed(prev => !prev)}
+            onOpenSettings={handleOpenSettings}
+            onSignOut={handleSignOut}
+          />
+        )
       )}
       <PWAInstallPrompt />
       <PWAUpdatePrompt />

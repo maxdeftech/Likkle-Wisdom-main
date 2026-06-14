@@ -11,16 +11,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ progress, message }) => {
       <div className="h-12 w-full"></div>
 
       <div className="flex flex-col items-center justify-center space-y-8 animate-fade-in">
-        <div className="relative w-32 h-32 flex items-center justify-center rounded-3xl bg-white/5 border border-white/10 shadow-2xl animate-float">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl pointer-events-none"></div>
-          <div className="relative flex flex-col items-center">
-            <span className="material-symbols-outlined text-[#13ec5b] text-6xl animate-slow-spin" style={{ fontVariationSettings: "'FILL' 1" }}>
-              sunny
-            </span>
-            <span className="material-symbols-outlined text-[#13ec5b]/80 text-4xl -mt-4" style={{ fontVariationSettings: "'FILL' 1" }}>
-              eco
-            </span>
-          </div>
+        <div className="relative w-36 h-36 flex items-center justify-center rounded-[2.5rem] bg-white/5 border border-white/10 shadow-2xl animate-float overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+          <img
+            src="/icons/icon-512x512.png"
+            alt="Likkle Wisdom"
+            className="w-28 h-28 object-contain drop-shadow-[0_0_24px_rgba(19,236,91,0.35)]"
+            draggable={false}
+          />
         </div>
 
         <div className="text-center">

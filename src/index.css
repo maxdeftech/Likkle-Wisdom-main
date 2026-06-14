@@ -293,6 +293,22 @@
     padding: 0.1em 0.4em;
   }
 
+  .travel-md pre {
+    background: rgba(19, 236, 91, 0.06);
+    border: 1px solid rgba(19, 236, 91, 0.2);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin: 0.75rem 0;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+
+  .travel-md pre code {
+    background: transparent;
+    font-size: inherit;
+    padding: 0;
+  }
+
   .travel-md blockquote {
     border-left: 3px solid #13ec5b;
     margin: 0.75rem 0;

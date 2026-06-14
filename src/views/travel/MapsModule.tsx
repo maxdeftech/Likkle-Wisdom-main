@@ -8,6 +8,7 @@ import { generateTravelText } from '../../services/geminiService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
+import { useAIProgress } from '../../hooks/useAIProgress';
 
 type FilterId = TravelCategory | 'prices' | 'all';
 type TripList = { listName: string; placeIds: string[] };
@@ -70,6 +71,20 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
   const [guidePrompt, setGuidePrompt] = useState('');
   const [guideResponse, setGuideResponse] = useState('');
   const [isGuideLoading, setIsGuideLoading] = useState(false);
+  const guideTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const guideProgress = useAIProgress(isGuideLoading, !!guideResponse && !isGuideLoading);
+
+  React.useEffect(() => {
+    const el = guideTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [guidePrompt]);
+
+  const resizeGuideTextarea = (element: HTMLTextAreaElement) => {
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  };
 
   const visiblePlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -139,6 +154,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
     const prompt = guidePrompt.trim();
     if (!prompt) return;
     setIsGuideLoading(true);
+    setGuideResponse('');
     const nearest = visiblePlaces.slice(0, 6).map(place => `${place.name} (${travelCategoryMeta[place.category].label})`).join(', ');
     const fallback = `Destination suggestion\n\nTry building the trip around ${visiblePlaces[0]?.name || 'Kingston and Ocho Rios'}. Keep transport flexible, reserve part of the budget for entry fees, and compare nearby places such as ${nearest || 'Dunns River Falls, Devon House, and Seven Mile Beach'}.`;
     const response = await generateTravelText(
@@ -206,7 +222,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
       </div>
 
       <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
-        <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[62vh] min-h-[460px] w-full">
+        <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[44vh] min-h-[320px] w-full lg:h-[56vh] lg:min-h-[420px]">
           <MapRecenter center={mapCenter} zoom={mapZoom} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -262,11 +278,22 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
         {guideOpen && (
           <form onSubmit={generateGuide} className="mt-4 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row">
-              <input
+              <textarea
+                ref={guideTextareaRef}
                 value={guidePrompt}
-                onChange={event => setGuidePrompt(event.target.value)}
+                onChange={event => {
+                  setGuidePrompt(event.target.value);
+                  resizeGuideTextarea(event.currentTarget);
+                }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    generateGuide(event);
+                  }
+                }}
                 placeholder="Where do you want to go? What's your budget?"
-                className="h-12 flex-1 rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+                rows={1}
+                className="min-h-[48px] w-full resize-none overflow-hidden rounded-2xl border border-slate-950/10 bg-white/70 px-4 py-3 text-sm font-bold leading-relaxed text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white sm:flex-1"
               />
               <div className="flex gap-2">
                 <button type="button" onClick={startVoiceInput} className="glass flex size-12 items-center justify-center rounded-2xl text-slate-950 dark:text-white" aria-label="Use voice input">
@@ -281,12 +308,19 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               </div>
             </div>
             {(isGuideLoading || guideResponse) && (
-              <div className="travel-md rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+              <div className="rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
                 {isGuideLoading ? (
-                  <AILoadingSkeleton />
+                  <AILoadingSkeleton progress={guideProgress} />
                 ) : (
                   <>
-                    <ReactMarkdown>{guideResponse}</ReactMarkdown>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">auto_awesome</span>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">AI Destination Guide</p>
+                      <div className="h-px flex-1 bg-primary/20" />
+                    </div>
+                    <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
+                      <ReactMarkdown>{guideResponse}</ReactMarkdown>
+                    </div>
                     <div className="mt-4 flex justify-end">
                       <button
                         type="button"
@@ -306,30 +340,36 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
       </div>
 
       {selectedPlace && (
-        <div className="fixed inset-0 z-[9999] flex items-end bg-black/50 p-0 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6" onClick={() => setSelectedPlace(null)}>
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/50 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6"
+          onClick={() => setSelectedPlace(null)}
+        >
           <article
-            style={{ animation: 'slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1)' }}
-            className="max-h-[88vh] w-full overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl dark:bg-background-dark lg:max-w-2xl lg:rounded-[2rem]"
+            style={{ animation: 'slideUp 0.38s cubic-bezier(0.32, 0.72, 0, 1)' }}
+            className="relative max-h-[90vh] w-full overflow-y-auto rounded-t-[2.5rem] bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.35)] dark:bg-[#0d1f13] lg:max-h-[88vh] lg:max-w-2xl lg:rounded-[2rem]"
             onClick={event => event.stopPropagation()}
           >
-            <div className="relative h-56 overflow-hidden rounded-t-[2rem]">
+            <div className="sticky top-0 z-10 flex justify-center pb-1 pt-3 lg:hidden">
+              <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-white/20" />
+            </div>
+            <div className="relative h-52 overflow-hidden lg:rounded-t-[2rem]">
               <img src={selectedPlace.imageUrl} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <button type="button" onClick={() => setSelectedPlace(null)} className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur" aria-label="Close place details">
-                <span className="material-symbols-outlined" aria-hidden="true">close</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <button type="button" onClick={() => setSelectedPlace(null)} className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm" aria-label="Close place details">
+                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
               </button>
               <div className="absolute bottom-4 left-5 right-5">
-                <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-background-dark" style={{ background: travelCategoryMeta[selectedPlace.category].color }}>
-                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">{travelCategoryMeta[selectedPlace.category].icon}</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#0a1a0f]" style={{ background: travelCategoryMeta[selectedPlace.category].color }}>
+                  <span className="material-symbols-outlined text-[13px]" aria-hidden="true">{travelCategoryMeta[selectedPlace.category].icon}</span>
                   {travelCategoryMeta[selectedPlace.category].label}
                 </span>
-                <h2 className="mt-3 text-3xl font-black text-white">{selectedPlace.name}</h2>
+                <h2 className="mt-2 text-[1.6rem] font-black leading-tight text-white">{selectedPlace.name}</h2>
               </div>
             </div>
-            <div className="space-y-5 p-5 pb-10 lg:pb-6">
-              <div className="flex items-start gap-2 text-sm font-bold text-slate-600 dark:text-white/60">
-                <span className="material-symbols-outlined text-primary" aria-hidden="true">location_on</span>
-                <span>{selectedPlace.lat.toFixed(4)}, {selectedPlace.lng.toFixed(4)}</span>
+            <div className="space-y-4 p-5 pb-10 lg:pb-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-white/50">
+                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">location_on</span>
+                <span>{selectedPlace.name}, Jamaica</span>
               </div>
               {selectedPlace.averageCost && (
                 <div className="inline-flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-2 text-sm font-black text-primary">
@@ -340,25 +380,26 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               <p className="text-sm font-semibold leading-relaxed text-slate-700 dark:text-white/70">{selectedPlace.description}</p>
               <div className="flex flex-wrap gap-2">
                 {selectedPlace.website && (
-                  <a href={selectedPlace.website} target="_blank" rel="noreferrer" className="glass flex size-11 items-center justify-center rounded-2xl text-slate-950 dark:text-white" aria-label="Official website">
-                    <span className="material-symbols-outlined" aria-hidden="true">language</span>
+                  <a href={selectedPlace.website} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-950 dark:text-white" aria-label="Official website">
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">language</span>
+                    Website
                   </a>
                 )}
                 {Object.entries(selectedPlace.social || {}).map(([network, href]) => href ? (
-                  <a key={network} href={href} target="_blank" rel="noreferrer" className="glass flex size-11 items-center justify-center rounded-2xl text-slate-950 dark:text-white" aria-label={network}>
-                    <span className="text-[10px] font-black uppercase">{network.slice(0, 2)}</span>
+                  <a key={network} href={href} target="_blank" rel="noreferrer" className="glass flex size-10 items-center justify-center rounded-2xl text-[10px] font-black uppercase text-slate-950 dark:text-white" aria-label={network}>
+                    {network.slice(0, 2).toUpperCase()}
                   </a>
                 ) : null)}
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3 pt-1">
                 <button type="button" onClick={() => toggleSaved(selectedPlace)} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary text-[11px] font-black uppercase tracking-widest text-background-dark">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{savedPlaceIds.includes(selectedPlace.id) ? 'favorite' : 'favorite_border'}</span>
-                  {savedPlaceIds.includes(selectedPlace.id) ? 'Saved' : 'Like / Save'}
+                  {savedPlaceIds.includes(selectedPlace.id) ? 'Saved' : 'Save Place'}
                 </button>
                 <div className="relative">
                   <button type="button" onClick={() => setShowTripPicker(prev => !prev)} className="glass flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-950 dark:text-white">
                     <span className="material-symbols-outlined text-[18px]" aria-hidden="true">playlist_add</span>
-                    Add to Trip List
+                    Add to List
                   </button>
                   {showTripPicker && (
                     <div className="absolute bottom-14 left-0 right-0 z-tooltip rounded-2xl border border-white/10 bg-white p-3 shadow-2xl dark:bg-slate-950">

@@ -5,6 +5,7 @@ import { travelPlaces } from '../../data/travelPlaces';
 import { generateTravelText } from '../../services/geminiService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import { generateTripPDF } from '../../utils/travel/generateTripPDF';
+import { useAIProgress } from '../../hooks/useAIProgress';
 
 type Currency = 'USD' | 'JMD';
 type Accommodation = 'Hotel' | 'Villa' | 'Airbnb' | 'Hostel' | 'Any';
@@ -88,6 +89,8 @@ const FinancialPlannerModule: React.FC = () => {
   const [goal, setGoal] = useState<SavingsGoal>(() => readJson<SavingsGoal>(GOAL_KEY, { targetAmount: 1500, currentSavings: 250, targetDate: '' }));
   const [essentialsOpen, setEssentialsOpen] = useState(false);
   const [openDay, setOpenDay] = useState(1);
+  const destinationTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const departureTextareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const nights = getNights(form.startDate, form.endDate);
   const budget = parseAmount(form.budget);
@@ -102,6 +105,20 @@ const FinancialPlannerModule: React.FC = () => {
   }, [form.accommodation, form.travellers, matchingRoute, nights]);
   const progressPercent = budget ? Math.min(100, Math.round((estimatedTotal / budget) * 100)) : 0;
   const progressColor = estimatedTotal <= budget * 0.85 ? 'bg-primary' : estimatedTotal <= budget ? 'bg-jamaican-gold' : 'bg-red-500';
+  const aiProgress = useAIProgress(isLoading, !!result && !isLoading);
+
+  React.useEffect(() => {
+    [destinationTextareaRef.current, departureTextareaRef.current].forEach(el => {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    });
+  }, [form.destination, form.departureCity]);
+
+  const resizePlannerTextarea = (element: HTMLTextAreaElement) => {
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  };
 
   const updateForm = <K extends keyof PlannerForm>(key: K, value: PlannerForm[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -119,6 +136,7 @@ const FinancialPlannerModule: React.FC = () => {
   const generatePlan = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
+    setResult('');
     const relevantPlaces = travelPlaces
       .filter(place => form.interests.some(interest => {
         const lower = interest.toLowerCase();
@@ -218,11 +236,29 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
         <div className="grid gap-4 lg:grid-cols-2">
           <label className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Destination</span>
-            <input value={form.destination} onChange={event => updateForm('destination', event.target.value)} className="h-12 w-full rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white" />
+            <textarea
+              ref={destinationTextareaRef}
+              value={form.destination}
+              onChange={event => {
+                updateForm('destination', event.target.value);
+                resizePlannerTextarea(event.currentTarget);
+              }}
+              rows={1}
+              className="min-h-[48px] w-full resize-none overflow-hidden rounded-2xl border border-slate-950/10 bg-white/70 px-4 py-3 text-sm font-bold leading-relaxed text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+            />
           </label>
           <label className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Departure City</span>
-            <input value={form.departureCity} onChange={event => updateForm('departureCity', event.target.value)} className="h-12 w-full rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white" />
+            <textarea
+              ref={departureTextareaRef}
+              value={form.departureCity}
+              onChange={event => {
+                updateForm('departureCity', event.target.value);
+                resizePlannerTextarea(event.currentTarget);
+              }}
+              rows={1}
+              className="min-h-[48px] w-full resize-none overflow-hidden rounded-2xl border border-slate-950/10 bg-white/70 px-4 py-3 text-sm font-bold leading-relaxed text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
+            />
           </label>
           <label className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Start Date</span>
@@ -302,7 +338,7 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
 
           {isLoading ? (
             <div className="mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
-              <AILoadingSkeleton />
+              <AILoadingSkeleton progress={aiProgress} />
             </div>
           ) : result ? (
             <>
@@ -347,8 +383,15 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
                 ))}
               </div>
 
-              <div className="travel-md mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
-                <ReactMarkdown>{result}</ReactMarkdown>
+              <div className="mt-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">auto_awesome</span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">AI-Generated Plan</p>
+                  <div className="h-px flex-1 bg-primary/20" />
+                </div>
+                <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
+                  <ReactMarkdown>{result}</ReactMarkdown>
+                </div>
               </div>
             </>
           ) : null}

@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
 import { User } from '../types';
+import { TravelTab } from '../components/TravelBottomNav';
 import MapsModule from './travel/MapsModule';
 import AviationModule from './travel/AviationModule';
 import FinancialPlannerModule from './travel/FinancialPlannerModule';
-
-type TravelTab = 'maps' | 'aviation' | 'planner';
 
 interface TravelViewProps {
   user: User;
   onBack: () => void;
   onGuestRestricted: () => void;
+  travelTab: TravelTab;
+  onTravelTabChange: (tab: TravelTab) => void;
 }
 
 const travelTabs: { id: TravelTab; label: string; icon: string }[] = [
@@ -18,12 +18,10 @@ const travelTabs: { id: TravelTab; label: string; icon: string }[] = [
   { id: 'planner', label: 'Financial Planner', icon: 'savings' }
 ];
 
-const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted }) => {
-  const [travelTab, setTravelTab] = useState<TravelTab>('maps');
-
+const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted, travelTab, onTravelTabChange }) => {
   return (
     <section className="min-h-full pb-28 lg:pb-10">
-      <header className="sticky top-0 z-sticky border-b border-white/10 bg-white/80 px-4 py-4 backdrop-blur-2xl dark:bg-background-dark/80 sm:px-6 lg:px-8">
+      <header className="border-b border-white/10 bg-white/80 px-4 py-4 backdrop-blur-2xl dark:bg-background-dark/80 sm:px-6 lg:sticky lg:top-0 lg:z-[100] lg:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           <button
             type="button"
@@ -45,14 +43,14 @@ const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted
           <div className="size-11 shrink-0" aria-hidden="true" />
         </div>
 
-        <div className="mx-auto mt-4 flex max-w-7xl gap-2 overflow-x-auto no-scrollbar rounded-2xl bg-slate-950/5 p-1 dark:bg-white/5" role="tablist" aria-label="Travel modules">
+        <div className="mx-auto mt-4 hidden max-w-7xl gap-2 overflow-x-auto no-scrollbar rounded-2xl bg-slate-950/5 p-1 dark:bg-white/5 lg:flex" role="tablist" aria-label="Travel modules">
           {travelTabs.map(tab => (
             <button
               key={tab.id}
               type="button"
               role="tab"
               aria-selected={travelTab === tab.id}
-              onClick={() => setTravelTab(tab.id)}
+              onClick={() => onTravelTabChange(tab.id)}
               className={`flex min-w-fit flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
                 travelTab === tab.id
                   ? 'bg-primary text-background-dark shadow-lg shadow-primary/20'

@@ -22,9 +22,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollaps
 
   return (
     <nav
-      className={`fixed z-dropdown glass border-white/10 shadow-2xl transition-all duration-300
-        bottom-0 left-0 right-0 min-h-[4rem] pb-safe border-t flex items-center justify-around px-2 rounded-t-2xl
-        lg:top-0 lg:bottom-0 lg:right-auto lg:h-screen lg:min-h-0 lg:pb-0 lg:pt-safe lg:border-t-0 lg:border-r lg:rounded-none lg:flex-col lg:justify-start lg:items-stretch lg:gap-2 lg:px-3 lg:py-5
+      className={`fixed z-dropdown bottom-[max(0.85rem,env(safe-area-inset-bottom))] left-1/2 right-auto flex h-[70px] w-[calc(100%-2rem)] max-w-[430px] -translate-x-1/2 items-center justify-around rounded-full border border-primary/15 bg-[#07120a]/95 px-3 shadow-[0_18px_44px_rgba(0,0,0,0.45)] backdrop-blur-2xl transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:border before:border-white/5
+        lg:top-0 lg:bottom-0 lg:left-0 lg:right-auto lg:h-screen lg:min-h-0 lg:max-w-none lg:translate-x-0 lg:rounded-none lg:border-t-0 lg:border-r lg:border-white/10 lg:bg-white/5 lg:px-3 lg:py-5 lg:pt-safe lg:shadow-2xl lg:backdrop-blur-[16px] lg:before:hidden lg:flex-col lg:justify-start lg:items-stretch lg:gap-2
         ${isCollapsed ? 'lg:w-24' : 'lg:w-72'}`}
       aria-label="Main navigation"
     >
@@ -55,17 +54,17 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollaps
             aria-label={tab.label}
             title={isCollapsed ? tab.label : undefined}
             aria-current={activeTab === tab.id ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 transition-all duration-300 flex-1 py-1 rounded-2xl
-              lg:flex-none lg:h-14 lg:flex-row lg:justify-start lg:px-4 lg:gap-3
+            className={`relative z-10 flex size-12 shrink-0 items-center justify-center rounded-full transition-all duration-300
+              lg:size-auto lg:flex-none lg:h-14 lg:flex-row lg:justify-start lg:px-4 lg:gap-3 lg:rounded-2xl
               ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}
-              ${activeTab === tab.id ? 'text-primary lg:bg-primary/10 lg:border lg:border-primary/20' : 'text-slate-900/40 dark:text-white/40 lg:hover:text-slate-900 lg:dark:hover:text-white lg:hover:bg-white/5'}`}
+              ${activeTab === tab.id ? 'bg-white text-[#07120a] shadow-[0_0_0_2px_rgba(244,209,37,0.74),0_10px_22px_rgba(0,0,0,0.35)] lg:border lg:border-primary/20 lg:bg-primary/10 lg:text-primary lg:shadow-none' : 'text-white/70 hover:text-primary lg:text-slate-900/40 lg:hover:bg-white/5 lg:hover:text-slate-900 dark:lg:text-white/40 lg:dark:hover:text-white'}`}
           >
-            <div className={`transition-all duration-300 ${activeTab === tab.id ? 'scale-110 lg:scale-100' : 'scale-100'}`}>
-              <span className={`material-symbols-outlined text-[24px] ${activeTab === tab.id ? 'fill-1' : ''}`} aria-hidden="true">
+            <div className="transition-all duration-300">
+              <span className={`material-symbols-outlined text-[25px] lg:text-[24px] ${activeTab === tab.id ? 'lg:fill-1' : ''}`} aria-hidden="true">
                 {tab.icon}
               </span>
             </div>
-            <span className={`text-[9px] font-black uppercase tracking-tighter sm:tracking-widest lg:text-[11px] lg:tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>
+            <span className={`sr-only lg:not-sr-only lg:text-[11px] lg:font-black lg:uppercase lg:tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>
               {tab.label}
             </span>
           </button>
