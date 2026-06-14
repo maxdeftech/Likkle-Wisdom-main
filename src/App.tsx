@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Tab, Quote, JournalEntry, User, BibleAffirmation, IconicQuote, UserWisdom } from './types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, ICONIC_QUOTES, CATEGORIES } from './constants';
 import { supabase } from './services/supabase';
@@ -127,10 +127,6 @@ const App: React.FC = () => {
   }, []);
   const [publicProfileId, setPublicProfileId] = useState<string | null>(null);
 
-  // Pull-to-refresh state
-  const [isPulling, setIsPulling] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
-  const pullStartY = useRef(0);
   const mainScrollRef = useRef<HTMLDivElement>(null);
 
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
@@ -713,92 +709,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Swipe navigation
-  const TAB_ORDER: Tab[] = ['home', 'discover', 'bible', 'book', 'travel', 'me'];
-  const touchStartX = React.useRef(0);
-  const touchStartY = React.useRef(0);
-  const touchStartedInHorizontalScroller = React.useRef(false);
-
-  const didTouchStartInHorizontalScroller = (target: EventTarget | null) => {
-    let element = target instanceof HTMLElement ? target : null;
-
-    while (element && element !== mainScrollRef.current) {
-      const style = window.getComputedStyle(element);
-      const canScrollHorizontally =
-        (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
-        element.scrollWidth > element.clientWidth;
-
-      if (canScrollHorizontally) return true;
-      element = element.parentElement;
-    }
-
-    return false;
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    touchStartedInHorizontalScroller.current = didTouchStartInHorizontalScroller(e.target);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    // Ignore swipes when overlays are open
-    if (showSettings || showAI || publicProfileId || activeCategory || view === 'jamaicanHistory') return;
-    if (view !== 'main') return;
-    if (touchStartedInHorizontalScroller.current) return;
-
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = e.changedTouches[0].clientY - touchStartY.current;
-
-    // Only trigger for horizontal swipes (more horizontal than vertical)
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
-
-    const currentIdx = TAB_ORDER.indexOf(activeTab);
-    if (currentIdx === -1) return;
-
-    if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
-      // Swipe left -> next tab
-      setActiveTab(TAB_ORDER[currentIdx + 1]);
-      setActiveCategory(null);
-    } else if (dx > 0 && currentIdx > 0) {
-      // Swipe right -> previous tab
-      setActiveTab(TAB_ORDER[currentIdx - 1]);
-      setActiveCategory(null);
-    }
-  };
-
-  // Pull-to-refresh: user must pull down this far (px) before release triggers refresh
-  const PULL_REFRESH_THRESHOLD = 140;
-  const PULL_MAX_DISTANCE = 220;
-
-  const handlePullStart = (e: React.TouchEvent) => {
-    const scrollTop = mainScrollRef.current?.scrollTop || 0;
-    if (scrollTop === 0) {
-      pullStartY.current = e.touches[0].clientY;
-    }
-  };
-
-  const handlePullMove = (e: React.TouchEvent) => {
-    const scrollTop = mainScrollRef.current?.scrollTop || 0;
-    if (scrollTop > 0 || pullStartY.current === 0) return;
-
-    const dy = e.touches[0].clientY - pullStartY.current;
-    if (dy > 0 && dy < PULL_MAX_DISTANCE) {
-      setPullDistance(dy);
-      setIsPulling(true);
-    }
-  };
-
-  const handlePullEnd = async () => {
-    if (pullDistance > PULL_REFRESH_THRESHOLD) {
-      // Trigger refresh
-      await handleRefreshApp();
-    }
-    setIsPulling(false);
-    setPullDistance(0);
-    pullStartY.current = 0;
-  };
-
   if (view === 'splash') return <SplashScreen progress={loadingProgress} message={manualRefreshMessage || undefined} />;
 
   const containerClass = 'relative flex flex-col h-screen w-full overflow-hidden bg-white dark:bg-background-dark transition-colors duration-300';
@@ -834,29 +744,7 @@ const App: React.FC = () => {
         role="main"
         aria-label="Main content"
         tabIndex={-1}
-        onTouchStart={(e) => { handleTouchStart(e); handlePullStart(e); }}
-        onTouchMove={handlePullMove}
-        onTouchEnd={(e) => { handleTouchEnd(e); handlePullEnd(); }}
       >
-        {/* Pull-to-refresh indicator */}
-        {isPulling && (
-          <div
-            className="absolute top-0 left-0 right-0 flex justify-center items-center z-50 transition-all duration-200"
-            style={{ height: `${pullDistance}px` }}
-            role="status"
-            aria-live="polite"
-            aria-label={pullDistance > PULL_REFRESH_THRESHOLD ? 'Release to refresh' : 'Pull down to refresh'}
-          >
-            <div className={`flex flex-col items-center gap-1 transition-opacity ${pullDistance > PULL_REFRESH_THRESHOLD ? 'opacity-100' : 'opacity-40'}`}>
-              <span className={`material-symbols-outlined text-primary text-2xl ${pullDistance > PULL_REFRESH_THRESHOLD ? 'animate-spin' : ''}`} aria-hidden="true">
-                refresh
-              </span>
-              <span className="text-[8px] font-black uppercase tracking-widest text-primary">
-                {pullDistance > PULL_REFRESH_THRESHOLD ? 'Release to refresh' : 'Pull down'}
-              </span>
-            </div>
-          </div>
-        )}
         {renderContent()}
       </main>
 

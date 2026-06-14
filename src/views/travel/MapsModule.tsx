@@ -202,11 +202,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               position={[place.lat, place.lng]}
               icon={makePlaceIcon(place.category)}
               eventHandlers={{
-                click: () => {
-                  setSelectedPlace(place);
-                  setMapCenter([place.lat, place.lng]);
-                  setMapZoom(13);
-                }
+                click: () => setSelectedPlace(place)
               }}
             />
           ))}
@@ -268,8 +264,12 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
       </div>
 
       {selectedPlace && (
-        <div className="fixed inset-0 z-overlay flex items-end bg-black/50 p-0 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6" onClick={() => setSelectedPlace(null)}>
-          <article className="max-h-[88vh] w-full overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl dark:bg-background-dark lg:max-w-2xl lg:rounded-[2rem]" onClick={event => event.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-end bg-black/50 p-0 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6" onClick={() => setSelectedPlace(null)}>
+          <article
+            style={{ animation: 'slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1)' }}
+            className="max-h-[88vh] w-full overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl dark:bg-background-dark lg:max-w-2xl lg:rounded-[2rem]"
+            onClick={event => event.stopPropagation()}
+          >
             <div className="relative h-56 overflow-hidden rounded-t-[2rem]">
               <img src={selectedPlace.imageUrl} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
@@ -284,7 +284,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                 <h2 className="mt-3 text-3xl font-black text-white">{selectedPlace.name}</h2>
               </div>
             </div>
-            <div className="space-y-5 p-5 pb-safe">
+            <div className="space-y-5 p-5 pb-10 lg:pb-6">
               <div className="flex items-start gap-2 text-sm font-bold text-slate-600 dark:text-white/60">
                 <span className="material-symbols-outlined text-primary" aria-hidden="true">location_on</span>
                 <span>{selectedPlace.lat.toFixed(4)}, {selectedPlace.lng.toFixed(4)}</span>

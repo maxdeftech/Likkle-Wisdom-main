@@ -195,6 +195,25 @@
     animation: flight-pulse 1.8s ease-in-out infinite;
     background: #f4d125;
   }
+
+  .leaflet-container .leaflet-pane {
+    z-index: 400 !important;
+  }
+
+  .leaflet-container .leaflet-control-container {
+    z-index: 450 !important;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes flight-pulse {
