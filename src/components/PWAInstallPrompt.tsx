@@ -71,7 +71,7 @@ const PWAInstallPrompt: React.FC = () => {
         return (
             <button
                 onClick={handleMaximize}
-                className="fixed bottom-24 right-4 z-[9999] size-14 rounded-full glass bg-white/10 border border-white/20 shadow-2xl flex items-center justify-center animate-bounce-slow"
+                className="fixed bottom-24 right-4 z-[9999] size-14 rounded-full glass bg-white/10 border border-white/20 shadow-2xl flex items-center justify-center animate-bounce-slow lg:bottom-auto lg:top-5 lg:right-5"
                 aria-label="Install App"
             >
                 <span className="material-symbols-outlined text-white text-2xl">download</span>

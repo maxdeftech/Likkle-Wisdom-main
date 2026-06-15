@@ -5,7 +5,7 @@
  */
 
 type ChatMessage = {
-  role: 'system' | 'user';
+  role: 'system' | 'user' | 'assistant';
   content: string;
 };
 
@@ -168,6 +168,59 @@ export async function generateTravelText(prompt: string, fallback: string): Prom
   } catch (error) {
     console.info('OpenRouter travel generation used fallback response.', error);
     return fallback;
+  }
+}
+
+/**
+ * Conversational chat for the Likkle Guide assistant.
+ * Accepts full message history so the model has context.
+ */
+export async function chatWithGuide(
+  messages: { role: 'user' | 'assistant'; content: string }[]
+): Promise<string> {
+  const apiKey = getOpenRouterApiKey();
+  if (!apiKey) return "Mi cyaan chat right now — di API key nuh set up yet. Ask yuh admin fi add it.";
+
+  const systemMessage: ChatMessage = {
+    role: 'system',
+    content: `You are "Likkle Guide" — the friendly AI assistant inside the Likkle Wisdom app. You speak with light Jamaican Patois flavour but stay clear and helpful. You help users with TWO things:
+
+1. APP GUIDE — You know every feature of Likkle Wisdom:
+   - Home: daily wisdom quotes (Jamaican Patois proverbs, Bible affirmations, iconic quotes), mood-based AI wisdom generation, category browsing
+   - Discover: search across all wisdom, browse categories, Jamaican history section
+   - Bible: full KJV Bible reader with bookmarking, verse search
+   - Likkle Book: encrypted private journal with mood tracking
+   - Travel: Jamaica travel suite with 4 modules:
+     * Maps: 25+ curated Jamaican places with GPS, filters by category, AI destination guide, save places to trip lists
+     * Aviation Routes: international flight routes to Kingston/Montego Bay with interactive map, airline links, pull-up detail panels
+     * Financial Planner: AI-powered trip budgeting with cost breakdown, savings goal tracker, PDF export
+     * Trip Planner: build day-by-day itinerary with stop ordering, connecting route lines on map, AI trip improvement suggestions
+   - Profile: wisdom cabinet (bookmarks), user wisdoms, journal stats, public/private toggle
+   - Settings: theme toggle (dark/light), account management
+   - AI Wisdom: mood-based Jamaican proverb generation
+   - PDF Export: structured PDFs with colour-coded sections, tables, proper formatting — named LikkleWisdom_Date_Module.pdf
+   - PWA: installable as an app on any device
+   - AI-generated content persists when navigating between pages
+
+2. JAMAICA TRAVEL ASSISTANT — You give practical travel advice about Jamaica: destinations, culture, food, safety tips, budget planning, local customs, patois phrases, transportation, best times to visit, hidden gems.
+
+Keep responses concise, warm, and helpful. Use Jamaican expressions naturally but don't overdo it. If asked about something outside your scope, politely redirect.`
+  };
+
+  const apiMessages: ChatMessage[] = [
+    systemMessage,
+    ...messages
+  ];
+
+  try {
+    return await generateWithFallbackModel(
+      apiKey,
+      apiMessages,
+      { temperature: 0.7, maxTokens: 1024 }
+    );
+  } catch (error) {
+    console.info('Likkle Guide chat error:', error);
+    return "Hmm, mi mind fuzzy right now. Try ask again inna likkle bit.";
   }
 }
 

@@ -82,7 +82,7 @@ export interface UserWisdom {
 
 /** Top-level app view: splash → onboarding → auth → main; privacy/terms are full-screen legal; jamaicanHistory from Discover. */
 export type View = 'splash' | 'onboarding' | 'auth' | 'main' | 'privacy' | 'terms' | 'jamaicanHistory';
-/** Main tab when view is 'main': home, discover, bible, book (journal), travel, me (profile). */
-export type Tab = 'home' | 'discover' | 'bible' | 'book' | 'travel' | 'me';
+/** Main tab when view is 'main': home, discover, guide (Likkle Guide AI chat), bible, book (journal), travel, me (profile). */
+export type Tab = 'home' | 'discover' | 'guide' | 'bible' | 'book' | 'travel' | 'me';
 /** Mood for journal entries and AI wisdom generation. */
 export type Mood = 'Peace' | 'Hustle' | 'Joy' | 'Healing';

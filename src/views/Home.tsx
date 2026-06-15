@@ -327,22 +327,22 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         </div>
       </section>
 
-      {/* Visit Likkle Wisdom — web, iOS, and Android */}
+      {/* Likkle Guide — AI assistant */}
       <div className="mb-10 px-1">
         <button
           type="button"
-          onClick={() => window.open('https://www.likklewisdom.com/', '_blank')}
-          className="w-full relative overflow-hidden group bg-gradient-to-r from-jamaican-gold to-primary rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
+          onClick={() => onTabChange('guide')}
+          className="w-full relative overflow-hidden group bg-gradient-to-r from-primary to-jamaican-gold rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
         >
           <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
           <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="size-10 shrink-0 rounded-full bg-jamaican-gold/10 flex items-center justify-center text-jamaican-gold border border-jamaican-gold/20">
-                <span className="material-symbols-outlined text-xl">language</span>
+              <div className="size-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                <span className="material-symbols-outlined text-xl">smart_toy</span>
               </div>
               <div className="text-left">
-                <h3 className="text-white font-black text-sm uppercase tracking-wide">Visit Likkle Wisdom</h3>
-                <p className="text-white/50 text-[10px] font-bold tracking-wider">Check out di Likkle Wisdom link</p>
+                <h3 className="text-white font-black text-sm uppercase tracking-wide">Likkle Guide</h3>
+                <p className="text-white/50 text-[10px] font-bold tracking-wider">Chat with yuh AI travel &amp; app assistant</p>
               </div>
             </div>
             <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">

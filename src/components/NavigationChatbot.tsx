@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { CHATBOT_KNOWLEDGE, FALLBACK_RESPONSE } from '../data/chatbot_knowledge';
+import { chatWithGuide } from '../services/geminiService';
 
 interface Message {
     id: string;
@@ -157,8 +158,10 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
         };
     }, []);
 
-    const handleSend = () => {
-        if (!input.trim()) return;
+    const [isThinking, setIsThinking] = useState(false);
+
+    const handleSend = async () => {
+        if (!input.trim() || isThinking) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -167,25 +170,48 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
         };
 
         setMessages(prev => [...prev, userMessage]);
-        setShowQuickActions(false); // Hide quick actions after user sends first message
+        setShowQuickActions(false);
         const currentInput = input.toLowerCase();
+        const originalInput = input;
         setInput('');
 
-        // AI Logic
-        setTimeout(() => {
-            const match = CHATBOT_KNOWLEDGE.find(k =>
-                k.keywords.some(keyword => currentInput.includes(keyword))
-            );
+        // Check keyword matches first
+        const match = CHATBOT_KNOWLEDGE.find(k =>
+            k.keywords.some(keyword => currentInput.includes(keyword))
+        );
 
-            const aiResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                text: match ? match.response : FALLBACK_RESPONSE,
-                sender: 'ai',
-                action: match?.action
-            };
-
-            setMessages(prev => [...prev, aiResponse]);
-        }, 600);
+        if (match) {
+            setTimeout(() => {
+                const aiResponse: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: match.response,
+                    sender: 'ai',
+                    action: match.action
+                };
+                setMessages(prev => [...prev, aiResponse]);
+            }, 400);
+        } else {
+            // Fall back to OpenRouter AI
+            setIsThinking(true);
+            try {
+                const response = await chatWithGuide([{ role: 'user', content: originalInput }]);
+                const aiResponse: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: response,
+                    sender: 'ai'
+                };
+                setMessages(prev => [...prev, aiResponse]);
+            } catch {
+                const aiResponse: Message = {
+                    id: (Date.now() + 1).toString(),
+                    text: FALLBACK_RESPONSE,
+                    sender: 'ai'
+                };
+                setMessages(prev => [...prev, aiResponse]);
+            } finally {
+                setIsThinking(false);
+            }
+        }
     };
 
     const handleActionClick = (action: Message['action']) => {
@@ -193,6 +219,30 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
             onNavigate(action.type, action.value);
             setIsOpen(false);
         }
+    };
+
+    const handleQuickAction = (query: string) => {
+        setShowQuickActions(false);
+        const userMsg: Message = {
+            id: Date.now().toString(),
+            text: query,
+            sender: 'user'
+        };
+        setMessages(prev => [...prev, userMsg]);
+        setInput('');
+
+        const match = CHATBOT_KNOWLEDGE.find(k =>
+            k.keywords.some(keyword => query.toLowerCase().includes(keyword))
+        );
+        setTimeout(() => {
+            const aiResponse: Message = {
+                id: (Date.now() + 1).toString(),
+                text: match ? match.response : FALLBACK_RESPONSE,
+                sender: 'ai',
+                action: match?.action
+            };
+            setMessages(prev => [...prev, aiResponse]);
+        }, 400);
     };
 
     return (
@@ -270,43 +320,34 @@ const NavigationChatbot: React.FC<NavigationChatbotProps> = ({ onNavigate }) => 
                         </div>
                     ))}
 
+                    {isThinking && (
+                        <div className="flex justify-start">
+                            <div className="max-w-[85%] rounded-2xl p-4 bg-slate-900/5 dark:bg-white/5 rounded-tl-none border border-slate-900/5 dark:border-white/5">
+                                <div className="flex items-center gap-2">
+                                    <span className="size-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <span className="size-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <span className="size-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Quick Action Buttons */}
                     {showQuickActions && messages.length === 1 && (
                         <div className="grid grid-cols-2 gap-2 mt-4 animate-fade-in">
                             {[
                                 { label: 'About App', icon: 'info', query: 'What is Likkle Wisdom?' },
-                                { label: 'Bible', icon: 'menu_book', query: 'Show me the Bible' },
+                                { label: 'Travel', icon: 'flight', query: 'Tell me about the travel features' },
                                 { label: 'AI Wisdom', icon: 'auto_awesome', query: 'Generate custom wisdom' },
+                                { label: 'Bible', icon: 'menu_book', query: 'Show me the Bible' },
+                                { label: 'Guide Page', icon: 'smart_toy', query: 'Open the Likkle Guide page' },
                                 { label: 'Journal', icon: 'book', query: 'Open my journal' },
-                                { label: 'Profile', icon: 'person', query: 'Open my profile' },
-                                { label: 'Settings', icon: 'settings', query: 'Open settings' },
                             ].map((opt, i) => (
                                 <button
                                     key={i}
                                     onClick={() => {
                                         setInput(opt.query);
-                                        setShowQuickActions(false);
-                                        // Simulate user sending the query
-                                        const userMsg: Message = {
-                                            id: Date.now().toString(),
-                                            text: opt.query,
-                                            sender: 'user'
-                                        };
-                                        setMessages(prev => [...prev, userMsg]);
-                                        
-                                        // Process response
-                                        setTimeout(() => {
-                                            const match = CHATBOT_KNOWLEDGE.find(k =>
-                                                k.keywords.some(keyword => opt.query.toLowerCase().includes(keyword))
-                                            );
-                                            const aiResponse: Message = {
-                                                id: (Date.now() + 1).toString(),
-                                                text: match ? match.response : FALLBACK_RESPONSE,
-                                                sender: 'ai',
-                                                action: match?.action
-                                            };
-                                            setMessages(prev => [...prev, aiResponse]);
-                                        }, 600);
+                                        handleQuickAction(opt.query);
                                     }}
                                     className="glass rounded-xl p-3 flex flex-col items-center gap-1 active:scale-95 transition-all border border-slate-900/5 dark:border-white/5 hover:border-primary/30"
                                 >

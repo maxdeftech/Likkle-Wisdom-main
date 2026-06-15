@@ -138,8 +138,47 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
         response: "Yuh can delete journal entries and wisdoms from yuh Profile. Tap di trash icon on yuh own entries or My Wisdom items.",
     },
     {
+        keywords: ['travel', 'trip', 'jamaica trip', 'flight', 'vacation', 'holiday'],
+        response: "Likkle Wisdom has a full Travel suite fi Jamaica! It includes Maps (25+ curated places with GPS), Aviation Routes (flights to Kingston & Montego Bay), Financial Planner (AI budget planning with PDF export), and Trip Planner (day-by-day itinerary with map routes). Tap below fi check it out!",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['map', 'places', 'destination', 'location', 'gps', 'where to go'],
+        response: "Di Maps module has 25+ curated Jamaican places with real GPS coordinates — beaches, waterfalls, restaurants, and more. Filter by category and get an AI destination guide fi any place!",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['flight', 'aviation', 'airline', 'fly', 'airport', 'route'],
+        response: "Check out Aviation Routes fi international flights to Kingston (KIN) and Montego Bay (MBJ). See airlines, tap routes fi details, and find booking links!",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['budget', 'cost', 'financial', 'savings', 'money', 'planner', 'expense'],
+        response: "Di Financial Planner helps yuh budget fi yuh Jamaica trip! Get AI-powered cost breakdowns, savings goal tracking, and export everything as a professional PDF.",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['itinerary', 'trip plan', 'stops', 'day by day', 'schedule trip'],
+        response: "Build yuh dream Jamaica trip with di Trip Planner! Add stops day by day, see routes on di map, and let AI suggest improvements. Export yuh plan as a PDF too!",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['pdf', 'export', 'download', 'print', 'report'],
+        response: "Yuh can export professional PDFs from di Financial Planner and Trip Planner! They come with colour-coded sections, tables, and proper formatting — named LikkleWisdom_Date_Module.pdf.",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['likkle guide', 'guide page', 'ai chat', 'chat page', 'full chat', 'assistant'],
+        response: "Want a full conversation with me? Open di Likkle Guide page fi a dedicated chat experience — ask about any app feature or Jamaica travel!",
+        action: { type: 'tab', value: 'guide' }
+    },
+    {
+        keywords: ['install', 'pwa', 'download app', 'add to home'],
+        response: "Yuh can install Likkle Wisdom as an app on any device! Look fi di download icon — it works offline too once installed.",
+    },
+    {
         keywords: ['what is', 'about', 'app', 'likkle wisdom', 'this app', 'tell me about', 'overview', 'features'],
-        response: "Likkle Wisdom is yuh daily dose of Jamaican culture and inspiration! 🇯🇲\n\n✨ FEATURES:\n• Daily Quotes & Wisdom in Patois\n• Full KJV Bible (read, listen, bookmark)\n• AI Wisdom Brewer fi custom vibes\n• Private Journal (encrypted)\n• Pen yuh own Patois proverbs\n• Saved wisdom cabinet on Profile\n• Highlight & note Bible verses\n• Offline mode fi on-the-go\n\nEvery feature celebrates di wisdom, culture, and irie vibes of Jamaica. One Love! 🌴",
+        response: "Likkle Wisdom is yuh daily dose of Jamaican culture, inspiration, and travel!\n\nFEATURES:\n- Daily Quotes and Wisdom in Patois\n- Full KJV Bible (read, bookmark, search)\n- AI Wisdom Brewer fi custom vibes\n- Private Encrypted Journal\n- Pen yuh own Patois proverbs\n- Saved wisdom cabinet on Profile\n- Jamaica Travel Suite (Maps, Aviation, Budget Planner, Trip Planner)\n- AI Destination Guides and Trip AI\n- Professional PDF Export\n- Likkle Guide AI Assistant\n- PWA installable on any device\n- Offline mode\n\nEvery feature celebrates di wisdom, culture, and irie vibes of Jamaica. One Love!",
     },
     {
         keywords: ['bug', 'broken', 'error', 'crash', 'not working', 'problem'],

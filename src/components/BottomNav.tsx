@@ -14,6 +14,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollaps
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'discover', label: 'Discover', icon: 'explore' },
+    { id: 'guide', label: 'Guide', icon: 'smart_toy' },
     { id: 'bible', label: 'Bible', icon: 'auto_stories' },
     { id: 'book', label: 'Journal', icon: 'edit_note' },
     { id: 'travel', label: 'Travel', icon: 'flight' },
