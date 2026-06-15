@@ -42,6 +42,17 @@ import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/600.css';
 import '@fontsource/space-grotesk/700.css';
 
+// --- Reveal icons only after Material Symbols font has loaded ---
+// Prevents raw icon names (e.g. "home", "smart_toy") from flashing on screen
+if (document.fonts?.ready) {
+  document.fonts.ready.then(() => {
+    document.documentElement.classList.add('icons-loaded');
+  });
+} else {
+  // Fallback: if FontFaceSet API not available, show after a short delay
+  setTimeout(() => document.documentElement.classList.add('icons-loaded'), 100);
+}
+
 // --- Mount root ---
 const rootElement = document.getElementById('root');
 if (!rootElement) {

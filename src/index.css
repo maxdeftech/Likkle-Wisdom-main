@@ -1,4 +1,5 @@
 /* Material Symbols Outlined: use bundled font so icons render offline (no raw icon names). */
+/* overflow:hidden + fixed dimensions prevent raw icon text from flashing before the font loads. */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
@@ -13,6 +14,18 @@
   direction: ltr;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  width: 1em;
+  height: 1em;
+}
+
+/* Hide icons completely until the Material Symbols font is ready.
+   The .icons-loaded class is added by JS once the font loads. */
+.material-symbols-outlined {
+  visibility: hidden;
+}
+.icons-loaded .material-symbols-outlined {
+  visibility: visible;
 }
 
 @tailwind base;
