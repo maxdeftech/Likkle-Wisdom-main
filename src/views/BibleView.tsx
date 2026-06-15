@@ -718,7 +718,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
         </div>
       )}
 
-      <div className="flex items-center gap-4 mb-8 max-w-2xl mx-auto">
+      <div className="flex items-center gap-4 mb-8">
         <button onClick={() => setChapter(Math.max(1, chapter - 1))} className="size-14 sm:size-16 rounded-2xl glass flex items-center justify-center text-primary"><span className="material-symbols-outlined text-3xl sm:text-4xl">chevron_left</span></button>
         <div onClick={() => { setShowSelector(true); setSelectorStage('book'); }} className="flex-1 glass h-14 sm:h-16 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary/20 transition-all">
           <span className="text-[9px] sm:text-[11px] font-black uppercase text-primary/60">{book}</span>
@@ -728,7 +728,7 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
       </div>
 
       {/* Verses */}
-      <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="space-y-6">
         {loading ? (
           <div className="py-24 text-center"><span className="material-symbols-outlined text-5xl text-primary animate-spin">sync</span></div>
         ) : error ? (
