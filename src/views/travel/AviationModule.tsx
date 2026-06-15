@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MapContainer, Marker, Polyline, TileLayer } from 'react-leaflet';
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet';
 import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AviationRoute, aviationRoutes } from '../../data/aviationRoutes';
+import { AviationRoute, aviationRoutes, inboundRoutes, FlightDirection } from '../../data/aviationRoutes';
 
 type OriginCode = 'KIN' | 'MBJ';
 
@@ -39,20 +39,32 @@ const routeSearchText = (route: AviationRoute) => [
 
 const AviationModule: React.FC = () => {
   const [origin, setOrigin] = useState<OriginCode>('KIN');
+  const [direction, setDirection] = useState<FlightDirection>('from');
   const [query, setQuery] = useState('');
   const [selectedRouteId, setSelectedRouteId] = useState('kin-mia');
   const [detailRoute, setDetailRoute] = useState<AviationRoute | null>(null);
 
+  const allRoutes = direction === 'from' ? aviationRoutes : inboundRoutes;
+
   const filteredRoutes = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return aviationRoutes.filter(route => (
-      route.origin.code === origin &&
+    if (direction === 'from') {
+      return allRoutes.filter(route => (
+        route.origin.code === origin &&
+        (!normalized || routeSearchText(route).includes(normalized))
+      ));
+    }
+    // Inbound: filter by destination (Jamaica airport)
+    return allRoutes.filter(route => (
+      route.destination.code === origin &&
       (!normalized || routeSearchText(route).includes(normalized))
     ));
-  }, [origin, query]);
+  }, [origin, query, direction, allRoutes]);
 
-  const selectedRoute = aviationRoutes.find(route => route.id === selectedRouteId) || filteredRoutes[0] || aviationRoutes[0];
-  const visibleRoutes = filteredRoutes.length ? filteredRoutes : aviationRoutes.filter(route => route.origin.code === origin);
+  const selectedRoute = allRoutes.find(route => route.id === selectedRouteId) || filteredRoutes[0] || allRoutes[0];
+  const visibleRoutes = filteredRoutes.length ? filteredRoutes : allRoutes.filter(route =>
+    direction === 'from' ? route.origin.code === origin : route.destination.code === origin
+  );
 
   const openRouteDetail = (route: AviationRoute) => {
     setSelectedRouteId(route.id);
@@ -62,7 +74,7 @@ const AviationModule: React.FC = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="glass rounded-2xl p-4 shadow-2xl">
-        <div className="grid gap-3 lg:grid-cols-[auto_1fr] lg:items-center">
+        <div className="grid gap-3 lg:grid-cols-[auto_auto_1fr] lg:items-center">
           <div className="flex rounded-2xl bg-slate-950/5 p-1 dark:bg-white/5">
             {(['KIN', 'MBJ'] as OriginCode[]).map(code => (
               <button
@@ -70,14 +82,40 @@ const AviationModule: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setOrigin(code);
-                  const firstRoute = aviationRoutes.find(route => route.origin.code === code);
-                  if (firstRoute) setSelectedRouteId(firstRoute.id);
+                  const first = (direction === 'from' ? aviationRoutes : inboundRoutes).find(r =>
+                    direction === 'from' ? r.origin.code === code : r.destination.code === code
+                  );
+                  if (first) setSelectedRouteId(first.id);
                 }}
                 className={`flex-1 rounded-xl px-5 py-3 text-[11px] font-black uppercase tracking-widest transition-all ${
                   origin === code ? 'bg-primary text-background-dark' : 'text-slate-600 dark:text-white/50'
                 }`}
               >
                 {code}
+              </button>
+            ))}
+          </div>
+          <div className="flex rounded-2xl bg-slate-950/5 p-1 dark:bg-white/5">
+            {([['from', 'From JA'], ['to', 'To JA']] as [FlightDirection, string][]).map(([dir, label]) => (
+              <button
+                key={dir}
+                type="button"
+                onClick={() => {
+                  setDirection(dir);
+                  const routes = dir === 'from' ? aviationRoutes : inboundRoutes;
+                  const first = routes.find(r =>
+                    dir === 'from' ? r.origin.code === origin : r.destination.code === origin
+                  );
+                  if (first) setSelectedRouteId(first.id);
+                }}
+                className={`flex-1 rounded-xl px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 ${
+                  direction === dir ? 'bg-primary text-background-dark' : 'text-slate-600 dark:text-white/50'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">
+                  {dir === 'from' ? 'flight_takeoff' : 'flight_land'}
+                </span>
+                {label}
               </button>
             ))}
           </div>
@@ -116,14 +154,26 @@ const AviationModule: React.FC = () => {
                   }}
                   eventHandlers={{ click: () => openRouteDetail(route) }}
                 />
-                <Marker position={[route.origin.lat, route.origin.lng]} icon={airportIcon} />
-                <Marker position={[route.destination.lat, route.destination.lng]} icon={airportIcon} eventHandlers={{ click: () => openRouteDetail(route) }} />
+                <Marker position={[route.origin.lat, route.origin.lng]} icon={airportIcon}>
+                  <Tooltip direction="top" offset={[0, -14]} className="aviation-tooltip">
+                    {route.origin.city}
+                  </Tooltip>
+                </Marker>
+                <Marker position={[route.destination.lat, route.destination.lng]} icon={airportIcon} eventHandlers={{ click: () => openRouteDetail(route) }}>
+                  <Tooltip direction="top" offset={[0, -14]} className="aviation-tooltip">
+                    {route.destination.city}, {route.destination.country}
+                  </Tooltip>
+                </Marker>
                 {selected && (
                   <Marker
                     position={arc[1]}
                     icon={planeIcon}
                     eventHandlers={{ click: () => openRouteDetail(route) }}
-                  />
+                  >
+                    <Tooltip direction="top" offset={[0, -14]} permanent={false} className="aviation-tooltip">
+                      {route.destination.flag} {route.destination.city}, {route.destination.country}
+                    </Tooltip>
+                  </Marker>
                 )}
               </React.Fragment>
             );
@@ -135,7 +185,9 @@ const AviationModule: React.FC = () => {
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Route List</p>
-            <h2 className="text-xl font-black text-slate-950 dark:text-white">{origin} departures</h2>
+            <h2 className="text-xl font-black text-slate-950 dark:text-white">
+              {direction === 'from' ? `${origin} departures` : `Arrivals to ${origin}`}
+            </h2>
           </div>
           <p className="max-w-xl text-xs font-bold leading-relaxed text-slate-500 dark:text-white/40">Estimated costs are approximate and may vary. Check airline websites for live pricing.</p>
         </div>

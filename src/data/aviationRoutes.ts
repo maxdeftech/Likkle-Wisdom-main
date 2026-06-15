@@ -84,6 +84,9 @@ const destinations = {
   fra: { code: 'FRA', name: 'Frankfurt Airport', lat: 50.0379, lng: 8.5622, city: 'Frankfurt', country: 'Germany', flag: '🇩🇪' }
 };
 
+/** Direction of flight relative to Jamaica */
+export type FlightDirection = 'from' | 'to';
+
 export const aviationRoutes: AviationRoute[] = [
   { id: 'kin-mia', origin: KIN, destination: destinations.mia, airlines: ['American Airlines', 'Caribbean Airlines'], airlineWebsites: buildWebsites(['American Airlines', 'Caribbean Airlines']), estimatedCost: 'From $320 USD', durationHours: 1.9, frequency: 'Daily' },
   { id: 'kin-jfk', origin: KIN, destination: destinations.jfk, airlines: ['JetBlue', 'Caribbean Airlines'], airlineWebsites: buildWebsites(['JetBlue', 'Caribbean Airlines']), estimatedCost: 'From $380 USD', durationHours: 3.8, frequency: 'Daily' },
@@ -111,3 +114,21 @@ export const aviationRoutes: AviationRoute[] = [
   { id: 'mbj-ams', origin: MBJ, destination: destinations.ams, airlines: ['KLM', 'TUI fly'], airlineWebsites: buildWebsites(['KLM', 'TUI fly']), estimatedCost: 'From $850 USD', durationHours: 10.0, frequency: 'Seasonal' },
   { id: 'mbj-fra', origin: MBJ, destination: destinations.fra, airlines: ['Condor', 'Eurowings Discover'], airlineWebsites: buildWebsites(['Condor', 'Eurowings Discover']), estimatedCost: 'From $880 USD', durationHours: 10.4, frequency: 'Seasonal' }
 ];
+
+/** Inbound routes (TO Jamaica) — mirror of outbound with origin/destination swapped */
+export const inboundRoutes: AviationRoute[] = aviationRoutes.map(route => ({
+  ...route,
+  id: `in-${route.id}`,
+  origin: {
+    code: route.destination.code,
+    name: route.destination.name,
+    lat: route.destination.lat,
+    lng: route.destination.lng,
+    city: route.destination.city
+  },
+  destination: {
+    ...route.origin,
+    country: 'Jamaica',
+    flag: '🇯🇲'
+  }
+}));

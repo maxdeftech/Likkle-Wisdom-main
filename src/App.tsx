@@ -840,7 +840,7 @@ const App: React.FC = () => {
           onOpenSettings={() => { handleCloseWelcome(); setShowSettings(true); }}
         />
       )}
-      {user && view !== 'auth' && (
+      {user && view !== 'auth' && !(activeTab === 'guide' && !isDesktop) && (
         activeTab === 'travel' && !isDesktop ? (
           <TravelBottomNav
             activeTab={travelTab}

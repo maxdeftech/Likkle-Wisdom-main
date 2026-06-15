@@ -245,6 +245,23 @@
     display: none !important;
   }
 
+  .aviation-tooltip {
+    background: rgba(15, 23, 42, 0.92) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    color: #fff !important;
+    padding: 5px 12px !important;
+    backdrop-filter: blur(8px);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  .aviation-tooltip::before {
+    border-top-color: rgba(15, 23, 42, 0.92) !important;
+  }
+
   .travel-md {
     color: inherit;
     font-size: 0.875rem;
