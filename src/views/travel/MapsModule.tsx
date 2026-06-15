@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -18,6 +19,21 @@ const SAVED_KEY = 'lkkle_travel_saved_places';
 const LISTS_KEY = 'lkkle_travel_trip_lists';
 
 const filterOrder: FilterId[] = ['all', 'hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure', 'airports', 'prices'];
+
+const getPlaceRating = (id: string) => (4.4 + (Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 7) / 10).toFixed(1);
+
+const getPlaceReviews = (id: string) => 48 + (Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 126);
+
+const getPlaceDuration = (category: TravelCategory) => {
+  if (category === 'hotels' || category === 'villas' || category === 'airbnb') return '2 nights';
+  if (category === 'airports') return 'Transfer';
+  return '1 day';
+};
+
+const getShortDescription = (description: string) => {
+  const trimmed = description.trim();
+  return trimmed.length > 132 ? `${trimmed.slice(0, 129).trim()}...` : trimmed;
+};
 
 const readJson = <T,>(key: string, fallback: T): T => {
   try {
@@ -99,6 +115,13 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
       return matchesQuery && matchesCategory && matchesPrice;
     });
   }, [activeFilters, query]);
+
+  const selectedRelatedPlaces = useMemo(() => {
+    if (!selectedPlace) return [];
+    const sameCategory = travelPlaces.filter(place => place.id !== selectedPlace.id && place.category === selectedPlace.category);
+    const otherPlaces = travelPlaces.filter(place => place.id !== selectedPlace.id && place.category !== selectedPlace.category);
+    return [...sameCategory, ...otherPlaces].slice(0, 6);
+  }, [selectedPlace]);
 
   const toggleFilter = (filter: FilterId) => {
     setActiveFilters(prev => {
@@ -339,90 +362,154 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
         )}
       </div>
 
-      {selectedPlace && (
+      {selectedPlace && createPortal((
         <div
-          className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/50 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6"
+          className="fixed inset-0 z-[2147483647] flex flex-col justify-end overflow-hidden bg-black/45 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6"
           onClick={() => setSelectedPlace(null)}
         >
           <article
             style={{ animation: 'slideUp 0.38s cubic-bezier(0.32, 0.72, 0, 1)' }}
-            className="relative max-h-[90vh] w-full overflow-y-auto rounded-t-[2.5rem] bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.35)] dark:bg-[#0d1f13] lg:max-h-[88vh] lg:max-w-2xl lg:rounded-[2rem]"
+            className="relative flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.35)] lg:h-auto lg:max-h-[88vh] lg:rounded-[2rem]"
             onClick={event => event.stopPropagation()}
           >
-            <div className="sticky top-0 z-10 flex justify-center pb-1 pt-3 lg:hidden">
-              <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-white/20" />
-            </div>
-            <div className="relative h-52 overflow-hidden lg:rounded-t-[2rem]">
+            <div className="relative h-[260px] shrink-0 overflow-hidden bg-slate-200 lg:rounded-t-[2rem]">
               <img src={selectedPlace.imageUrl} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <button type="button" onClick={() => setSelectedPlace(null)} className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm" aria-label="Close place details">
-                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+              <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 to-transparent" />
+              <button type="button" onClick={() => setSelectedPlace(null)} className="absolute left-4 top-5 flex size-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg" aria-label="Close place details">
+                <span className="material-symbols-outlined text-[22px]" aria-hidden="true">chevron_left</span>
               </button>
-              <div className="absolute bottom-4 left-5 right-5">
-                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest text-[#0a1a0f]" style={{ background: travelCategoryMeta[selectedPlace.category].color }}>
-                  <span className="material-symbols-outlined text-[13px]" aria-hidden="true">{travelCategoryMeta[selectedPlace.category].icon}</span>
-                  {travelCategoryMeta[selectedPlace.category].label}
+              <button type="button" onClick={() => toggleSaved(selectedPlace)} className="absolute right-4 top-5 flex size-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg" aria-label={savedPlaceIds.includes(selectedPlace.id) ? 'Remove saved place' : 'Save place'}>
+                <span className={`material-symbols-outlined text-[22px] ${savedPlaceIds.includes(selectedPlace.id) ? 'fill-1 text-red-500' : ''}`} aria-hidden="true">
+                  {savedPlaceIds.includes(selectedPlace.id) ? 'favorite' : 'favorite_border'}
                 </span>
-                <h2 className="mt-2 text-[1.6rem] font-black leading-tight text-white">{selectedPlace.name}</h2>
-              </div>
+              </button>
             </div>
-            <div className="space-y-4 p-5 pb-10 lg:pb-6">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-white/50">
-                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">location_on</span>
-                <span>{selectedPlace.name}, Jamaica</span>
-              </div>
-              {selectedPlace.averageCost && (
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-primary/10 px-4 py-2 text-sm font-black text-primary">
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">payments</span>
-                  {selectedPlace.averageCost}
+
+            <div
+              style={{ marginTop: -70 }}
+              className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[2.15rem] bg-white px-5 pb-5 pt-3 text-slate-950 no-scrollbar"
+            >
+              <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-slate-200" aria-hidden="true" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 className="truncate text-[1.45rem] font-black leading-tight tracking-tight">{selectedPlace.name}</h2>
+                  <div className="mt-2 flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
+                    <span className="flex size-4 items-center justify-center rounded-full text-[10px] text-[#07120a]" style={{ background: travelCategoryMeta[selectedPlace.category].color }}>
+                      <span className="material-symbols-outlined text-[11px]" aria-hidden="true">{travelCategoryMeta[selectedPlace.category].icon}</span>
+                    </span>
+                    Jamaica
+                  </div>
                 </div>
+                <div className="shrink-0 text-right">
+                  <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-[10px] font-black">
+                    <span className="material-symbols-outlined text-[13px]" aria-hidden="true">star</span>
+                    {getPlaceRating(selectedPlace.id)}
+                  </div>
+                  <p className="mt-1 text-[10px] font-bold text-slate-700 underline underline-offset-2">
+                    {getPlaceReviews(selectedPlace.id)} reviews
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-5 text-[12px] font-medium leading-relaxed text-slate-700">
+                {getShortDescription(selectedPlace.description)}
+              </p>
+              {selectedPlace.website && (
+                <a href={selectedPlace.website} target="_blank" rel="noreferrer" className="mt-2 w-fit border-b border-slate-950 text-[12px] font-bold leading-none text-slate-950">
+                  Read more
+                </a>
               )}
-              <p className="text-sm font-semibold leading-relaxed text-slate-700 dark:text-white/70">{selectedPlace.description}</p>
-              <div className="flex flex-wrap gap-2">
-                {selectedPlace.website && (
-                  <a href={selectedPlace.website} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-950 dark:text-white" aria-label="Official website">
-                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">language</span>
-                    Website
-                  </a>
-                )}
-                {Object.entries(selectedPlace.social || {}).map(([network, href]) => href ? (
-                  <a key={network} href={href} target="_blank" rel="noreferrer" className="glass flex size-10 items-center justify-center rounded-2xl text-[10px] font-black uppercase text-slate-950 dark:text-white" aria-label={network}>
-                    {network.slice(0, 2).toUpperCase()}
-                  </a>
-                ) : null)}
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button type="button" onClick={() => toggleSaved(selectedPlace)} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary text-[11px] font-black uppercase tracking-widest text-background-dark">
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{savedPlaceIds.includes(selectedPlace.id) ? 'favorite' : 'favorite_border'}</span>
-                  {savedPlaceIds.includes(selectedPlace.id) ? 'Saved' : 'Save Place'}
+
+              <div className="mt-6 flex items-center justify-between">
+                <h3 className="text-[1rem] font-black tracking-tight">Upcoming tours</h3>
+                <button type="button" onClick={() => setSelectedPlace(null)} className="border-b border-slate-950 text-[11px] font-bold leading-none">
+                  See all
                 </button>
-                <div className="relative">
-                  <button type="button" onClick={() => setShowTripPicker(prev => !prev)} className="glass flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-950 dark:text-white">
-                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">playlist_add</span>
-                    Add to List
-                  </button>
-                  {showTripPicker && (
-                    <div className="absolute bottom-14 left-0 right-0 z-tooltip rounded-2xl border border-white/10 bg-white p-3 shadow-2xl dark:bg-slate-950">
-                      <div className="max-h-36 overflow-y-auto">
-                        {tripLists.map(list => (
-                          <button key={list.listName} type="button" onClick={() => addPlaceToList(list.listName, selectedPlace.id)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-black text-slate-800 hover:bg-slate-950/5 dark:text-white dark:hover:bg-white/5">
-                            {list.listName}
-                            <span className="text-slate-400">{list.placeIds.length}</span>
-                          </button>
-                        ))}
-                      </div>
-                      <div className="mt-2 flex gap-2">
-                        <input value={newListName} onChange={event => setNewListName(event.target.value)} placeholder="New list" className="h-10 min-w-0 flex-1 rounded-xl border border-slate-950/10 bg-transparent px-3 text-xs font-bold outline-none focus:border-primary dark:border-white/10 dark:text-white" />
-                        <button type="button" onClick={() => addPlaceToList(newListName, selectedPlace.id)} className="rounded-xl bg-primary px-3 text-[10px] font-black uppercase text-background-dark">Add</button>
-                      </div>
-                    </div>
-                  )}
+              </div>
+
+              <div className="relative -mx-5 mt-3 min-h-0 overflow-x-auto px-5 pb-1 no-scrollbar">
+                <div className="flex gap-4">
+                  {selectedRelatedPlaces.map((place, index) => (
+                    <article
+                      key={place.id}
+                      onClick={() => {
+                        setSelectedPlace(place);
+                        setShowTripPicker(false);
+                      }}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPlace(place);
+                          setShowTripPicker(false);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      className="relative flex w-[184px] shrink-0 flex-col overflow-hidden rounded-[1.2rem] bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.12)] ring-1 ring-slate-100"
+                    >
+                      <span className="relative block h-[116px] overflow-hidden rounded-[1.2rem]">
+                        <img src={place.imageUrl} alt="" className="h-full w-full object-cover" />
+                        <span className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-white text-slate-950 shadow-md">
+                          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">favorite_border</span>
+                        </span>
+                      </span>
+                      <span className="block px-3 pb-3 pt-2">
+                        <span className="block truncate text-[13px] font-black text-slate-950">{place.name}</span>
+                        <span className="mt-1 block truncate text-[10px] font-semibold text-slate-400">
+                          {getPlaceDuration(place.category)} • {place.averageCost || travelCategoryMeta[place.category].label}
+                        </span>
+                        <span className="mt-2 flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                          <span className="inline-flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[13px]" aria-hidden="true">star</span>
+                            {getPlaceRating(place.id)}
+                          </span>
+                          <span>{getPlaceReviews(place.id)} reviews</span>
+                        </span>
+                      </span>
+                      {index === 0 && (
+                        <button
+                          type="button"
+                          onClick={event => {
+                            event.stopPropagation();
+                            setShowTripPicker(prev => !prev);
+                          }}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setShowTripPicker(prev => !prev);
+                            }
+                          }}
+                          className="absolute bottom-3 right-3 flex size-10 items-center justify-center rounded-full bg-[#161c1d] text-white shadow-lg"
+                          aria-label="Add selected place to trip list"
+                        >
+                          <span className="material-symbols-outlined text-[21px]" aria-hidden="true">arrow_forward</span>
+                        </button>
+                      )}
+                    </article>
+                  ))}
                 </div>
+                {showTripPicker && (
+                  <div className="absolute bottom-14 left-5 right-5 z-tooltip rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl">
+                    <div className="max-h-36 overflow-y-auto">
+                      {tripLists.map(list => (
+                        <button key={list.listName} type="button" onClick={() => addPlaceToList(list.listName, selectedPlace.id)} className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-xs font-black text-slate-800 hover:bg-slate-950/5">
+                          {list.listName}
+                          <span className="text-slate-400">{list.placeIds.length}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <input value={newListName} onChange={event => setNewListName(event.target.value)} placeholder="New list" className="h-10 min-w-0 flex-1 rounded-2xl border border-slate-950/10 bg-transparent px-3 text-xs font-bold text-slate-950 outline-none focus:border-primary" />
+                      <button type="button" onClick={() => addPlaceToList(newListName, selectedPlace.id)} className="rounded-2xl bg-primary px-3 text-[10px] font-black uppercase text-background-dark">Add</button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </article>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 };
