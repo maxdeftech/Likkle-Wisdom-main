@@ -219,8 +219,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   ];
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-y-auto bg-white p-6 pb-12 pt-safe font-display transition-colors duration-300 dark:bg-background-dark lg:mx-auto lg:grid lg:max-w-[1240px] lg:grid-cols-[minmax(0,1fr)_400px] lg:items-stretch lg:gap-8 lg:p-8 xl:grid-cols-[minmax(0,720px)_420px]">
-      <section className="relative hidden min-h-[calc(100dvh-4rem)] flex-1 overflow-hidden rounded-[2.5rem] border border-white/10 bg-background-dark p-10 text-white shadow-2xl lg:flex lg:flex-col lg:justify-between" aria-label="Welcome to Likkle Wisdom">
+    <div className="relative min-h-[100dvh] w-full overflow-y-auto bg-background-dark pt-safe font-display text-white">
+      <div className="mx-auto w-full max-w-[1240px] p-6 pb-12 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-stretch lg:gap-8 lg:p-8 xl:grid-cols-[minmax(0,720px)_420px]">
+      <section className="relative hidden min-h-[calc(100dvh-4rem)] flex-1 overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.04] p-10 text-white shadow-2xl lg:flex lg:flex-col lg:justify-between" aria-label="Welcome to Likkle Wisdom">
         <div className="absolute inset-y-8 left-8 hidden w-[calc(50%-3rem)] rounded-[2.5rem] bg-gradient-to-br from-primary/15 via-transparent to-jamaican-gold/20 blur-3xl lg:block" aria-hidden="true" />
         <div className="relative z-10 max-w-2xl">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.28em] text-primary">
@@ -248,16 +249,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-md flex-col justify-center lg:mx-0 lg:min-h-[calc(100dvh-4rem)] lg:max-w-none">
         <header className="py-10 text-center space-y-2 lg:py-0 lg:pb-8">
-          <h1 className="text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-white lg:text-3xl">
+          <h1 className="text-4xl font-black tracking-tight leading-none text-white lg:text-3xl">
             {mode === 'signup' ? 'Join di' : 'Back to'} <br />
             <span className="text-primary">Likkle Wisdom</span>
           </h1>
-          <p className="text-slate-500 dark:text-white/40 text-sm font-medium uppercase tracking-widest">
+          <p className="text-white/40 text-sm font-medium uppercase tracking-widest">
             {mode === 'signup' ? 'Start yuh journey' : 'Resume yuh growth'}
           </p>
         </header>
 
-      <div className="glass rounded-[2.5rem] p-6 shadow-2xl border-slate-200 dark:border-white/5 relative z-10 sm:p-8 lg:p-7 xl:p-8">
+      <div className="bg-white/5 backdrop-blur-[16px] rounded-[2.5rem] p-6 shadow-2xl border border-primary/50 relative z-10 sm:p-8 lg:p-7 xl:p-8">
         {errorMsg && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[10px] font-black flex flex-col gap-1">
             <div className="flex items-center gap-2">
@@ -272,12 +273,12 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
           <div className="text-center space-y-6 py-4">
             <span className="material-symbols-outlined text-primary text-5xl">mark_email_read</span>
             <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">CHECK YUH EMAIL</h3>
-              <p className="text-slate-500 dark:text-white/60 text-xs leading-relaxed">
+              <h3 className="text-xl font-black text-white mb-2">CHECK YUH EMAIL</h3>
+              <p className="text-white/60 text-xs leading-relaxed">
                 Wi send a password reset link to <span className="text-primary font-bold">{email}</span>. Click di link fi set a new password.
               </p>
             </div>
-            <button onClick={() => { setMode('signin'); setErrorMsg(null); }} className="w-full h-14 rounded-2xl glass text-slate-900 dark:text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">
+            <button onClick={() => { setMode('signin'); setErrorMsg(null); }} className="w-full h-14 rounded-2xl glass text-white font-black text-xs uppercase tracking-widest active:scale-95 transition-all">
               BACK TO SIGN IN
             </button>
           </div>
@@ -285,17 +286,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
           <form onSubmit={handleForgotPassword} className="space-y-6">
             <div className="text-center mb-2">
               <span className="material-symbols-outlined text-primary text-4xl mb-2">lock_reset</span>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase">Reset Password</h3>
-              <p className="text-slate-500 dark:text-white/60 text-xs mt-1">Enter yuh email an wi send a reset link</p>
+              <h3 className="text-lg font-black text-white uppercase">Reset Password</h3>
+              <p className="text-white/60 text-xs mt-1">Enter yuh email an wi send a reset link</p>
             </div>
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-1">Email</label>
-              <input type="email" className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-14 px-5 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="example@island.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <input type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-5 text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="example@island.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <button type="submit" disabled={loading} className="w-full h-16 rounded-2xl bg-primary text-background-dark font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
               {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : 'SEND RESET LINK'}
             </button>
-            <button type="button" onClick={() => { setMode('signin'); setErrorMsg(null); }} className="w-full text-slate-500 dark:text-white/60 text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors">
+            <button type="button" onClick={() => { setMode('signin'); setErrorMsg(null); }} className="w-full text-white/60 text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors">
               Back to Sign In
             </button>
           </form>
@@ -303,11 +304,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
           <form onSubmit={handleVerify} className="space-y-6">
             <div className="text-center mb-2">
               <span className="material-symbols-outlined text-primary text-4xl mb-2">mark_email_unread</span>
-              <p className="text-slate-600 dark:text-white/60 text-xs">Code sent to <span className="text-primary font-bold">{email}</span></p>
+              <p className="text-white/60 text-xs">Code sent to <span className="text-primary font-bold">{email}</span></p>
             </div>
             <input
               type="text" maxLength={6}
-              className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-16 px-5 text-center text-3xl font-black tracking-[0.4em] text-primary focus:border-primary/50 transition-all focus:ring-0"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl h-16 px-5 text-center text-3xl font-black tracking-[0.4em] text-primary focus:border-primary/50 transition-all focus:ring-0"
               placeholder="000000" value={otpToken} onChange={(e) => setOtpToken(e.target.value)} required
             />
             <button type="submit" disabled={loading || otpToken.length < 6} className="w-full h-16 rounded-2xl bg-primary text-background-dark font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
@@ -315,12 +316,12 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
             </button>
             <div className="text-center pt-2">
               {resendTimer > 0 ? (
-                <p className="text-slate-400 dark:text-white/30 text-[10px] font-bold uppercase tracking-widest">
+                <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">
                   Resend code in {Math.floor(resendTimer / 60)}:{String(resendTimer % 60).padStart(2, '0')}
                 </p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-slate-400 dark:text-white/30 text-[10px] font-bold uppercase tracking-widest">Nuh see di code?</p>
+                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">Nuh see di code?</p>
                   <button
                     type="button"
                     onClick={handleResendCode}
@@ -338,21 +339,21 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
             {mode === 'signup' && (
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-1">Username</label>
-                <input type="text" className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-14 px-5 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="yuh_name" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-5 text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="yuh_name" value={username} onChange={(e) => setUsername(e.target.value)} required />
               </div>
             )}
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-1">Email</label>
-              <input type="email" className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-14 px-5 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="example@island.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <input type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-5 text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="example@island.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-1">Password</label>
               <div className="relative">
-                <input type={showPassword ? 'text' : 'password'} minLength={6} className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-14 px-5 pr-14 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <input type={showPassword ? 'text' : 'password'} minLength={6} className="w-full bg-white/5 border border-white/10 rounded-2xl h-14 px-5 pr-14 text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 size-10 rounded-xl flex items-center justify-center text-slate-400 dark:text-white/40 hover:text-primary transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 size-10 rounded-xl flex items-center justify-center text-white/40 hover:text-primary transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
@@ -374,21 +375,22 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
 
         <div className="mt-8 text-center space-y-4">
           {(mode === 'signin' || mode === 'signup') && (
-          <button onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setErrorMsg(null); }} className="text-slate-500 dark:text-white/60 text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors">
+          <button onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setErrorMsg(null); }} className="text-white/60 text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors">
             {mode === 'signup' ? 'Already have an account? Sign In' : 'New here? Create account'}
           </button>
           )}
           <div className="flex items-center gap-4 py-2">
-            <div className="flex-1 h-px bg-slate-100 dark:bg-white/10"></div>
-            <span className="text-[9px] font-black text-slate-300 dark:text-white/20 uppercase tracking-widest">OR</span>
-            <div className="flex-1 h-px bg-slate-100 dark:bg-white/10"></div>
+            <div className="flex-1 h-px bg-white/10"></div>
+            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">OR</span>
+            <div className="flex-1 h-px bg-white/10"></div>
           </div>
-          <button onClick={handleGuest} className="w-full h-14 rounded-2xl glass border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black text-[10px] tracking-widest hover:bg-primary/5 active:scale-95 transition-all flex items-center justify-center gap-2">
+          <button onClick={handleGuest} className="w-full h-14 rounded-2xl glass border-white/10 text-white font-black text-[10px] tracking-widest hover:bg-primary/5 active:scale-95 transition-all flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-sm">person_outline</span> CONTINUE AS GUEST
           </button>
         </div>
       </div>
       </div>
+    </div>
     </div>
   );
 };

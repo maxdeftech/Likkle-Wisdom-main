@@ -16,7 +16,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
     switch (step) {
       case 1:
         return (
-          <div className="flex min-h-full flex-col justify-start items-center text-center px-6 pt-24 pb-6 sm:px-8 sm:pt-28">
+          <div className="flex h-full flex-col justify-center items-center text-center px-6 pb-6 sm:px-8">
             <div className="relative mb-7 sm:mb-10 flex items-center justify-center">
               <div className="absolute h-44 w-44 sm:h-60 sm:w-60 bg-primary/20 rounded-full blur-3xl opacity-60"></div>
               <div className="relative h-36 w-36 sm:h-48 sm:w-48 animate-float" aria-hidden="true">
@@ -107,7 +107,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
         </button>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {renderStep()}
       </div>
 
