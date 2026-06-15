@@ -442,16 +442,24 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
             onClick={event => event.stopPropagation()}
           >
             <div className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between bg-white px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] dark:bg-[#0d1f13] lg:hidden">
-              <div className="flex flex-1 justify-center">
-                <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-white/20" />
-              </div>
               <button
                 type="button"
                 onClick={() => setSelectedPlace(null)}
-                className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white"
+                className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 shadow-lg dark:bg-white/10 dark:text-white"
                 aria-label="Close"
               >
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+              </button>
+              <div className="absolute left-1/2 top-[calc(max(1rem,env(safe-area-inset-top))+1rem)] h-1 w-10 -translate-x-1/2 rounded-full bg-slate-300 dark:bg-white/20" aria-hidden="true" />
+              <button
+                type="button"
+                onClick={() => toggleSaved(selectedPlace)}
+                className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 shadow-lg dark:bg-white/10 dark:text-white"
+                aria-label={savedPlaceIds.includes(selectedPlace.id) ? 'Remove saved place' : 'Save place'}
+              >
+                <span className={`material-symbols-outlined text-[22px] ${savedPlaceIds.includes(selectedPlace.id) ? 'fill-1 text-red-500' : ''}`} aria-hidden="true">
+                  {savedPlaceIds.includes(selectedPlace.id) ? 'favorite' : 'favorite_border'}
+                </span>
               </button>
             </div>
             <button
@@ -465,7 +473,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
             <div className="relative h-[260px] shrink-0 overflow-hidden bg-slate-200 lg:rounded-t-[2rem]">
               <img src={selectedPlace.imageUrl} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 to-transparent" />
-              <button type="button" onClick={() => toggleSaved(selectedPlace)} className="absolute right-4 top-5 flex size-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg lg:right-16" aria-label={savedPlaceIds.includes(selectedPlace.id) ? 'Remove saved place' : 'Save place'}>
+              <button type="button" onClick={() => toggleSaved(selectedPlace)} className="absolute right-16 top-5 hidden size-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg lg:flex" aria-label={savedPlaceIds.includes(selectedPlace.id) ? 'Remove saved place' : 'Save place'}>
                 <span className={`material-symbols-outlined text-[22px] ${savedPlaceIds.includes(selectedPlace.id) ? 'fill-1 text-red-500' : ''}`} aria-hidden="true">
                   {savedPlaceIds.includes(selectedPlace.id) ? 'favorite' : 'favorite_border'}
                 </span>
