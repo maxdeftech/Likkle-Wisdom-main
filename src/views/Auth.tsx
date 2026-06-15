@@ -15,9 +15,12 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otpToken, setOtpToken] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<{ title: string, message: string } | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState(0);
 
   useEffect(() => {
     let interval: any;
@@ -29,10 +32,30 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  // Lockout countdown
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  useEffect(() => {
+    if (lockoutUntil <= Date.now()) { setLockoutRemaining(0); return; }
+    setLockoutRemaining(Math.ceil((lockoutUntil - Date.now()) / 1000));
+    const id = setInterval(() => {
+      const left = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      if (left <= 0) { setLockoutRemaining(0); setLoginAttempts(0); clearInterval(id); }
+      else setLockoutRemaining(left);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lockoutUntil]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg(null);
+
+    // Rate limit check for sign-in
+    if (mode === 'signin' && lockoutUntil > Date.now()) {
+      setErrorMsg({ title: 'TOO MANY ATTEMPTS', message: `Try again in ${Math.ceil((lockoutUntil - Date.now()) / 1000)} seconds.` });
+      return;
+    }
+
+    setLoading(true);
 
     if (!supabase) {
       setErrorMsg({ title: 'BACKEND ERROR', message: 'Connection to Supabase failed.' });
@@ -57,16 +80,25 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
       } else if (mode === 'signin') {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
+          const newAttempts = loginAttempts + 1;
+          setLoginAttempts(newAttempts);
+          if (newAttempts >= 5) {
+            setLockoutUntil(Date.now() + 60_000); // 60s lockout
+            setErrorMsg({ title: 'LOCKED OUT', message: 'Too many failed attempts. Try again in 60 seconds.' });
+            setLoading(false);
+            return;
+          }
           if (error.message.toLowerCase().includes('invalid login credentials')) {
             setErrorMsg({
               title: 'NUH ACCOUNT DEH DEH',
-              message: "We couldn't find an account with this email. If you're new, please sign up or join as a guest!"
+              message: `We couldn't find an account with this email. If you're new, please sign up or join as a guest! (${5 - newAttempts} attempts left)`
             });
             setLoading(false);
             return;
           }
           throw error;
         }
+        setLoginAttempts(0);
         if (data.user) await fetchProfileAndComplete(data.user.id, data.user.email);
       }
     } catch (err: any) {
@@ -315,7 +347,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
             </div>
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-1">Password</label>
-              <input type="password" minLength={6} className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-14 px-5 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} minLength={6} className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl h-14 px-5 pr-14 text-slate-900 dark:text-white focus:border-primary/50 transition-all focus:ring-0" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 size-10 rounded-xl flex items-center justify-center text-slate-400 dark:text-white/40 hover:text-primary transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
             </div>
             {mode === 'signin' && (
               <div className="text-right">
@@ -324,8 +366,8 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
                 </button>
               </div>
             )}
-            <button type="submit" disabled={loading} className="w-full h-16 rounded-2xl bg-primary text-background-dark font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4">
-              {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : <span>{mode === 'signup' ? 'SIGN UP' : 'SIGN IN'}</span>}
+            <button type="submit" disabled={loading || (mode === 'signin' && lockoutRemaining > 0)} className="w-full h-16 rounded-2xl bg-primary text-background-dark font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50">
+              {loading ? <span className="material-symbols-outlined animate-spin">progress_activity</span> : lockoutRemaining > 0 && mode === 'signin' ? <span>LOCKED ({lockoutRemaining}s)</span> : <span>{mode === 'signup' ? 'SIGN UP' : 'SIGN IN'}</span>}
             </button>
           </form>
         )}

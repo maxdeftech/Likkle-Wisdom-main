@@ -119,7 +119,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
         </div>
         <button
           onClick={next}
-          className="w-full h-[52px] rounded-2xl glass border-primary/20 text-primary font-black text-base hover:bg-primary hover:text-background-dark transition-all flex items-center justify-center gap-2 active:scale-95 shadow-xl"
+          className="w-full h-[52px] rounded-2xl glass border-primary/20 text-primary font-black text-base hover:bg-primary hover:text-jamaican-gold transition-all flex items-center justify-center gap-2 active:scale-95 shadow-xl"
         >
           <span>{step === 3 ? 'GET STARTED' : 'NEXT'}</span>
           <span className="material-symbols-outlined text-sm">chevron_right</span>

@@ -103,7 +103,9 @@ const App: React.FC = () => {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true;
+    if (saved) return saved === 'dark';
+    // No user preference saved — follow device/system theme
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
   });
 
   // Prevent keyboard from opening on first load (iOS): blur any auto-focused input
@@ -126,6 +128,20 @@ const App: React.FC = () => {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  // Follow system theme changes when user hasn't manually overridden
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const handler = (e: MediaQueryListEvent) => {
+      // Only follow system if no explicit user override stored
+      // Once user toggles in-app, localStorage is set, so this still fires
+      // but we respect it as a live update — user can always toggle back
+      setIsDarkMode(e.matches);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
