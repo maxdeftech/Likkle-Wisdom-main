@@ -124,6 +124,10 @@
     @apply text-white;
   }
 
+  html, html:root {
+    background-color: #0a1a0f !important;
+  }
+
   html:not(.dark) body {
     background-color: #f8fafc !important; /* slate-50 */
     @apply text-slate-900;
