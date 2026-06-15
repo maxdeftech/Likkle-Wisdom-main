@@ -605,5 +605,266 @@ export const travelPlaces: TravelPlace[] = [
     description: 'Tensing Pen on the Negril West End cliffs is a low-impact, eco-conscious cottage resort. It occupies a forested clifftop with rocky swimming pools at sea level, handcrafted cottages, and a peaceful atmosphere that reflects the original character of Negril before mass tourism.',
     website: 'https://www.tensing.com/',
     imageUrl: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1200&q=80'
+  },
+
+  /* ── Additional reputable places ──────────────────── */
+  {
+    id: 'doctors-cave-beach',
+    name: "Doctor's Cave Beach",
+    lat: 18.4960,
+    lng: -77.9248,
+    category: 'nature',
+    averageCost: '$6 USD entry',
+    description: "One of Montego Bay's most famous beaches, Doctor's Cave has been attracting visitors since the early 1900s when its mineral-rich waters were believed to have curative powers. The calm turquoise water and fine white sand make it a must-visit on the Hip Strip.",
+    website: 'https://www.doctorscavebathingclub.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'frenchmans-cove',
+    name: "Frenchman's Cove",
+    lat: 18.1850,
+    lng: -76.4240,
+    category: 'nature',
+    averageCost: '$10 USD entry',
+    description: "Frenchman's Cove in Port Antonio is a river-meets-sea beach surrounded by lush tropical forest. The fresh river water flows directly into a sheltered cove of the Caribbean Sea, creating one of Jamaica's most picturesque swimming spots.",
+    imageUrl: 'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'konoko-falls',
+    name: 'Konoko Falls & Park',
+    lat: 18.4100,
+    lng: -77.1150,
+    category: 'adventure',
+    averageCost: '$25 USD entry',
+    description: "Konoko Falls and tropical garden is a quieter alternative to Dunn's River Falls in Ocho Rios. The park includes waterfalls, a small zoo with native birds, Taino artefacts, and lush botanical gardens with panoramic views of the north coast.",
+    website: 'https://www.konokofalls.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'martha-brae-rafting',
+    name: 'Martha Brae River Rafting',
+    lat: 18.4847,
+    lng: -77.6279,
+    category: 'adventure',
+    averageCost: '$70 USD per raft',
+    description: 'Martha Brae rafting near Falmouth takes visitors on a gentle three-mile bamboo raft ride down a scenic river shaded by overhanging trees. Licensed raft captains navigate while sharing local stories and folklore about the river spirit.',
+    website: 'https://www.jamaicarafting.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'harmony-hall',
+    name: 'Harmony Hall',
+    lat: 18.3600,
+    lng: -76.8300,
+    category: 'culture',
+    averageCost: 'Free entry',
+    description: "Harmony Hall is an art gallery and craft centre near Oracabessa showcasing Jamaican contemporary art, sculpture, and fine crafts. The restored great house hosts exhibitions, a gift shop, and an Italian restaurant in a peaceful hillside setting.",
+    website: 'https://www.harmonyhall.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'scotchies-jerk',
+    name: 'Scotchies Jerk Centre',
+    lat: 18.4600,
+    lng: -77.6340,
+    category: 'culture',
+    averageCost: '$10–20 USD per meal',
+    description: "Scotchies near Falmouth (with other locations across Jamaica) is among the island's most celebrated jerk stops. Traditional pimento wood-smoked jerk chicken and pork are served on breadfruit leaf in an open-air roadside setting.",
+    website: 'https://www.scotchies.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'hope-botanical-gardens',
+    name: 'Hope Botanical Gardens',
+    lat: 18.0175,
+    lng: -76.7490,
+    category: 'nature',
+    averageCost: 'Free entry',
+    description: "Hope Botanical Gardens is the largest botanical garden in the Caribbean, covering 200 acres in Kingston. The grounds include a palm avenue, orchid house, sunken garden, and the Hope Zoo. It has been a public green space since the 1870s.",
+    website: 'https://www.hopezoo.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'emancipation-park',
+    name: 'Emancipation Park',
+    lat: 18.0122,
+    lng: -76.7844,
+    category: 'culture',
+    averageCost: 'Free',
+    description: "Emancipation Park in New Kingston is a seven-acre urban park opened in 2002 to commemorate emancipation. It features the iconic 'Redemption Song' statue by Laura Facey, a jogging trail, fountains, and well-maintained gardens popular with joggers and families.",
+    imageUrl: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'blue-mountain-coffee-tour',
+    name: 'Blue Mountain Coffee Tours',
+    lat: 18.0842,
+    lng: -76.6100,
+    category: 'adventure',
+    averageCost: '$35 USD tour',
+    description: "Several estates in the Blue Mountains offer guided tours of working coffee farms. Visitors learn about cultivation, processing, roasting, and tasting of Jamaica Blue Mountain Coffee — one of the most expensive and sought-after coffees in the world.",
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'winnifred-beach',
+    name: 'Winnifred Beach',
+    lat: 18.1880,
+    lng: -76.3700,
+    category: 'nature',
+    averageCost: 'Free',
+    description: "Winnifred Beach near Port Antonio is a community-managed public beach loved for its local vibe, clear water, reef snorkelling, and beachside food stalls serving fresh fish and festivals. It remains one of the few uncommercialised beaches in Portland.",
+    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'kingston-waterfront',
+    name: 'Kingston Waterfront & Conference Centre',
+    lat: 17.9710,
+    lng: -76.7920,
+    category: 'culture',
+    averageCost: 'Free (waterfront area)',
+    description: "The Kingston waterfront promenade runs along Ocean Boulevard from the conference centre past craft markets and the ferry terminal. It offers harbour views, evening breezes, and is home to the Jamaica Conference Centre, a regional landmark.",
+    imageUrl: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'sandals-royal-plantation',
+    name: 'Sandals Royal Plantation',
+    lat: 18.4100,
+    lng: -77.0750,
+    category: 'hotels',
+    averageCost: 'From $500 USD/night (all-inclusive)',
+    description: "Sandals Royal Plantation in Ocho Rios is a boutique all-suite, all-butler luxury resort perched on cliffside bluffs overlooking the Caribbean Sea. With only 74 suites, it is the most exclusive property in the Sandals portfolio.",
+    website: 'https://www.sandals.com/royal-plantation/',
+    imageUrl: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'grand-palladium-jamaica',
+    name: 'Grand Palladium Jamaica Resort',
+    lat: 18.3690,
+    lng: -78.1160,
+    category: 'hotels',
+    averageCost: 'From $180 USD/night (all-inclusive)',
+    description: "Grand Palladium sits on a long stretch of private beach in Lucea, Hanover. The all-inclusive resort features multiple themed restaurants, a spa, several pools, and direct beach access. It caters to both families and couples.",
+    website: 'https://www.palladiumhotelgroup.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'ochi-beach-club',
+    name: 'Ocho Rios Bay Beach',
+    lat: 18.4092,
+    lng: -77.1077,
+    category: 'nature',
+    averageCost: 'Free',
+    description: "Ocho Rios Bay Beach (also known as Turtle Beach) is the main public beach in town, offering calm waters, reef areas for snorkelling, and easy access to the town centre. Vendors, chair rentals, and watersports operators line the shore.",
+    imageUrl: 'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'boston-jerk-centre',
+    name: 'Boston Bay Jerk Centre',
+    lat: 18.1816,
+    lng: -76.3349,
+    category: 'culture',
+    averageCost: '$8–15 USD per meal',
+    description: "Boston Bay in Portland is widely recognised as the birthplace of Jamaican jerk cooking. Roadside vendors smoke meat over pimento wood using techniques passed down through generations. The adjacent bay also has surf-worthy waves — a rarity in Jamaica.",
+    imageUrl: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'lovers-leap',
+    name: "Lover's Leap",
+    lat: 17.8680,
+    lng: -77.7960,
+    category: 'nature',
+    averageCost: '$10 USD entry',
+    description: "Lover's Leap in St. Elizabeth is a dramatic cliff rising 1,700 feet above the sea on Jamaica's south coast. Named after a folk legend of two enslaved lovers, it offers some of the most expansive coastal views on the island, a lighthouse, and a small restaurant.",
+    imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'reggae-falls',
+    name: 'Reggae Falls',
+    lat: 17.9750,
+    lng: -76.3600,
+    category: 'nature',
+    averageCost: '$10 USD entry',
+    description: "Reggae Falls near Hillside in St. Thomas is a recently developed natural attraction featuring a tall waterfall with a deep swimming pool at its base. The community-managed site is less crowded than more famous falls and offers a genuine off-the-beaten-path experience.",
+    imageUrl: 'https://images.unsplash.com/photo-1520962922320-2038eebab146?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'montego-bay-hip-strip',
+    name: 'Montego Bay Hip Strip',
+    lat: 18.4980,
+    lng: -77.9230,
+    category: 'culture',
+    averageCost: 'Free to walk',
+    description: "Gloucester Avenue, known as the Hip Strip, is Montego Bay's main tourist strip with restaurants, bars, duty-free shops, and nightlife along the waterfront. It runs from Doctor's Cave Beach to the cruise ship pier and is the social centre of tourist Montego Bay.",
+    imageUrl: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'cranbrook-flower-forest',
+    name: 'Cranbrook Flower Forest',
+    lat: 18.3800,
+    lng: -77.2200,
+    category: 'nature',
+    averageCost: '$10 USD entry',
+    description: "Cranbrook Flower Forest near Ocho Rios is a 130-acre tropical garden with scenic riverwalks, swimming holes, and native plants. The grounds follow a river gorge through tropical forest and are quieter than the main Ocho Rios attractions.",
+    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'island-grill',
+    name: 'Island Grill',
+    lat: 18.0120,
+    lng: -76.7888,
+    category: 'culture',
+    averageCost: '$5–12 USD per meal',
+    description: "Island Grill is Jamaica's popular fast-casual restaurant chain known for jerk chicken, festival, and other Jamaican staples. Multiple locations across Kingston and other parishes make it a reliable, affordable option for authentic local food.",
+    imageUrl: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'dunn-river-ocho-rios-craft',
+    name: "Ocho Rios Craft Market",
+    lat: 18.4079,
+    lng: -77.1030,
+    category: 'culture',
+    averageCost: 'Free entry, items $2–50+',
+    description: "The Ocho Rios Craft Market near the cruise ship pier is a large open-air market with dozens of vendors selling handmade Jamaican crafts, wood carvings, straw goods, Blue Mountain coffee, rum, sauces, and clothing. Bargaining is expected.",
+    imageUrl: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'secrets-montego-bay',
+    name: 'Secrets St. James Montego Bay',
+    lat: 18.5210,
+    lng: -77.8440,
+    category: 'hotels',
+    averageCost: 'From $400 USD/night (all-inclusive)',
+    description: "Secrets St. James is an adults-only luxury all-inclusive resort on Montego Bay's Freeport peninsula. It features Unlimited-Luxury amenities including gourmet dining, premium bars, spa services, and beachfront suites with ocean views.",
+    website: 'https://www.secretsresorts.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'blue-harbour-estate',
+    name: 'Blue Harbour Estate',
+    lat: 18.3900,
+    lng: -76.8750,
+    category: 'villas',
+    averageCost: 'From $300 USD/night',
+    description: "Blue Harbour near Oracabessa was Noel Coward's original Jamaica retreat before he moved to Firefly. The estate is now a private villa rental on the waterfront with its own beach, jetty, and views across the Caribbean — steeped in mid-century creative history.",
+    imageUrl: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'jakes-treasure-beach-villas',
+    name: 'Calabash Bay Villas',
+    lat: 17.8830,
+    lng: -77.7400,
+    category: 'airbnb',
+    averageCost: 'From $95 USD/night',
+    description: "Several villa-style Airbnb and guest house options line Calabash Bay near Treasure Beach. The area offers a quieter south coast retreat with fishing boats, community tourism, and proximity to Pelican Bar and the Black River.",
+    imageUrl: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'port-antonio-villas',
+    name: 'Port Antonio Hillside Villas',
+    lat: 18.1800,
+    lng: -76.4480,
+    category: 'airbnb',
+    averageCost: 'From $110 USD/night',
+    description: "Port Antonio's lush hillsides host numerous Airbnb-style villas and guesthouses with sea views. The area is popular with travelers seeking a quieter, greener Jamaica away from the north coast resort strip, with easy access to beaches, waterfalls, and rafting.",
+    imageUrl: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?auto=format&fit=crop&w=1200&q=80'
   }
 ];

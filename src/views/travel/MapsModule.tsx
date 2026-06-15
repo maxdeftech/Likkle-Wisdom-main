@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import ReactMarkdown from 'react-markdown';
+import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -411,7 +411,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                       <div className="h-px flex-1 bg-primary/20" />
                     </div>
                     <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
-                      <ReactMarkdown>{guideResponse}</ReactMarkdown>
+                      <TravelMarkdown>{guideResponse}</TravelMarkdown>
                     </div>
                     <div className="mt-4 flex justify-end">
                       <button

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -263,13 +263,23 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              {/* Full route line connecting all stops across all days */}
+              {stopsWithPlaces.length > 1 && (
+                <Polyline
+                  positions={[...stopsWithPlaces]
+                    .sort((a, b) => a.stop.day_number - b.stop.day_number || a.stop.stop_order - b.stop.stop_order)
+                    .map(({ place }) => [place.lat, place.lng] as [number, number])}
+                  pathOptions={{ color: '#13ec5b', weight: 2, dashArray: '6 8', opacity: 0.4 }}
+                />
+              )}
+              {/* Per-day coloured lines */}
               {stopsByDay.map(({ day, items }, index) => {
                 const positions = items.map(({ place }) => [place.lat, place.lng] as [number, number]);
                 return positions.length > 1 ? (
                   <Polyline
                     key={`line-${day}`}
                     positions={positions}
-                    pathOptions={{ color: DAY_COLORS[index % DAY_COLORS.length], weight: 3, dashArray: '8 6', opacity: 0.85 }}
+                    pathOptions={{ color: DAY_COLORS[index % DAY_COLORS.length], weight: 3.5, dashArray: '8 6', opacity: 0.9 }}
                   />
                 ) : null;
               })}
@@ -317,7 +327,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
           ) : (
             <>
               <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
-                <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                <TravelMarkdown>{aiResponse}</TravelMarkdown>
               </div>
               <div className="mt-4 flex justify-end">
                 <button type="button" onClick={() => generateGuidePDF(plan?.name ?? 'My Jamaica Trip', aiResponse)} className="flex items-center gap-2 rounded-2xl border border-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/10">

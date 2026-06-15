@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { aviationRoutes } from '../../data/aviationRoutes';
 import { travelPlaces } from '../../data/travelPlaces';
 import { generateTravelText } from '../../services/geminiService';
@@ -390,7 +390,7 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
                   <div className="h-px flex-1 bg-primary/20" />
                 </div>
                 <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
-                  <ReactMarkdown>{result}</ReactMarkdown>
+                  <TravelMarkdown>{result}</TravelMarkdown>
                 </div>
               </div>
             </>
