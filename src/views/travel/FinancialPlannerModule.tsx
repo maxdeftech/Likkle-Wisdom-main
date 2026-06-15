@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { aviationRoutes } from '../../data/aviationRoutes';
 import { travelPlaces } from '../../data/travelPlaces';
-import { generateTravelText } from '../../services/geminiService';
+import { streamTravelText } from '../../services/geminiService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import { generateTripPDF } from '../../utils/travel/generateTripPDF';
 import { useAIProgress } from '../../hooks/useAIProgress';
@@ -157,7 +157,7 @@ const FinancialPlannerModule: React.FC = () => {
       estimatedTotal <= budget ? 'Budget check: this looks workable with a small buffer.' : `Budget check: you may need about ${form.currency} ${(estimatedTotal - budget).toLocaleString()} more.`,
       'Savings tip: book mid-week flights, keep one low-spend day, and reserve transport money before shopping.'
     ].join('\n');
-    const response = await generateTravelText(
+    const response = await streamTravelText(
       `Build a structured travel budget and trip plan.
 Destination: ${form.destination}
 Departure city: ${form.departureCity}
@@ -170,7 +170,8 @@ Matching route estimate: ${matchingRoute ? `${matchingRoute.origin.code} to ${ma
 Jamaica attraction data to cross-reference where useful: ${relevantPlaces}
 
 Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping essentials cost estimates, total breakdown, budget sufficiency, saving tips, and a short cosmetics/travel essentials estimator.`,
-      fallback
+      fallback,
+      (partial) => setResult(partial)
     );
     setResult(response);
     sessionStorage.setItem('lw_financial_result', response);
@@ -325,19 +326,21 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Plan Result</p>
               <h2 className="text-xl font-black text-slate-950 dark:text-white">{form.destination}</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={savePlan} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-[10px] font-black uppercase tracking-widest text-background-dark disabled:opacity-50">
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark_add</span>
-                Save Plan
-              </button>
-              <button type="button" onClick={handleDownloadPDF} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-primary px-4 text-[10px] font-black uppercase tracking-widest text-primary disabled:opacity-50">
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
-                Download PDF
-              </button>
-            </div>
+            {!isLoading && (
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={savePlan} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-[10px] font-black uppercase tracking-widest text-background-dark disabled:opacity-50">
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">bookmark_add</span>
+                  Save Plan
+                </button>
+                <button type="button" onClick={handleDownloadPDF} disabled={!result} className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-primary px-4 text-[10px] font-black uppercase tracking-widest text-primary disabled:opacity-50">
+                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>
+                  Download PDF
+                </button>
+              </div>
+            )}
           </div>
 
-          {isLoading ? (
+          {isLoading && !result ? (
             <div className="mt-4 rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
               <AILoadingSkeleton progress={aiProgress} />
             </div>
@@ -353,36 +356,40 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ['flight', 'Flight', matchingRoute?.estimatedCost || 'From $450 USD'],
-                  ['hotel', 'Stay', `${Math.max(nights, 1)} night(s)`],
-                  ['restaurant', 'Meals', `$${55 * Math.max(nights, 1) * form.travellers} est.`],
-                  ['shopping_bag', 'Essentials', `$${160 * form.travellers} est.`]
-                ].map(([icon, label, value]) => (
-                  <div key={label} className="rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
-                    <span className="material-symbols-outlined text-primary" aria-hidden="true">{icon}</span>
-                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">{label}</p>
-                    <p className="text-sm font-black text-slate-950 dark:text-white">{value}</p>
-                  </div>
-                ))}
-              </div>
+              {!isLoading && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ['flight', 'Flight', matchingRoute?.estimatedCost || 'From $450 USD'],
+                    ['hotel', 'Stay', `${Math.max(nights, 1)} night(s)`],
+                    ['restaurant', 'Meals', `$${55 * Math.max(nights, 1) * form.travellers} est.`],
+                    ['shopping_bag', 'Essentials', `$${160 * form.travellers} est.`]
+                  ].map(([icon, label, value]) => (
+                    <div key={label} className="rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
+                      <span className="material-symbols-outlined text-primary" aria-hidden="true">{icon}</span>
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">{label}</p>
+                      <p className="text-sm font-black text-slate-950 dark:text-white">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              <div className="mt-4 space-y-2">
-                {[1, 2, 3].map(day => (
-                  <div key={day} className="rounded-2xl border border-slate-950/10 dark:border-white/10">
-                    <button type="button" onClick={() => setOpenDay(openDay === day ? 0 : day)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-black text-slate-950 dark:text-white">
-                      Day {day} Focus
-                      <span className="material-symbols-outlined text-primary" aria-hidden="true">{openDay === day ? 'expand_less' : 'expand_more'}</span>
-                    </button>
-                    {openDay === day && (
-                      <p className="px-4 pb-4 text-sm font-semibold leading-relaxed text-slate-600 dark:text-white/60">
-                        {day === 1 ? 'Arrive, settle in, and keep the first night low-pressure.' : day === 2 ? 'Use the strongest full day for the main attraction, food stop, and evening walk.' : 'Leave room for shopping, cosmetics, beach gear, and the return airport transfer.'}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              {!isLoading && (
+                <div className="mt-4 space-y-2">
+                  {[1, 2, 3].map(day => (
+                    <div key={day} className="rounded-2xl border border-slate-950/10 dark:border-white/10">
+                      <button type="button" onClick={() => setOpenDay(openDay === day ? 0 : day)} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-black text-slate-950 dark:text-white">
+                        Day {day} Focus
+                        <span className="material-symbols-outlined text-primary" aria-hidden="true">{openDay === day ? 'expand_less' : 'expand_more'}</span>
+                      </button>
+                      {openDay === day && (
+                        <p className="px-4 pb-4 text-sm font-semibold leading-relaxed text-slate-600 dark:text-white/60">
+                          {day === 1 ? 'Arrive, settle in, and keep the first night low-pressure.' : day === 2 ? 'Use the strongest full day for the main attraction, food stop, and evening walk.' : 'Leave room for shopping, cosmetics, beach gear, and the return airport transfer.'}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="mt-5">
                 <div className="mb-3 flex items-center gap-2">
@@ -392,6 +399,7 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
                 </div>
                 <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
                   <TravelMarkdown>{result}</TravelMarkdown>
+                  {isLoading && <span className="inline-block size-2 bg-primary rounded-full animate-pulse ml-1 align-middle" />}
                 </div>
               </div>
             </>

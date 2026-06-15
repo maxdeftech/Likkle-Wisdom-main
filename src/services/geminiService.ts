@@ -172,6 +172,103 @@ export async function generateTravelText(prompt: string, fallback: string): Prom
 }
 
 /**
+ * Streaming version of generateTravelText — calls onChunk with accumulated
+ * text as each token arrives so the UI can render progressively.
+ */
+export async function streamTravelText(
+  prompt: string,
+  fallback: string,
+  onChunk: (partialText: string) => void
+): Promise<string> {
+  const apiKey = getOpenRouterApiKey();
+  if (!apiKey) { onChunk(fallback); return fallback; }
+
+  const systemMessage: ChatMessage = {
+    role: 'system',
+    content: "You are a practical Jamaica-aware travel planner. Give specific, budget-conscious advice with clear headings, concise bullets, and realistic cost estimates. Do not invent live prices; label all prices as estimates."
+  };
+
+  const apiMessages: ChatMessage[] = [systemMessage, { role: 'user', content: prompt }];
+
+  const tryStream = async (model: string): Promise<string> => {
+    assertFreeOpenRouterModel(model);
+
+    const response = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://www.likklewisdom.com',
+        'X-Title': 'Likkle Wisdom'
+      },
+      body: JSON.stringify({
+        model,
+        messages: apiMessages,
+        temperature: 0.65,
+        max_tokens: 1200,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof data?.error?.message === 'string'
+          ? data.error.message
+          : `OpenRouter stream failed with status ${response.status}`
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body for streaming');
+
+    const decoder = new TextDecoder();
+    let full = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const payload = trimmed.slice(6);
+        if (payload === '[DONE]') continue;
+        try {
+          const json = JSON.parse(payload);
+          const token = json.choices?.[0]?.delta?.content;
+          if (token) {
+            full += token;
+            onChunk(full);
+          }
+        } catch { /* skip malformed SSE lines */ }
+      }
+    }
+
+    if (!full) throw new Error('Stream returned no content');
+    return full;
+  };
+
+  try {
+    return await tryStream(PRIMARY_MODEL);
+  } catch (primaryError) {
+    console.info('OpenRouter primary travel stream failed; trying fallback.', primaryError);
+    try {
+      return await tryStream(FALLBACK_MODEL);
+    } catch (fallbackError) {
+      console.info('Travel stream fallback error:', fallbackError);
+      onChunk(fallback);
+      return fallback;
+    }
+  }
+}
+
+/**
  * Conversational chat for the Likkle Guide assistant.
  * Accepts full message history so the model has context.
  */

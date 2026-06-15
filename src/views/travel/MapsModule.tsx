@@ -6,7 +6,7 @@ import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
-import { generateTravelText } from '../../services/geminiService';
+import { streamTravelText } from '../../services/geminiService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import PlaceReviews from '../../components/travel/PlaceReviews';
@@ -194,9 +194,10 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
     setGuideResponse('');
     const nearest = visiblePlaces.slice(0, 6).map(place => `${place.name} (${travelCategoryMeta[place.category].label})`).join(', ');
     const fallback = `Destination suggestion\n\nTry building the trip around ${visiblePlaces[0]?.name || 'Kingston and Ocho Rios'}. Keep transport flexible, reserve part of the budget for entry fees, and compare nearby places such as ${nearest || 'Dunns River Falls, Devon House, and Seven Mile Beach'}.`;
-    const response = await generateTravelText(
+    const response = await streamTravelText(
       `Create a Jamaica travel destination guide for this request: "${prompt}". Include destination name, why it fits, estimated cost, and nearest places from this app data to highlight: ${nearest}.`,
-      fallback
+      fallback,
+      (partial) => setGuideResponse(partial)
     );
     setGuideResponse(response);
     sessionStorage.setItem('lw_maps_guidePrompt', prompt);
@@ -405,7 +406,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
             </div>
             {(isGuideLoading || guideResponse) && (
               <div className="rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
-                {isGuideLoading ? (
+                {isGuideLoading && !guideResponse ? (
                   <AILoadingSkeleton progress={guideProgress} />
                 ) : (
                   <>
@@ -416,17 +417,20 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                     </div>
                     <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
                       <TravelMarkdown>{guideResponse}</TravelMarkdown>
+                      {isGuideLoading && <span className="inline-block size-2 bg-primary rounded-full animate-pulse ml-1 align-middle" />}
                     </div>
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => generateGuidePDF(guidePrompt, guideResponse)}
-                        className="flex items-center gap-2 rounded-2xl border border-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/10"
-                      >
-                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
-                        Download PDF
-                      </button>
-                    </div>
+                    {!isGuideLoading && (
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => generateGuidePDF(guidePrompt, guideResponse)}
+                          className="flex items-center gap-2 rounded-2xl border border-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/10"
+                        >
+                          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
+                          Download PDF
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

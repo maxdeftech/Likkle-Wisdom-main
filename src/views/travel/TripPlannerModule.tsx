@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { TravelCategory, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
-import { generateTravelText } from '../../services/geminiService';
+import { streamTravelText } from '../../services/geminiService';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { addStopToPlan, fetchOrCreateActivePlan, fetchStopsForPlan, removeStopFromPlan, TripPlan, TripStop, updatePlanName } from '../../services/tripPlannerService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
@@ -149,7 +149,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
         .map(({ stop, place }) => `Day ${stop.day_number}: ${place.name}`)
         .join('\n')
     }\n\nPlease give me: 1) Tips for sequencing these stops efficiently. 2) Estimated transport time between stops. 3) Any must-do activities at each location. 4) Suggestions for what to add or remove. Format with markdown headings.`;
-    const response = await generateTravelText(prompt, 'Add more stops to build a stronger Jamaica itinerary.');
+    const response = await streamTravelText(prompt, 'Add more stops to build a stronger Jamaica itinerary.', (partial) => setAiResponse(partial));
     setAiResponse(response);
     sessionStorage.setItem('lw_trip_aiResponse', response);
     setIsAiLoading(false);
@@ -325,19 +325,22 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
 
       {(isAiLoading || aiResponse) && (
         <section className="glass rounded-2xl p-3 shadow-2xl sm:p-4">
-          {isAiLoading ? (
+          {isAiLoading && !aiResponse ? (
             <AILoadingSkeleton progress={aiProgress} />
           ) : (
             <>
               <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-inner dark:from-primary/8">
                 <TravelMarkdown>{aiResponse}</TravelMarkdown>
+                {isAiLoading && <span className="inline-block size-2 bg-primary rounded-full animate-pulse ml-1 align-middle" />}
               </div>
-              <div className="mt-4 flex justify-end">
-                <button type="button" onClick={() => generateGuidePDF(plan?.name ?? 'My Jamaica Trip', aiResponse)} className="flex items-center gap-2 rounded-2xl border border-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/10">
-                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
-                  Download PDF
-                </button>
-              </div>
+              {!isAiLoading && (
+                <div className="mt-4 flex justify-end">
+                  <button type="button" onClick={() => generateGuidePDF(plan?.name ?? 'My Jamaica Trip', aiResponse)} className="flex items-center gap-2 rounded-2xl border border-primary px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-primary transition-colors hover:bg-primary/10">
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span>
+                    Download PDF
+                  </button>
+                </div>
+              )}
             </>
           )}
         </section>
