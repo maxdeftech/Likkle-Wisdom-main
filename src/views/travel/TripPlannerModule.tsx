@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet';
+import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
@@ -38,7 +39,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [planNameDraft, setPlanNameDraft] = useState('My Jamaica Trip');
-  const [aiResponse, setAiResponse] = useState('');
+  const [aiResponse, setAiResponse] = useState(() => sessionStorage.getItem('lw_trip_aiResponse') || '');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const aiProgress = useAIProgress(isAiLoading, !!aiResponse && !isAiLoading);
 
@@ -150,6 +151,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
     }\n\nPlease give me: 1) Tips for sequencing these stops efficiently. 2) Estimated transport time between stops. 3) Any must-do activities at each location. 4) Suggestions for what to add or remove. Format with markdown headings.`;
     const response = await generateTravelText(prompt, 'Add more stops to build a stronger Jamaica itinerary.');
     setAiResponse(response);
+    sessionStorage.setItem('lw_trip_aiResponse', response);
     setIsAiLoading(false);
   };
 
@@ -259,6 +261,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
               <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{stops.length} stops planned</h2>
             </div>
             <MapContainer center={JAMAICA_CENTER} zoom={8} scrollWheelZoom className="h-[300px] w-full sm:h-[360px] lg:h-[420px]">
+              <InvalidateMapSize />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -83,7 +83,7 @@ const FinancialPlannerModule: React.FC = () => {
     interests: ['Beach', 'Food & Dining'],
     accommodation: 'Hotel'
   });
-  const [result, setResult] = useState('');
+  const [result, setResult] = useState(() => sessionStorage.getItem('lw_financial_result') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(() => readJson<SavedPlan[]>(PLAN_KEY, []));
   const [goal, setGoal] = useState<SavingsGoal>(() => readJson<SavingsGoal>(GOAL_KEY, { targetAmount: 1500, currentSavings: 250, targetDate: '' }));
@@ -173,6 +173,7 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
       fallback
     );
     setResult(response);
+    sessionStorage.setItem('lw_financial_result', response);
     setIsLoading(false);
   };
 

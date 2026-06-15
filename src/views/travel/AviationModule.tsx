@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, Marker, Polyline, TileLayer } from 'react-leaflet';
+import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AviationRoute, aviationRoutes } from '../../data/aviationRoutes';
@@ -95,6 +96,7 @@ const AviationModule: React.FC = () => {
 
       <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
         <MapContainer center={[27, -55]} zoom={3} minZoom={2} scrollWheelZoom className="h-[56vh] min-h-[420px] w-full">
+          <InvalidateMapSize />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

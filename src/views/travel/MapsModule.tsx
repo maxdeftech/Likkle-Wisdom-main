@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
@@ -72,8 +73,8 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
   const [showTripPicker, setShowTripPicker] = useState(false);
   const [selectedReviewStats, setSelectedReviewStats] = useState({ averageRating: 0, reviewCount: 0 });
   const [guideOpen, setGuideOpen] = useState(false);
-  const [guidePrompt, setGuidePrompt] = useState('');
-  const [guideResponse, setGuideResponse] = useState('');
+  const [guidePrompt, setGuidePrompt] = useState(() => sessionStorage.getItem('lw_maps_guidePrompt') || '');
+  const [guideResponse, setGuideResponse] = useState(() => sessionStorage.getItem('lw_maps_guideResponse') || '');
   const [isGuideLoading, setIsGuideLoading] = useState(false);
   const guideTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const guideProgress = useAIProgress(isGuideLoading, !!guideResponse && !isGuideLoading);
@@ -198,6 +199,8 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
       fallback
     );
     setGuideResponse(response);
+    sessionStorage.setItem('lw_maps_guidePrompt', prompt);
+    sessionStorage.setItem('lw_maps_guideResponse', response);
     setIsGuideLoading(false);
   };
 
@@ -315,6 +318,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
 
       <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
         <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[44vh] min-h-[320px] w-full lg:h-[56vh] lg:min-h-[420px]">
+          <InvalidateMapSize />
           <MapRecenter center={mapCenter} zoom={mapZoom} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

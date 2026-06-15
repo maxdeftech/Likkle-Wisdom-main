@@ -66,11 +66,21 @@ const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted
         </div>
       </header>
 
+      {/* All modules stay mounted; inactive ones are hidden with CSS.
+          This preserves AI-generated content and form state when switching sub-tabs. */}
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        {travelTab === 'maps' && <MapsModule user={user} onGuestRestricted={onGuestRestricted} />}
-        {travelTab === 'aviation' && <AviationModule />}
-        {travelTab === 'planner' && <FinancialPlannerModule />}
-        {travelTab === 'tripplanner' && <TripPlannerModule user={user} onGuestRestricted={onGuestRestricted} />}
+        <div style={{ display: travelTab === 'maps' ? 'block' : 'none' }}>
+          <MapsModule user={user} onGuestRestricted={onGuestRestricted} />
+        </div>
+        <div style={{ display: travelTab === 'aviation' ? 'block' : 'none' }}>
+          <AviationModule />
+        </div>
+        <div style={{ display: travelTab === 'planner' ? 'block' : 'none' }}>
+          <FinancialPlannerModule />
+        </div>
+        <div style={{ display: travelTab === 'tripplanner' ? 'block' : 'none' }}>
+          <TripPlannerModule user={user} onGuestRestricted={onGuestRestricted} />
+        </div>
       </div>
     </section>
   );
