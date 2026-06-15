@@ -16,7 +16,7 @@ type FilterId = TravelCategory | 'all';
 
 const JAMAICA_CENTER: [number, number] = [18.1096, -77.2975];
 const DAY_COLORS = ['#13ec5b', '#38bdf8', '#a78bfa', '#fb7185', '#f59e0b', '#14b8a6', '#f4d125'];
-const dayOptions = [1, 2, 3, 4, 5];
+const dayOptions = Array.from({ length: 30 }, (_, index) => index + 1);
 const filterOrder: FilterId[] = ['all', 'hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure', 'airports'];
 
 const makeDayMarker = (dayNumber: number) => L.divIcon({
