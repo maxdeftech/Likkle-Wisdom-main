@@ -130,11 +130,11 @@ const PlaceReviews: React.FC<PlaceReviewsProps> = ({ placeId, user, onGuestRestr
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-black text-slate-950">Reviews</h3>
+        <h3 className="text-base font-black text-slate-950 dark:text-white">Reviews</h3>
         {reviews.length > 0 && (
           <div className="flex items-center gap-1.5">
             <span className="text-lg leading-none text-[#f4d125]">★</span>
-            <span className="text-sm font-black text-slate-950">{avgRating.toFixed(1)}</span>
+            <span className="text-sm font-black text-slate-950 dark:text-white">{avgRating.toFixed(1)}</span>
             <span className="text-xs text-slate-400">({reviews.length})</span>
           </div>
         )}
@@ -149,7 +149,7 @@ const PlaceReviews: React.FC<PlaceReviewsProps> = ({ placeId, user, onGuestRestr
               <button type="button" onClick={handleDelete} className="text-[10px] font-black uppercase tracking-widest text-red-500">Delete</button>
             </div>
           </div>
-          {myReview.review_text && <p className="text-sm text-slate-600">{myReview.review_text}</p>}
+          {myReview.review_text && <p className="text-sm text-slate-600 dark:text-white/70">{myReview.review_text}</p>}
         </div>
       ) : (
         <div className="space-y-3 rounded-2xl border border-slate-950/10 p-4 dark:border-white/10">
@@ -162,7 +162,7 @@ const PlaceReviews: React.FC<PlaceReviewsProps> = ({ placeId, user, onGuestRestr
             onChange={event => setDraftText(event.target.value)}
             placeholder="Share your experience... (optional)"
             rows={3}
-            className="w-full resize-none rounded-xl border border-slate-950/10 bg-white/70 px-4 py-3 text-sm text-slate-950 outline-none focus:border-primary"
+            className="w-full resize-none rounded-xl border border-slate-950/10 bg-white/70 px-4 py-3 text-sm text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
           />
           {error && <p className="text-xs font-bold text-red-500">{error}</p>}
           <div className="flex gap-2">
@@ -175,7 +175,7 @@ const PlaceReviews: React.FC<PlaceReviewsProps> = ({ placeId, user, onGuestRestr
               {submitting ? 'Saving...' : 'Submit Review'}
             </button>
             {myReview && (
-              <button type="button" onClick={() => setEditing(false)} className="h-11 rounded-2xl border border-slate-200 px-4 text-[11px] font-black text-slate-600">
+              <button type="button" onClick={() => setEditing(false)} className="h-11 rounded-2xl border border-slate-200 px-4 text-[11px] font-black text-slate-600 dark:border-white/10 dark:text-white/60">
                 Cancel
               </button>
             )}
@@ -206,11 +206,11 @@ const PlaceReviews: React.FC<PlaceReviewsProps> = ({ placeId, user, onGuestRestr
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-bold text-slate-900">{review.author_name}</span>
+                  <span className="truncate text-sm font-bold text-slate-900 dark:text-white">{review.author_name}</span>
                   <span className="shrink-0 text-[10px] text-slate-400">{new Date(review.created_at).toLocaleDateString()}</span>
                 </div>
                 <StarRow rating={review.rating} />
-                {review.review_text && <p className="mt-1 text-xs leading-relaxed text-slate-600">{review.review_text}</p>}
+                {review.review_text && <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-white/70">{review.review_text}</p>}
               </div>
             </div>
           ))}

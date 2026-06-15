@@ -167,8 +167,8 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
   }
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div className="glass rounded-2xl p-4 shadow-2xl">
+    <div className="max-w-full space-y-4 overflow-hidden animate-fade-in sm:space-y-5">
+      <div className="glass rounded-2xl p-3 shadow-2xl sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <label className="flex-1">
             <span className="mb-1 block text-[10px] font-black uppercase tracking-[0.2em] text-primary">Trip name</span>
@@ -179,7 +179,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
               className="h-12 w-full rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-black text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </label>
-          <button type="button" onClick={improveTrip} disabled={isAiLoading} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[11px] font-black uppercase tracking-widest text-background-dark disabled:opacity-60">
+          <button type="button" onClick={improveTrip} disabled={isAiLoading} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[11px] font-black uppercase tracking-widest text-background-dark disabled:opacity-60 sm:w-auto">
             <span className={`material-symbols-outlined text-[18px] ${isAiLoading ? 'animate-spin' : ''}`} aria-hidden="true">{isAiLoading ? 'progress_activity' : 'auto_awesome'}</span>
             Improve Trip
           </button>
@@ -187,8 +187,8 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
         {error && <p className="mt-3 rounded-2xl bg-red-500/10 px-4 py-3 text-xs font-bold text-red-500">{error}</p>}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <section className="glass rounded-2xl p-4 shadow-2xl">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-5">
+        <section className="glass min-w-0 rounded-2xl p-3 shadow-2xl sm:p-4">
           <div className="mb-4 flex gap-2 overflow-x-auto no-scrollbar">
             {filterOrder.map(filter => {
               const meta = travelCategoryMeta[filter];
@@ -212,12 +212,12 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
           {loading ? (
             <p className="py-10 text-center text-sm font-bold text-slate-400">Loading trip planner...</p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {pickerPlaces.map(place => {
                 const existing = stops.find(stop => stop.place_id === place.id);
                 return (
                   <article key={place.id} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5 dark:bg-slate-950/40 dark:ring-white/10">
-                    <img src={place.imageUrl} alt="" className="h-32 w-full object-cover" />
+                    <img src={place.imageUrl} alt="" className="h-28 w-full object-cover sm:h-32" />
                     <div className="space-y-3 p-3">
                       <div>
                         <h3 className="truncate text-sm font-black text-slate-950 dark:text-white">{place.name}</h3>
@@ -226,20 +226,20 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
                           {travelCategoryMeta[place.category].label}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2">
                         <select
                           value={dayByPlace[place.id] ?? existing?.day_number ?? 1}
                           onChange={event => setDayByPlace(prev => ({ ...prev, [place.id]: Number(event.target.value) }))}
-                          className="h-10 rounded-xl border border-slate-950/10 bg-transparent px-2 text-xs font-black text-slate-900 dark:border-white/10 dark:text-white"
+                          className="h-10 min-w-0 rounded-xl border border-slate-950/10 bg-white px-2 text-xs font-black text-slate-900 dark:border-white/10 dark:bg-slate-950 dark:text-white"
                         >
                           {dayOptions.map(day => <option key={day} value={day}>Day {day}</option>)}
                         </select>
                         {existing ? (
-                          <button type="button" onClick={() => removeStop(existing.id)} className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-500">
-                            ✓ Day {existing.day_number}
+                          <button type="button" onClick={() => removeStop(existing.id)} className="flex h-10 min-w-0 items-center justify-center gap-1 rounded-xl border border-red-500/30 px-2 text-[10px] font-black uppercase tracking-widest text-red-500">
+                            <span className="truncate">✓ Day {existing.day_number}</span>
                           </button>
                         ) : (
-                          <button type="button" onClick={() => addPlace(place.id)} className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl bg-primary text-[10px] font-black uppercase tracking-widest text-background-dark">
+                          <button type="button" onClick={() => addPlace(place.id)} className="flex h-10 min-w-0 items-center justify-center gap-1 rounded-xl bg-primary px-2 text-[10px] font-black uppercase tracking-widest text-background-dark">
                             + Add
                           </button>
                         )}
@@ -252,13 +252,13 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
           )}
         </section>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-4 lg:space-y-5">
           <section className="glass overflow-hidden rounded-2xl shadow-2xl">
-            <div className="border-b border-white/10 p-4">
+            <div className="border-b border-white/10 p-3 sm:p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Visual Itinerary</p>
               <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{stops.length} stops planned</h2>
             </div>
-            <MapContainer center={JAMAICA_CENTER} zoom={8} scrollWheelZoom className="h-[420px] w-full">
+            <MapContainer center={JAMAICA_CENTER} zoom={8} scrollWheelZoom className="h-[300px] w-full sm:h-[360px] lg:h-[420px]">
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -283,7 +283,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
             </MapContainer>
           </section>
 
-          <section className="glass rounded-2xl p-4 shadow-2xl">
+          <section className="glass rounded-2xl p-3 shadow-2xl sm:p-4">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Itinerary</p>
             {stopsByDay.length === 0 ? (
               <p className="mt-3 text-sm font-semibold text-slate-500 dark:text-white/50">Add places to see your day-by-day plan.</p>
@@ -311,7 +311,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
       </div>
 
       {(isAiLoading || aiResponse) && (
-        <section className="glass rounded-2xl p-4 shadow-2xl">
+        <section className="glass rounded-2xl p-3 shadow-2xl sm:p-4">
           {isAiLoading ? (
             <AILoadingSkeleton progress={aiProgress} />
           ) : (

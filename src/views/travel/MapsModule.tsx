@@ -482,13 +482,13 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
 
             <div
               style={{ marginTop: -70 }}
-              className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[2.15rem] bg-white px-5 pb-5 pt-3 text-slate-950 no-scrollbar"
+              className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[2.15rem] bg-white px-5 pb-5 pt-3 text-slate-950 no-scrollbar dark:bg-[#07120a] dark:text-white"
             >
-              <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-slate-200" aria-hidden="true" />
+              <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-slate-200 dark:bg-white/20" aria-hidden="true" />
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h2 className="truncate text-[1.45rem] font-black leading-tight tracking-tight">{selectedPlace.name}</h2>
-                  <div className="mt-2 flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
+                  <div className="mt-2 flex items-center gap-1.5 text-[12px] font-bold text-slate-700 dark:text-white/70">
                     <span className="flex size-4 items-center justify-center rounded-full text-[10px] text-[#07120a]" style={{ background: travelCategoryMeta[selectedPlace.category].color }}>
                       <span className="material-symbols-outlined text-[11px]" aria-hidden="true">{travelCategoryMeta[selectedPlace.category].icon}</span>
                     </span>
@@ -497,11 +497,11 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                 </div>
                 {selectedReviewStats.reviewCount > 0 && (
                   <div className="shrink-0 text-right">
-                    <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-[10px] font-black">
+                    <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-[10px] font-black dark:border-white/15">
                       <span className="material-symbols-outlined text-[13px]" aria-hidden="true">star</span>
                       {selectedReviewStats.averageRating.toFixed(1)}
                     </div>
-                    <p className="mt-1 text-[10px] font-bold text-slate-700 underline underline-offset-2">
+                    <p className="mt-1 text-[10px] font-bold text-slate-700 underline underline-offset-2 dark:text-white/70">
                       {selectedReviewStats.reviewCount} review{selectedReviewStats.reviewCount === 1 ? '' : 's'}
                     </p>
                   </div>
@@ -514,7 +514,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                   {travelCategoryMeta[selectedPlace.category].label}
                 </span>
                 {selectedPlace.averageCost && (
-                  <span className="inline-flex items-center gap-1.5 rounded-2xl bg-slate-950/5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:bg-white/10 dark:text-white/70">
+                  <span className="inline-flex items-center gap-1.5 rounded-2xl bg-slate-950/5 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:bg-white/10 dark:text-white/80">
                     <span className="material-symbols-outlined text-[15px]" aria-hidden="true">payments</span>
                     {selectedPlace.averageCost}
                   </span>
@@ -523,7 +523,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
 
               <section className="mt-5">
                 <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">About & History</p>
-                <p className="text-sm font-semibold leading-relaxed text-slate-700">
+                <p className="text-sm font-semibold leading-relaxed text-slate-700 dark:text-white/75">
                   {selectedPlace.description}
                 </p>
               </section>
@@ -533,7 +533,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Links</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedPlace.website && (
-                      <a href={selectedPlace.website} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-950">
+                      <a href={selectedPlace.website} target="_blank" rel="noreferrer" className="glass flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-950 dark:text-white">
                         <span className="material-symbols-outlined text-[16px]" aria-hidden="true">language</span>
                         Official Website
                       </a>
@@ -565,7 +565,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{savedPlaceIds.includes(selectedPlace.id) ? 'favorite' : 'favorite_border'}</span>
                   {savedPlaceIds.includes(selectedPlace.id) ? 'Saved' : 'Save'}
                 </button>
-                <button type="button" onClick={() => setShowTripPicker(prev => !prev)} className="glass flex h-12 items-center justify-center gap-2 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-950">
+                <button type="button" onClick={() => setShowTripPicker(prev => !prev)} className="glass flex h-12 items-center justify-center gap-2 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-950 dark:text-white">
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">playlist_add</span>
                   Add to Trip
                 </button>
@@ -575,14 +575,14 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                 <div className="mt-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-slate-950">
                   <div className="max-h-36 overflow-y-auto">
                     {tripLists.map(list => (
-                      <button key={list.listName} type="button" onClick={() => addPlaceToList(list.listName, selectedPlace.id)} className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-xs font-black text-slate-800 hover:bg-slate-950/5">
+                      <button key={list.listName} type="button" onClick={() => addPlaceToList(list.listName, selectedPlace.id)} className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-xs font-black text-slate-800 hover:bg-slate-950/5 dark:text-white dark:hover:bg-white/5">
                         {list.listName}
                         <span className="text-slate-400">{list.placeIds.length}</span>
                       </button>
                     ))}
                   </div>
                   <div className="mt-2 flex gap-2">
-                    <input value={newListName} onChange={event => setNewListName(event.target.value)} placeholder="New list" className="h-10 min-w-0 flex-1 rounded-2xl border border-slate-950/10 bg-transparent px-3 text-xs font-bold text-slate-950 outline-none focus:border-primary" />
+                    <input value={newListName} onChange={event => setNewListName(event.target.value)} placeholder="New list" className="h-10 min-w-0 flex-1 rounded-2xl border border-slate-950/10 bg-transparent px-3 text-xs font-bold text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:text-white" />
                     <button type="button" onClick={() => addPlaceToList(newListName, selectedPlace.id)} className="rounded-2xl bg-primary px-3 text-[10px] font-black uppercase text-background-dark">Add</button>
                   </div>
                 </div>
@@ -609,7 +609,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
                           setSelectedPlace(place);
                           setShowTripPicker(false);
                         }}
-                        className="flex min-w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-left text-[11px] font-black text-slate-800 shadow-sm"
+                        className="flex min-w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-left text-[11px] font-black text-slate-800 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
                       >
                         <span className="flex size-6 items-center justify-center rounded-full text-[#07120a]" style={{ background: travelCategoryMeta[place.category].color }}>
                           <span className="material-symbols-outlined text-[14px]" aria-hidden="true">{travelCategoryMeta[place.category].icon}</span>
