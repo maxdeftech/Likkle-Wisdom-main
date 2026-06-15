@@ -54,6 +54,15 @@ export interface ContentBlock {
   headers?: string[];
 }
 
+const isMarkdownTableDivider = (row: string) => {
+  if (!row.startsWith('|') || !row.endsWith('|')) return false;
+
+  const divider = row.slice(1, -1).trim();
+  return divider.length > 0 && [...divider].every((char) =>
+    char === '-' || char === ':' || char === '|' || /\s/.test(char)
+  );
+};
+
 export function parseMarkdownToBlocks(rawText: string): ContentBlock[] {
   const text = sanitise(rawText);
   const blocks: ContentBlock[] = [];
@@ -81,7 +90,7 @@ export function parseMarkdownToBlocks(rawText: string): ContentBlock[] {
         tableLines.push(lines[i].trim());
         i++;
       }
-      const dataRows = tableLines.filter(row => !/^\|[-:|\s]+\|$/.test(row));
+      const dataRows = tableLines.filter(row => !isMarkdownTableDivider(row));
       if (dataRows.length > 0) {
         const parsed = dataRows.map(row =>
           row.split('|').slice(1, -1).map(cell => cell.trim().replace(/\*\*/g, ''))

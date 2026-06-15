@@ -180,19 +180,52 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
     onAuthComplete({ id: 'guest', username: 'Guest Seeker', isGuest: true });
   };
 
-  return (
-    <div className="relative flex h-[100dvh] w-full flex-col bg-white dark:bg-background-dark overflow-y-auto font-display p-6 pt-safe pb-12 transition-colors duration-300">
-      <header className="py-12 text-center space-y-2 relative z-10">
-        <h1 className="text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-white">
-          {mode === 'signup' ? 'Join di' : 'Back to'} <br />
-          <span className="text-primary">Likkle Wisdom</span>
-        </h1>
-        <p className="text-slate-500 dark:text-white/40 text-sm font-medium uppercase tracking-widest">
-          {mode === 'signup' ? 'Start yuh journey' : 'Resume yuh growth'}
-        </p>
-      </header>
+  const touristBenefits = [
+    { icon: 'translate', title: 'Learn local phrases', body: 'Understand Jamaican Patois with plain English meaning beside every saying.' },
+    { icon: 'travel_explore', title: 'Plan Jamaica smarter', body: 'Use travel tools for places, routes, budgets, and trip ideas before you touch down.' },
+    { icon: 'offline_bolt', title: 'Keep wisdom close', body: 'Install the app and keep daily inspiration, notes, and saved favorites within reach.' },
+  ];
 
-      <div className="glass rounded-[2.5rem] p-8 shadow-2xl border-slate-200 dark:border-white/5 relative z-10">
+  return (
+    <div className="relative min-h-[100dvh] w-full overflow-y-auto bg-white p-6 pb-12 pt-safe font-display transition-colors duration-300 dark:bg-background-dark lg:mx-auto lg:grid lg:max-w-[1240px] lg:grid-cols-[minmax(0,1fr)_400px] lg:items-stretch lg:gap-8 lg:p-8 xl:grid-cols-[minmax(0,720px)_420px]">
+      <section className="relative hidden min-h-[calc(100dvh-4rem)] flex-1 overflow-hidden rounded-[2.5rem] border border-white/10 bg-background-dark p-10 text-white shadow-2xl lg:flex lg:flex-col lg:justify-between" aria-label="Welcome to Likkle Wisdom">
+        <div className="absolute inset-y-8 left-8 hidden w-[calc(50%-3rem)] rounded-[2.5rem] bg-gradient-to-br from-primary/15 via-transparent to-jamaican-gold/20 blur-3xl lg:block" aria-hidden="true" />
+        <div className="relative z-10 max-w-2xl">
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.28em] text-primary">
+            <span className="material-symbols-outlined text-sm" aria-hidden="true">explore</span>
+            Jamaica in yuh pocket
+          </span>
+          <h1 className="max-w-xl text-5xl font-black leading-[0.95] tracking-tight xl:text-6xl">
+            Welcome to <span className="text-primary">Likkle Wisdom</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-lg font-medium leading-relaxed text-white/65">
+            Daily Jamaican wisdom, Patois translations, Bible notes, journal space, and travel tools built for locals, visitors, and culture lovers.
+          </p>
+        </div>
+
+        <div className="relative z-10 grid max-w-3xl gap-4 xl:grid-cols-3">
+          {touristBenefits.map((item) => (
+            <div key={item.title} className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl">
+              <span className="material-symbols-outlined mb-4 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl text-primary" aria-hidden="true">{item.icon}</span>
+              <h2 className="text-base font-black leading-tight">{item.title}</h2>
+              <p className="mt-2 text-xs font-semibold leading-relaxed text-white/55">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-md flex-col justify-center lg:mx-0 lg:min-h-[calc(100dvh-4rem)] lg:max-w-none">
+        <header className="py-10 text-center space-y-2 lg:py-0 lg:pb-8">
+          <h1 className="text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-white lg:text-3xl">
+            {mode === 'signup' ? 'Join di' : 'Back to'} <br />
+            <span className="text-primary">Likkle Wisdom</span>
+          </h1>
+          <p className="text-slate-500 dark:text-white/40 text-sm font-medium uppercase tracking-widest">
+            {mode === 'signup' ? 'Start yuh journey' : 'Resume yuh growth'}
+          </p>
+        </header>
+
+      <div className="glass rounded-[2.5rem] p-6 shadow-2xl border-slate-200 dark:border-white/5 relative z-10 sm:p-8 lg:p-7 xl:p-8">
         {errorMsg && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[10px] font-black flex flex-col gap-1">
             <div className="flex items-center gap-2">
@@ -312,6 +345,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthComplete }) => {
             <span className="material-symbols-outlined text-sm">person_outline</span> CONTINUE AS GUEST
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
