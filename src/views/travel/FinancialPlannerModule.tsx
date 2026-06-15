@@ -3,6 +3,7 @@ import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { aviationRoutes } from '../../data/aviationRoutes';
 import { travelPlaces } from '../../data/travelPlaces';
 import { streamTravelText } from '../../services/geminiService';
+import { notifyAIComplete } from '../../services/localNotificationsService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import { generateTripPDF } from '../../utils/travel/generateTripPDF';
 import { useAIProgress } from '../../hooks/useAIProgress';
@@ -176,6 +177,7 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
     setResult(response);
     sessionStorage.setItem('lw_financial_result', response);
     setIsLoading(false);
+    notifyAIComplete('financial');
   };
 
   const savePlan = () => {

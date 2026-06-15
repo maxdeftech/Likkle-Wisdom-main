@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { PushService } from '../services/pushService';
+import { notifyUpdateAvailable } from '../services/localNotificationsService';
 
 interface PWAUpdatePromptProps {
   userId?: string;
@@ -39,6 +40,7 @@ const PWAUpdatePrompt: React.FC<PWAUpdatePromptProps> = ({ userId }) => {
     if (!userId || notifiedForCurrentUpdate.current) return;
 
     notifiedForCurrentUpdate.current = true;
+    notifyUpdateAvailable();
     PushService.showUpdateReadyNotification(userId).catch((error) => {
       console.warn('PWA update notification failed:', error);
     });

@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { streamChatWithGuide } from '../services/geminiService';
 import TravelMarkdown from '../components/travel/TravelMarkdown';
 import { Tab } from '../types';
+import { notifyAIComplete } from '../services/localNotificationsService';
 
 interface GuideMessage {
   id: string;
@@ -84,6 +85,7 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
+      notifyAIComplete('guide');
     } catch {
       const errorMsg: GuideMessage = {
         id: `e_${Date.now()}`,

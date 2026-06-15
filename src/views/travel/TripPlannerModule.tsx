@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { TravelCategory, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import { streamTravelText } from '../../services/geminiService';
+import { notifyAIComplete } from '../../services/localNotificationsService';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { addStopToPlan, fetchOrCreateActivePlan, fetchStopsForPlan, removeStopFromPlan, TripPlan, TripStop, updatePlanName } from '../../services/tripPlannerService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
@@ -153,6 +154,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
     setAiResponse(response);
     sessionStorage.setItem('lw_trip_aiResponse', response);
     setIsAiLoading(false);
+    notifyAIComplete('trip');
   };
 
   if (user.isGuest) {

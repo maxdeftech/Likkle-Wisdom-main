@@ -8,6 +8,7 @@ import { EncryptionService } from './services/encryption';
 import { WisdomService } from './services/wisdomService';
 import { SocialService } from './services/social';
 import { AlertsService } from './services/alertsService';
+import { LocalNotifications } from './services/localNotificationsService';
 import SplashScreen from './views/SplashScreen';
 import Onboarding from './views/Onboarding';
 import Auth from './views/Auth';
@@ -151,19 +152,25 @@ const App: React.FC = () => {
   const [userWisdoms, setUserWisdoms] = useState<UserWisdom[]>([]);
 
   const syncAlertsCount = useCallback(() => {
+    const localCount = LocalNotifications.getUnreadCount();
     if (user && !user.isGuest && supabase) {
       AlertsService.getUnreadCount(user.id)
-        .then(setUnreadAlertsCount)
-        .catch(error => console.error('Unread alerts sync failed:', error));
+        .then(serverCount => setUnreadAlertsCount(serverCount + localCount))
+        .catch(error => {
+          console.error('Unread alerts sync failed:', error);
+          setUnreadAlertsCount(localCount);
+        });
+    } else {
+      setUnreadAlertsCount(localCount);
     }
   }, [user]);
 
-  // Load alerts count on mount
+  // Load alerts count on mount + subscribe to local notification changes
   useEffect(() => {
-    if (user && !user.isGuest) {
-      syncAlertsCount();
-    }
-  }, [user, syncAlertsCount]);
+    syncAlertsCount();
+    const unsub = LocalNotifications.subscribe(() => syncAlertsCount());
+    return unsub;
+  }, [syncAlertsCount]);
 
   // First-time welcome: show once per user when they reach main (signed in, not guest)
   useEffect(() => {

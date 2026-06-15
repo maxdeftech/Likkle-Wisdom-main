@@ -7,6 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { streamTravelText } from '../../services/geminiService';
+import { notifyAIComplete } from '../../services/localNotificationsService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import PlaceReviews from '../../components/travel/PlaceReviews';
@@ -204,6 +205,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
     sessionStorage.setItem('lw_maps_guidePrompt', prompt);
     sessionStorage.setItem('lw_maps_guideResponse', response);
     setIsGuideLoading(false);
+    notifyAIComplete('maps');
   };
 
   const startVoiceInput = () => {
