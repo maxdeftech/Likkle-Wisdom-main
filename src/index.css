@@ -178,6 +178,25 @@
     font-style: normal;
   }
 
+  .travel-day-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .travel-day-badge {
+    align-items: center;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    color: #0a1a0f;
+    display: flex;
+    font-size: 13px;
+    font-weight: 900;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+  }
+
   .travel-airport-marker > span,
   .travel-plane-marker > span {
     align-items: center;

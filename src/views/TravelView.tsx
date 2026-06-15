@@ -3,6 +3,7 @@ import { TravelTab } from '../components/TravelBottomNav';
 import MapsModule from './travel/MapsModule';
 import AviationModule from './travel/AviationModule';
 import FinancialPlannerModule from './travel/FinancialPlannerModule';
+import TripPlannerModule from './travel/TripPlannerModule';
 
 interface TravelViewProps {
   user: User;
@@ -15,7 +16,8 @@ interface TravelViewProps {
 const travelTabs: { id: TravelTab; label: string; icon: string }[] = [
   { id: 'maps', label: 'Maps', icon: 'map' },
   { id: 'aviation', label: 'Aviation Routes', icon: 'connecting_airports' },
-  { id: 'planner', label: 'Financial Planner', icon: 'savings' }
+  { id: 'planner', label: 'Financial Planner', icon: 'savings' },
+  { id: 'tripplanner', label: 'My Trip', icon: 'route' }
 ];
 
 const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted, travelTab, onTravelTabChange }) => {
@@ -68,6 +70,7 @@ const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted
         {travelTab === 'maps' && <MapsModule user={user} onGuestRestricted={onGuestRestricted} />}
         {travelTab === 'aviation' && <AviationModule />}
         {travelTab === 'planner' && <FinancialPlannerModule />}
+        {travelTab === 'tripplanner' && <TripPlannerModule user={user} onGuestRestricted={onGuestRestricted} />}
       </div>
     </section>
   );

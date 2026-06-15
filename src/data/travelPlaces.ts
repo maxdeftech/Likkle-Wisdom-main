@@ -401,5 +401,209 @@ export const travelPlaces: TravelPlace[] = [
     website: 'https://www.strawberryhillhotel.com/',
     social: { instagram: 'https://www.instagram.com/strawberryhilljamaica/' },
     imageUrl: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'black-river-safari',
+    name: 'Black River Safari',
+    lat: 18.0271,
+    lng: -77.8505,
+    category: 'nature',
+    averageCost: '$20 USD boat tour',
+    description: "The Black River is Jamaica's longest river and hosts crocodile-watching safari boat tours through mangrove ecosystems in St. Elizabeth. The area is protected wetland, home to American crocodiles, herons, and rare bird species. Locally operated tours depart from Black River town.",
+    website: 'https://www.visitjamaica.com/listing/black-river-safari/',
+    imageUrl: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'negril-royal-palms',
+    name: 'Royal Palms Reserve',
+    lat: 18.3000,
+    lng: -78.3400,
+    category: 'nature',
+    averageCost: '$10 USD entry',
+    description: "The Royal Palms Reserve is a protected wetland nature park in Negril. The reserve features a boardwalk through a palm forest, bird watching, and interpretive signage about Jamaica's coastal ecology. It is managed for conservation and low-impact eco-tourism.",
+    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'montego-bay-marine-park',
+    name: 'Montego Bay Marine Park',
+    lat: 18.4900,
+    lng: -77.9200,
+    category: 'nature',
+    averageCost: 'Free access, tours vary',
+    description: "The Montego Bay Marine Park protects one of Jamaica's key coral reef ecosystems. It spans from the airport to the Great River and is managed for coral restoration, sea turtle protection, and sustainable snorkelling and diving access.",
+    website: 'https://www.mbmp.org/',
+    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'portland-bight',
+    name: 'Portland Bight Protected Area',
+    lat: 17.8000,
+    lng: -77.1500,
+    category: 'nature',
+    averageCost: '$15 USD guided tour',
+    description: "Portland Bight is one of the largest protected areas in Jamaica, covering mangroves, cays, and offshore reefs on the south coast. The area includes Pigeon Island, a Ramsar wetland site, and is important for manatees, crocodiles, and migratory birds.",
+    imageUrl: 'https://images.unsplash.com/photo-1520962922320-2038eebab146?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'nanny-falls',
+    name: "Nanny Falls (Moore Town)",
+    lat: 18.1100,
+    lng: -76.3500,
+    category: 'nature',
+    averageCost: '$15 USD guided hike',
+    description: "Nanny Falls near Moore Town in Portland is a scenic waterfall accessible through the ancestral lands of the Windward Maroons. Visits are arranged through the Moore Town community and provide cultural as well as natural context for one of Jamaica's most historically significant communities.",
+    imageUrl: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'jamaica-military-museum',
+    name: 'Jamaica Military Museum & Library',
+    lat: 17.9990,
+    lng: -76.7910,
+    category: 'culture',
+    averageCost: '$5 USD entry',
+    description: 'The Jamaica Military Museum in Kingston documents the history of the Jamaica Defence Force from its colonial roots through independence to the present. Exhibits cover uniforms, weapons, historic documents, and the role of the military in Jamaican national life.',
+    imageUrl: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'liberty-hall-kingston',
+    name: 'Liberty Hall - Marcus Garvey Museum',
+    lat: 18.0013,
+    lng: -76.7943,
+    category: 'culture',
+    averageCost: '$5 USD entry',
+    description: "Liberty Hall in Kingston is the restored headquarters of Marcus Garvey's Universal Negro Improvement Association. The museum presents Garvey's life, the Pan-African movement, and the UNIA's global significance through exhibits and an interpretive centre.",
+    website: 'https://www.visitjamaica.com/listing/liberty-hall-the-legacy-of-marcus-garvey/',
+    imageUrl: 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'falmouth-historic-town',
+    name: 'Falmouth Historic Town',
+    lat: 18.4996,
+    lng: -77.6580,
+    category: 'culture',
+    averageCost: 'Free (tours available)',
+    description: 'Falmouth in Trelawny is one of the best-preserved Georgian towns in the Caribbean. Its courthouse, churches, and merchant buildings date from the sugar era when it was a prosperous port town. Heritage tours are available and the town is now a port of call for cruise ships.',
+    imageUrl: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'coyaba-river-garden-museum',
+    name: 'Coyaba River Garden & Museum',
+    lat: 18.4180,
+    lng: -77.1050,
+    category: 'culture',
+    averageCost: '$10 USD entry',
+    description: 'Coyaba River Garden & Museum near Ocho Rios is set on the Shaw Park hillside and covers the history of Jamaica from pre-Columbian Taino culture through the colonial era to independence. The garden contains streams, waterfalls, and native plantings around the museum building.',
+    website: 'https://www.visitjamaica.com/listing/coyaba-river-garden-and-museum/',
+    imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'seville-great-house',
+    name: 'Seville Heritage Park',
+    lat: 18.4540,
+    lng: -77.2160,
+    category: 'culture',
+    averageCost: '$10 USD entry',
+    description: "Seville Heritage Park near St. Ann's Bay is built on the site of Jamaica's first Spanish capital and the later Seville Great House. Archaeological excavations have uncovered Taino, Spanish, and British layers. The park covers 850 acres of the island's most historically layered landscape.",
+    website: 'https://www.visitjamaica.com/listing/seville-heritage-park/',
+    imageUrl: 'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'zipline-ocho-rios',
+    name: 'Ocho Rios Zipline at Chukka',
+    lat: 18.3890,
+    lng: -77.1770,
+    category: 'adventure',
+    averageCost: 'From $65 USD',
+    description: "Chukka's Ocho Rios canopy and zipline experience takes guests through a rainforest canopy above the north coast. Multiple platforms and traverses of varying difficulty make it accessible to most visitors. Guides provide safety instruction and natural history commentary throughout.",
+    website: 'https://www.chukka.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'cliff-jumping-negril',
+    name: 'Negril Cliffs (West End)',
+    lat: 18.2600,
+    lng: -78.3700,
+    category: 'adventure',
+    averageCost: 'Free / bar spend',
+    description: "The West End Road in Negril runs along a series of volcanic rock cliffs above the sea. Multiple bars and hotels along the cliffs offer jumping platforms and diving ledges at varying heights. The area is informal, locally run, and offers some of the most dramatic sunset views in Jamaica.",
+    imageUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'bamboo-avenue',
+    name: 'Bamboo Avenue',
+    lat: 18.0500,
+    lng: -77.7200,
+    category: 'adventure',
+    averageCost: 'Free roadside stop',
+    description: 'Bamboo Avenue is a 3km stretch of road in St. Elizabeth lined with a dense canopy of towering bamboo that forms a natural tunnel. It is a photogenic stop on the south coast route and is often included in tour itineraries between Kingston and Negril.',
+    imageUrl: 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'appleton-estate',
+    name: 'Appleton Estate Rum Tour',
+    lat: 18.0900,
+    lng: -77.7600,
+    category: 'adventure',
+    averageCost: '$30 USD tour',
+    description: 'Appleton Estate in Nassau Valley, St. Elizabeth, has been producing Jamaican rum since the 1740s. The estate tour covers the cane fields, distillery, aging warehouses, and a tasting of single estate rums. It is one of the oldest continuously operating sugar estates in the western hemisphere.',
+    website: 'https://www.appletonestate.com/',
+    social: { instagram: 'https://www.instagram.com/appletonestate/' },
+    imageUrl: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'couples-sans-souci',
+    name: 'Couples Sans Souci',
+    lat: 18.4098,
+    lng: -77.0612,
+    category: 'hotels',
+    averageCost: 'From $280 USD/night (all-inclusive)',
+    description: "Couples Sans Souci near Ocho Rios is a cliffside all-inclusive resort with a mineral spring pool, spa, and multiple dining options. The property combines romance-focused amenities with the natural geology of Jamaica's north coast limestone cliffs.",
+    website: 'https://www.couples.com/resort/couples-sans-souci',
+    social: { instagram: 'https://www.instagram.com/couplesresorts/' },
+    imageUrl: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'moon-palace-jamaica',
+    name: 'Moon Palace Jamaica Grande',
+    lat: 18.4030,
+    lng: -76.9720,
+    category: 'hotels',
+    averageCost: 'From $200 USD/night (all-inclusive)',
+    description: 'Moon Palace Jamaica Grande sits on a private beach in Ocho Rios. The large resort features multiple pools, diverse dining, a full-service spa, and water sports. It is well-suited for families and larger groups seeking a comprehensive all-inclusive north coast experience.',
+    website: 'https://www.moonpalacejamaicangrande.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'riu-negril',
+    name: 'RIU Negril',
+    lat: 18.3060,
+    lng: -78.3450,
+    category: 'hotels',
+    averageCost: 'From $170 USD/night (all-inclusive)',
+    description: "RIU Negril is an all-inclusive beachfront resort on Seven Mile Beach. The property offers ocean-view rooms, multiple pools and restaurants, entertainment, and easy access to Negril's beach strip. It is consistently popular with North American and European visitors.",
+    website: 'https://www.riu.com/en/hotel/jamaica/negril/hotel-riu-negril/',
+    imageUrl: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'trident-villa-portland',
+    name: 'Trident Hotel & Villas',
+    lat: 18.1700,
+    lng: -76.4500,
+    category: 'villas',
+    averageCost: 'From $700 USD/night',
+    description: "Trident Hotel sits on rocky cliffs above the sea in Port Antonio, Portland. The boutique property features suites and private villas with individual pools, butler service, and curated Jamaica experiences. It is one of the island's most celebrated small luxury properties.",
+    website: 'https://www.tridentportantonio.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=80'
+  },
+  {
+    id: 'tensing-pen-negril',
+    name: 'Tensing Pen Resort',
+    lat: 18.2650,
+    lng: -78.3720,
+    category: 'villas',
+    averageCost: 'From $220 USD/night',
+    description: 'Tensing Pen on the Negril West End cliffs is a low-impact, eco-conscious cottage resort. It occupies a forested clifftop with rocky swimming pools at sea level, handcrafted cottages, and a peaceful atmosphere that reflects the original character of Negril before mass tourism.',
+    website: 'https://www.tensing.com/',
+    imageUrl: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1200&q=80'
   }
 ];

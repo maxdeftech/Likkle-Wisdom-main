@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type TravelTab = 'maps' | 'aviation' | 'planner';
+export type TravelTab = 'maps' | 'aviation' | 'planner' | 'tripplanner';
 
 interface TravelBottomNavProps {
   activeTab: TravelTab;
@@ -11,7 +11,8 @@ interface TravelBottomNavProps {
 const tabs: { id: TravelTab; label: string; icon: string }[] = [
   { id: 'maps', label: 'Maps', icon: 'map' },
   { id: 'aviation', label: 'Routes', icon: 'connecting_airports' },
-  { id: 'planner', label: 'Planner', icon: 'savings' }
+  { id: 'planner', label: 'Finance', icon: 'savings' },
+  { id: 'tripplanner', label: 'My Trip', icon: 'route' }
 ];
 
 const navButtonClass = (active = false) => `relative flex size-12 shrink-0 items-center justify-center rounded-full transition-all duration-300 ${
