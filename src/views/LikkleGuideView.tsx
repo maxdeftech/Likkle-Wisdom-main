@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { chatWithGuide } from '../services/geminiService';
+import { streamChatWithGuide } from '../services/geminiService';
+import TravelMarkdown from '../components/travel/TravelMarkdown';
 import { Tab } from '../types';
 
 interface GuideMessage {
@@ -31,17 +32,23 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
   const [messages, setMessages] = useState<GuideMessage[]>(loadMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  // Auto-scroll — throttle during streaming to avoid jank
+  const lastScrollRef = useRef(0);
   useEffect(() => {
+    const now = Date.now();
+    if (now - lastScrollRef.current < 80 && streamingText) return;
+    lastScrollRef.current = now;
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, streamingText]);
 
   useEffect(() => {
     saveMessages(messages);
@@ -62,15 +69,18 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
     setMessages(updated);
     setInput('');
     setIsLoading(true);
+    setStreamingText('');
 
     try {
       const history = updated.map(m => ({ role: m.role, content: m.content }));
-      const response = await chatWithGuide(history);
+      const fullResponse = await streamChatWithGuide(history, (partial) => {
+        setStreamingText(partial);
+      });
 
       const assistantMsg: GuideMessage = {
         id: `a_${Date.now()}`,
         role: 'assistant',
-        content: response,
+        content: fullResponse,
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -84,6 +94,7 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
       setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
+      setStreamingText('');
     }
   }, [messages, isLoading]);
 
@@ -204,23 +215,18 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
 
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className="max-w-[85%]">
-              <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-primary/20 text-slate-900 dark:text-white border border-primary/20 rounded-br-md'
-                    : 'glass text-slate-800 dark:text-white/90 border border-slate-200 dark:border-white/10 rounded-bl-md'
-                }`}
-              >
-                {msg.content.split('\n').map((line, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <br />}
-                    {line}
-                  </React.Fragment>
-                ))}
-              </div>
+            <div className={msg.role === 'user' ? 'max-w-[85%]' : 'max-w-[95%] w-full'}>
+              {msg.role === 'user' ? (
+                <div className="rounded-2xl px-4 py-3 text-sm leading-relaxed bg-primary/20 text-slate-900 dark:text-white border border-primary/20 rounded-br-md">
+                  {msg.content}
+                </div>
+              ) : (
+                <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-inner dark:from-primary/8">
+                  <TravelMarkdown>{msg.content}</TravelMarkdown>
+                </div>
+              )}
               {msg.role === 'assistant' && (
-                <div className="flex items-center gap-1 mt-1 ml-1">
+                <div className="flex items-center gap-1 mt-1.5 ml-1">
                   <button
                     onClick={() => speakText(msg.content, msg.id)}
                     className="size-7 rounded-full flex items-center justify-center text-slate-400 dark:text-white/30 hover:text-primary transition-colors"
@@ -243,7 +249,20 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
           </div>
         ))}
 
-        {isLoading && (
+        {/* Streaming response — shows tokens as they arrive */}
+        {isLoading && streamingText && (
+          <div className="flex justify-start">
+            <div className="max-w-[95%] w-full">
+              <div className="travel-md rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-inner dark:from-primary/8">
+                <TravelMarkdown>{streamingText}</TravelMarkdown>
+                <span className="inline-block size-2 bg-primary rounded-full animate-pulse ml-1 align-middle" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Initial loading dots before first token arrives */}
+        {isLoading && !streamingText && (
           <div className="flex justify-start">
             <div className="glass rounded-2xl rounded-bl-md px-4 py-3 border border-slate-200 dark:border-white/10">
               <div className="flex items-center gap-2">

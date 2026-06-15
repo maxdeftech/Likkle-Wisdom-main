@@ -224,4 +224,126 @@ Keep responses concise, warm, and helpful. Use Jamaican expressions naturally bu
   }
 }
 
+/**
+ * Streaming version of chatWithGuide — calls onChunk with each token
+ * as it arrives so the UI can render progressively.
+ * Returns the full concatenated response when done.
+ */
+export async function streamChatWithGuide(
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  onChunk: (partialText: string) => void
+): Promise<string> {
+  const apiKey = getOpenRouterApiKey();
+  if (!apiKey) {
+    const fallback = "Mi cyaan chat right now — di API key nuh set up yet. Ask yuh admin fi add it.";
+    onChunk(fallback);
+    return fallback;
+  }
+
+  const systemMessage: ChatMessage = {
+    role: 'system',
+    content: `You are "Likkle Guide" — the friendly AI assistant inside the Likkle Wisdom app. You speak with light Jamaican Patois flavour but stay clear and helpful. You help users with TWO things:
+
+1. APP GUIDE — You know every feature of Likkle Wisdom:
+   - Home: daily wisdom quotes (Jamaican Patois proverbs, Bible affirmations, iconic quotes), mood-based AI wisdom generation, category browsing
+   - Discover: search across all wisdom, browse categories, Jamaican history section
+   - Bible: full KJV Bible reader with bookmarking, verse search
+   - Likkle Book: encrypted private journal with mood tracking
+   - Travel: Jamaica travel suite with 4 modules:
+     * Maps: 25+ curated Jamaican places with GPS, filters by category, AI destination guide, save places to trip lists
+     * Aviation Routes: international flight routes to/from Kingston/Montego Bay with interactive map, airline links, pull-up detail panels
+     * Financial Planner: AI-powered trip budgeting with cost breakdown, savings goal tracker, PDF export
+     * Trip Planner: build day-by-day itinerary with stop ordering, connecting route lines on map, AI trip improvement suggestions
+   - Profile: wisdom cabinet (bookmarks), user wisdoms, journal stats, public/private toggle
+   - Settings: theme toggle (dark/light), account management
+   - AI Wisdom: mood-based Jamaican proverb generation
+   - PDF Export: structured PDFs with colour-coded sections, tables, proper formatting
+   - PWA: installable as an app on any device
+
+2. JAMAICA TRAVEL ASSISTANT — You give practical travel advice about Jamaica: destinations, culture, food, safety tips, budget planning, local customs, patois phrases, transportation, best times to visit, hidden gems.
+
+Keep responses concise, warm, and helpful. Use Jamaican expressions naturally but don't overdo it. If asked about something outside your scope, politely redirect.`
+  };
+
+  const apiMessages: ChatMessage[] = [systemMessage, ...messages];
+
+  const tryStream = async (model: string): Promise<string> => {
+    assertFreeOpenRouterModel(model);
+
+    const response = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://www.likklewisdom.com',
+        'X-Title': 'Likkle Wisdom'
+      },
+      body: JSON.stringify({
+        model,
+        messages: apiMessages,
+        temperature: 0.7,
+        max_tokens: 1024,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof data?.error?.message === 'string'
+          ? data.error.message
+          : `OpenRouter stream failed with status ${response.status}`
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body for streaming');
+
+    const decoder = new TextDecoder();
+    let full = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const payload = trimmed.slice(6);
+        if (payload === '[DONE]') continue;
+        try {
+          const json = JSON.parse(payload);
+          const token = json.choices?.[0]?.delta?.content;
+          if (token) {
+            full += token;
+            onChunk(full);
+          }
+        } catch { /* skip malformed SSE lines */ }
+      }
+    }
+
+    if (!full) throw new Error('Stream returned no content');
+    return full;
+  };
+
+  try {
+    return await tryStream(PRIMARY_MODEL);
+  } catch (primaryError) {
+    console.info('OpenRouter primary stream failed; trying fallback.', primaryError);
+    try {
+      return await tryStream(FALLBACK_MODEL);
+    } catch (fallbackError) {
+      console.info('Likkle Guide stream fallback error:', fallbackError);
+      const errMsg = "Hmm, mi mind fuzzy right now. Try ask again inna likkle bit.";
+      onChunk(errMsg);
+      return errMsg;
+    }
+  }
+}
+
 export { KEY_MISSING_RESPONSE };
