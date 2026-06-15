@@ -35,7 +35,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
       )}
 
       {/* What's in di app — responsive, no overlap */}
-      <section className="glass rounded-2xl p-4 sm:p-5 border border-white/10 min-w-0 overflow-hidden">
+      <section className="glass rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-white/10 min-w-0 overflow-hidden">
         <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-3 sm:mb-4 flex items-center gap-2 flex-wrap">
           <span className="material-symbols-outlined text-base sm:text-lg shrink-0">auto_awesome</span>
           <span className="break-words">What’s in di app</span>
@@ -44,7 +44,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
           {APP_FEATURES.map(({ icon, label, desc }) => (
             <div
               key={label}
-              className="flex items-start gap-3 sm:gap-4 py-2 border-b border-white/5 last:border-b-0 last:pb-0 first:pt-0 min-w-0"
+              className="flex items-start gap-3 sm:gap-4 py-2 border-b border-slate-100 dark:border-white/5 last:border-b-0 last:pb-0 first:pt-0 min-w-0"
             >
               <div className="size-9 sm:size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
                 <span className="material-symbols-outlined text-lg sm:text-xl">{icon}</span>
@@ -58,7 +58,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
         </div>
       </section>
 
-      <section className="glass rounded-2xl p-4 sm:p-5 border border-white/10 min-w-0 overflow-hidden">
+      <section className="glass rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-white/10 min-w-0 overflow-hidden">
         <h3 className="text-xs font-black uppercase tracking-widest text-jamaican-gold mb-2 sm:mb-3 flex items-center gap-2 flex-wrap">
           <span className="material-symbols-outlined text-base sm:text-lg shrink-0">notifications</span>
           <span className="break-words">Updates & news</span>
@@ -71,7 +71,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
         </p>
       </section>
 
-      <section className="glass rounded-2xl p-4 sm:p-5 border border-white/10 min-w-0 overflow-hidden">
+      <section className="glass rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-white/10 min-w-0 overflow-hidden">
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 sm:mb-3 flex items-center gap-2 flex-wrap">
           <span className="material-symbols-outlined text-base sm:text-lg shrink-0">gavel</span>
           <span className="break-words">Legal & feedback</span>
@@ -81,7 +81,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
             {onOpenPrivacy && (
               <button
                 onClick={onOpenPrivacy}
-                className="px-3 sm:px-4 py-2 rounded-xl glass text-[11px] sm:text-xs font-bold text-slate-700 dark:text-white/80 hover:bg-white/10 transition-colors active:scale-95 shrink-0"
+                className="px-3 sm:px-4 py-2 rounded-xl glass text-[11px] sm:text-xs font-bold text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors active:scale-95 shrink-0"
               >
                 Privacy Policy
               </button>
@@ -89,7 +89,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
             {onOpenTerms && (
               <button
                 onClick={onOpenTerms}
-                className="px-3 sm:px-4 py-2 rounded-xl glass text-[11px] sm:text-xs font-bold text-slate-700 dark:text-white/80 hover:bg-white/10 transition-colors active:scale-95 shrink-0"
+                className="px-3 sm:px-4 py-2 rounded-xl glass text-[11px] sm:text-xs font-bold text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors active:scale-95 shrink-0"
               >
                 Terms of Service
               </button>
@@ -116,7 +116,7 @@ export const AppGuideContent: React.FC<AppGuideContentProps> = ({
       {showSettingsButton && onOpenSettings && (
         <button
           onClick={onOpenSettings}
-          className="w-full py-3 sm:py-4 rounded-2xl glass border border-white/10 text-xs sm:text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white/90 hover:bg-white/10 transition-colors active:scale-[0.99] flex items-center justify-center gap-2 min-w-0"
+          className="w-full py-3 sm:py-4 rounded-2xl glass border border-slate-200 dark:border-white/10 text-xs sm:text-sm font-black uppercase tracking-widest text-slate-700 dark:text-white/90 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors active:scale-[0.99] flex items-center justify-center gap-2 min-w-0"
         >
           <span className="material-symbols-outlined text-lg">settings</span>
           Open Settings

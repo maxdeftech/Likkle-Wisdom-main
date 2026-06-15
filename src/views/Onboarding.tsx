@@ -43,7 +43,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
                 <h1 className="text-5xl sm:text-6xl font-black tracking-tight leading-none">Wa Gwan<span className="text-primary">!</span></h1>
                 <p className="text-primary/60 text-xs font-bold uppercase tracking-[0.3em] mt-2">English: What's happening?</p>
               </div>
-              <p className="text-white/80 text-lg sm:text-xl font-medium leading-snug sm:leading-relaxed max-w-[280px] mx-auto">
+              <p className="text-slate-600 dark:text-white/80 text-lg sm:text-xl font-medium leading-snug sm:leading-relaxed max-w-[280px] mx-auto">
                 Step into the heartbeat of Jamaica with daily Patois wisdom and vibes.
               </p>
             </div>
@@ -52,39 +52,39 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
       case 2:
         return (
           <div className="flex flex-col h-full justify-center items-center text-center px-8 pt-10">
-            <div className="glass rounded-[2.5rem] p-6 w-full max-w-[280px] aspect-square flex flex-col items-center justify-center relative overflow-hidden group mb-6 border-white/5 shadow-2xl">
+            <div className="glass rounded-[2.5rem] p-6 w-full max-w-[280px] aspect-square flex flex-col items-center justify-center relative overflow-hidden group mb-6 border-slate-200 dark:border-white/5 shadow-2xl">
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <span className="material-symbols-outlined text-6xl">format_quote</span>
               </div>
               <span className="material-symbols-outlined text-primary text-6xl mb-4 animate-pulse-glow">translate</span>
               <p className="text-xl font-extrabold italic leading-tight mb-4">"Wi likkle but wi tallawah."</p>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 w-full backdrop-blur-sm">
+              <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 w-full backdrop-blur-sm">
                 <span className="text-[9px] font-bold text-primary uppercase tracking-widest">Tap to reveal English meaning</span>
               </div>
             </div>
             <div className="space-y-3 pb-24">
               <h1 className="text-3xl font-black">Learn & Grow</h1>
-              <p className="text-white/70 text-base leading-snug">Discover the deep meanings behind authentic island expressions.</p>
+              <p className="text-slate-500 dark:text-white/70 text-base leading-snug">Discover the deep meanings behind authentic island expressions.</p>
             </div>
           </div>
         );
       case 3:
         return (
           <div className="flex flex-col h-full justify-center items-center text-center px-8 pt-10">
-            <div className="glass rounded-[2.5rem] p-6 w-full max-w-[280px] aspect-square flex flex-col items-center justify-center mb-6 border-white/5 shadow-2xl relative">
+            <div className="glass rounded-[2.5rem] p-6 w-full max-w-[280px] aspect-square flex flex-col items-center justify-center mb-6 border-slate-200 dark:border-white/5 shadow-2xl relative">
               <div className="absolute inset-0 bg-primary/5 rounded-[2.5rem] blur-xl"></div>
               <div className="relative w-20 h-20 bg-primary/10 rounded-[1.5rem] flex items-center justify-center mb-4 border border-primary/20 animate-float">
                 <span className="material-symbols-outlined text-5xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>edit_note</span>
               </div>
               <div className="flex flex-col gap-1.5 w-24 opacity-30">
-                <div className="h-1.5 w-full bg-white rounded-full"></div>
-                <div className="h-1.5 w-4/5 bg-white rounded-full"></div>
-                <div className="h-1.5 w-full bg-white rounded-full"></div>
+                <div className="h-1.5 w-full bg-slate-400 dark:bg-white rounded-full"></div>
+                <div className="h-1.5 w-4/5 bg-slate-400 dark:bg-white rounded-full"></div>
+                <div className="h-1.5 w-full bg-slate-400 dark:bg-white rounded-full"></div>
               </div>
             </div>
             <div className="space-y-3 pb-24">
               <h1 className="text-3xl font-black">Write Your Journey</h1>
-              <p className="text-white/70 text-base leading-snug">Reflect on your daily lessons in your personal <span className="text-primary font-bold italic">Likkle Book</span>.</p>
+              <p className="text-slate-500 dark:text-white/70 text-base leading-snug">Reflect on your daily lessons in your personal <span className="text-primary font-bold italic">Likkle Book</span>.</p>
             </div>
           </div>
         );
@@ -92,7 +92,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex w-full flex-col bg-background-dark overflow-hidden font-display pt-safe text-white">
+    <div className="fixed inset-0 flex w-full flex-col bg-slate-50 dark:bg-background-dark overflow-hidden font-display pt-safe text-slate-900 dark:text-white">
       <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-5 sm:p-6 pt-safe mt-2">
         {step > 1 ? (
           <button onClick={() => setStep(step - 1)} className="size-10 flex items-center justify-center rounded-full glass">
@@ -100,7 +100,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
           </button>
         ) : <div className="size-10"></div>}
         <div className="flex-1 text-center">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Step {step} of 3</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/30">Step {step} of 3</span>
         </div>
         <button onClick={onFinish} className="size-10 flex items-center justify-center rounded-full glass">
           <span className="material-symbols-outlined text-sm">close</span>
@@ -111,10 +111,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
         {renderStep()}
       </div>
 
-      <footer className="shrink-0 px-6 sm:px-8 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col items-center gap-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent pt-3 z-50">
+      <footer className="shrink-0 px-6 sm:px-8 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col items-center gap-4 bg-gradient-to-t from-slate-50 via-slate-50 dark:from-background-dark dark:via-background-dark to-transparent pt-3 z-50">
         <div className="flex gap-2">
           {[1, 2, 3].map(s => (
-            <div key={s} className={`h-1 rounded-full transition-all duration-500 ${s === step ? 'w-8 bg-primary shadow-[0_0_10px_rgba(19,236,91,0.6)]' : 'w-1.5 bg-white/10'}`}></div>
+            <div key={s} className={`h-1 rounded-full transition-all duration-500 ${s === step ? 'w-8 bg-primary shadow-[0_0_10px_rgba(19,236,91,0.6)]' : 'w-1.5 bg-slate-300 dark:bg-white/10'}`}></div>
           ))}
         </div>
         <button

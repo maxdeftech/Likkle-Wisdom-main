@@ -124,8 +124,12 @@
     @apply text-white;
   }
 
-  html, html:root {
+  .dark, .dark:root {
     background-color: #0a1a0f !important;
+  }
+
+  html:not(.dark), html:not(.dark):root {
+    background-color: #f8fafc !important;
   }
 
   html:not(.dark) body {

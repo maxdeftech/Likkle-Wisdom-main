@@ -22,8 +22,8 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose, onOpenPrivacy, onO
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-lg max-h-[min(90vh,90dvh)] overflow-y-auto overflow-x-hidden rounded-[2rem] border border-white/15 shadow-2xl bg-white/10 dark:bg-white/5 backdrop-blur-xl animate-pop flex flex-col min-h-0">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-md rounded-t-[2rem] shrink-0">
+      <div className="relative w-full max-w-lg max-h-[min(90vh,90dvh)] overflow-y-auto overflow-x-hidden rounded-[2rem] border border-slate-200 dark:border-white/15 shadow-2xl bg-white dark:bg-white/5 backdrop-blur-xl animate-pop flex flex-col min-h-0">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 backdrop-blur-md rounded-t-[2rem] shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="size-10 sm:size-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-primary text-2xl sm:text-3xl">wb_sunny</span>
