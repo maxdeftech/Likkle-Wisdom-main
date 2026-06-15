@@ -28,7 +28,7 @@ export default defineConfig(({ command, mode }) => {
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icons/*.png'],
+      includeAssets: ['icons/*.png', 'favicon-16x16.png', 'favicon-32x32.png'],
       manifest: {
         name: 'Likkle Wisdom',
         short_name: 'Wisdom',
@@ -48,13 +48,7 @@ export default defineConfig(({ command, mode }) => {
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: '/icons/maskable-icon.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'maskable'
+            purpose: 'any maskable'
           },
         ]
       },

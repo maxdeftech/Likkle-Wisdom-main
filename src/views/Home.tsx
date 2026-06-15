@@ -156,15 +156,15 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
   );
 
   return (
-    <div className="p-6 sm:p-10 pb-24 animate-fade-in" role="region" aria-label="Home">
-      <header className="flex flex-col gap-8 mb-8 pt-6" role="banner">
-        <div className="flex items-center gap-5">
+    <div className="p-4 sm:p-10 pb-24 animate-fade-in" role="region" aria-label="Home">
+      <header className="flex flex-col gap-6 mb-7 pt-4 sm:gap-8 sm:mb-8 sm:pt-6" role="banner">
+        <div className="flex items-center gap-4 sm:gap-5">
           {/* Profile & Theme Cluster */}
           <div className="flex flex-col items-center gap-3">
             <button
               onClick={() => onTabChange('me')}
               aria-label="View your profile"
-              className="size-16 sm:size-20 rounded-[2rem] border-4 border-primary/20 overflow-hidden active:scale-90 transition-transform shadow-2xl bg-background-dark rotate-3 hover:rotate-0 transition-all duration-500"
+              className="size-14 sm:size-20 rounded-[1.45rem] sm:rounded-[2rem] border-4 border-primary/20 overflow-hidden active:scale-90 transition-transform shadow-2xl bg-background-dark rotate-3 hover:rotate-0 transition-all duration-500"
             >
               <img
                 className="w-full h-full object-cover"
@@ -188,24 +188,24 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           {/* User Info */}
           <div className="flex-1 flex flex-col min-w-0">
             <span className="text-sm font-black uppercase tracking-widest opacity-40 text-slate-900 dark:text-white/40">Wha Gwan,</span>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-[300px]">
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white truncate max-w-[160px] sm:max-w-[300px]">
               {firstName}
             </h1>
             <OnlineCount userId={user.id} />
           </div>
 
           {/* Header Icons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex flex-col items-center gap-1">
-              <button onClick={() => onTabChange('discover')} aria-label="Explore categories and search wisdom" className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform">
-                <span className="material-symbols-outlined text-xl" aria-hidden="true">explore</span>
+              <button onClick={() => onTabChange('discover')} aria-label="Explore categories and search wisdom" className="size-10 rounded-xl flex items-center justify-center text-slate-900/65 dark:text-white/65 active:scale-90 transition-colors hover:text-primary">
+                <span className="material-symbols-outlined text-[22px]" aria-hidden="true">explore</span>
               </button>
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40" aria-hidden="true">Explore</span>
             </div>
             {onOpenAlerts && (
               <div className="flex flex-col items-center gap-1">
-                <button onClick={onOpenAlerts} aria-label={alertsCount > 0 ? `Alerts, ${alertsCount} unread` : 'View alerts'} className="size-11 rounded-full glass flex items-center justify-center text-slate-900 dark:text-white/60 active:scale-90 transition-transform relative">
-                  <span className="material-symbols-outlined text-xl" aria-hidden="true">notifications</span>
+                <button onClick={onOpenAlerts} aria-label={alertsCount > 0 ? `Alerts, ${alertsCount} unread` : 'View alerts'} className="size-10 rounded-xl flex items-center justify-center text-slate-900/65 dark:text-white/65 active:scale-90 transition-colors hover:text-primary relative">
+                  <span className="material-symbols-outlined text-[22px]" aria-hidden="true">notifications</span>
                   {alertsCount > 0 && (
                     <span className="absolute -top-1 -right-1 size-5 bg-jamaican-gold rounded-full flex items-center justify-center text-[9px] font-black text-background-dark border-2 border-white dark:border-background-dark animate-pop" aria-hidden="true">
                       {alertsCount > 9 ? '9+' : alertsCount}
@@ -241,27 +241,27 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           ))}
         </div>
 
-        <div id="daily-content-panel" role="tabpanel" aria-labelledby={`daily-tab-${activeDaily}`} className="glass rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-12 flex flex-col items-center text-center gap-6 shadow-2xl relative overflow-hidden border-white/5 bg-gradient-to-br from-primary/5 to-transparent min-h-[50vh] justify-center">
-          <div className="absolute top-0 right-0 p-8 opacity-5" aria-hidden="true">
-            <span className="material-symbols-outlined text-[120px] sm:text-[180px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+        <div id="daily-content-panel" role="tabpanel" aria-labelledby={`daily-tab-${activeDaily}`} className="glass rounded-[1.75rem] sm:rounded-[3rem] p-5 sm:p-12 flex flex-col items-center text-center gap-5 sm:gap-6 shadow-2xl relative overflow-hidden border-white/5 bg-gradient-to-br from-primary/5 to-transparent min-h-[390px] sm:min-h-[50vh] justify-center">
+          <div className="absolute top-0 right-0 p-5 sm:p-8 opacity-5" aria-hidden="true">
+            <span className="material-symbols-outlined text-[96px] sm:text-[180px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               {activeDaily === 'quote' ? 'wb_sunny' : activeDaily === 'wisdom' ? 'auto_stories' : 'menu_book'}
             </span>
           </div>
 
           <button
             onClick={(e) => { e.stopPropagation(); refreshSingle(activeDaily); setReveal(false); }}
-            className="absolute top-6 right-6 size-10 rounded-full glass border border-white/10 flex items-center justify-center text-slate-900/40 dark:text-white/40 active:scale-95 transition-all z-20 hover:text-primary hover:border-primary/20"
+            className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-xl text-slate-900/45 transition-all active:scale-95 hover:text-primary dark:text-white/45"
             aria-label="Refresh this card with new content"
           >
-            <span className="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>
+            <span className="material-symbols-outlined text-[22px]" aria-hidden="true">refresh</span>
           </button>
 
-          <span className="material-symbols-outlined text-primary text-5xl sm:text-7xl opacity-40" aria-hidden="true">
+          <span className="material-symbols-outlined text-primary text-4xl sm:text-7xl opacity-40" aria-hidden="true">
             format_quote
           </span>
 
           <div className="space-y-4 max-w-lg">
-            <h2 className="text-3xl sm:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white px-2">
+            <h2 className="text-2xl sm:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white px-2">
               "{currentItem?.patois}"
             </h2>
             {activeDaily === 'verse' && isVerse(currentItem) && (
@@ -327,8 +327,37 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         </div>
       </section>
 
+      <section className="mb-8 sm:mb-10" aria-label="Quick access">
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onTabChange('bible')}
+            className="glass flex min-h-[82px] items-center gap-3 rounded-2xl p-4 text-left active:scale-95 transition-all border-white/5"
+            aria-label="Open Bible"
+          >
+            <span className="material-symbols-outlined flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[26px] text-primary" aria-hidden="true">auto_stories</span>
+            <span className="min-w-0">
+              <span className="block text-sm font-black text-slate-900 dark:text-white">Bible</span>
+              <span className="block truncate text-[9px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Read & bookmark</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange('book')}
+            className="glass flex min-h-[82px] items-center gap-3 rounded-2xl p-4 text-left active:scale-95 transition-all border-white/5"
+            aria-label="Open Journal"
+          >
+            <span className="material-symbols-outlined flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[26px] text-primary" aria-hidden="true">edit_note</span>
+            <span className="min-w-0">
+              <span className="block text-sm font-black text-slate-900 dark:text-white">Journal</span>
+              <span className="block truncate text-[9px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Likkle Book</span>
+            </span>
+          </button>
+        </div>
+      </section>
+
       {/* Likkle Guide — AI assistant */}
-      <div className="mb-10 px-1">
+      <div className="mb-8 sm:mb-10 px-1">
         <button
           type="button"
           onClick={() => onTabChange('guide')}
@@ -433,15 +462,15 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           </div>
         )}
 
-        <div onClick={onOpenAI} className="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 z-20 w-full flex justify-between pr-12 sm:pr-20 items-end">
+        <div onClick={onOpenAI} className="absolute bottom-5 sm:bottom-10 left-5 sm:left-10 z-20 w-full flex justify-between pr-10 sm:pr-20 items-end">
           <div className="space-y-1 sm:space-y-3">
             <p className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-1">
               AI Magic <span className="material-symbols-outlined text-[14px] sm:text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
             </p>
-            <h3 className="text-2xl sm:text-4xl font-black text-white leading-none">Craft Yuh Own Wisdom</h3>
+            <h3 className="text-[1.65rem] sm:text-4xl font-black text-white leading-none">Craft Yuh Own Wisdom</h3>
           </div>
-          <div className="size-12 sm:size-16 glass rounded-2xl flex items-center justify-center text-primary border-primary/30">
-            <span className="material-symbols-outlined text-xl sm:text-3xl">verified</span>
+          <div className="size-11 sm:size-16 glass rounded-2xl flex items-center justify-center text-primary border-primary/30">
+            <span className="material-symbols-outlined text-xl sm:text-3xl" aria-hidden="true">verified</span>
           </div>
         </div>
       </section>

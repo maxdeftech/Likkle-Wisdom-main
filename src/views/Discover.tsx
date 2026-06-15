@@ -48,8 +48,8 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
   const isSearching = q.length >= 2;
 
   return (
-    <div className="p-6 sm:p-10 pb-24 animate-fade-in" role="region" aria-label="Discover wisdom">
-      <header className="py-12 sm:py-16 flex flex-col gap-2" role="banner">
+    <div className="p-4 sm:p-10 pb-24 animate-fade-in" role="region" aria-label="Discover wisdom">
+      <header className="py-8 sm:py-16 flex flex-col gap-2" role="banner">
          <span className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.4em]" aria-hidden="true">Wisdom Market</span>
          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white">Pick Yuh Vibe</h1>
          <p className="text-slate-500 dark:text-slate-400 font-medium sm:text-lg">Find di inspiration weh fit yuh spirit.</p>
@@ -194,24 +194,25 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
             </button>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-12 sm:mb-20">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 mb-12 sm:mb-20">
             {CATEGORIES.map(cat => (
-              <div 
+              <button
+                type="button"
                 key={cat.id} 
                 onClick={() => onCategoryClick(cat.id)}
-                className="glass rounded-[2rem] p-6 sm:p-8 aspect-square relative overflow-hidden group flex flex-col justify-between cursor-pointer active:scale-95 transition-all border-white/5 shadow-xl hover:border-primary/20"
+                className="glass min-h-[210px] rounded-[1.5rem] p-4 sm:aspect-square sm:min-h-0 sm:rounded-[2rem] sm:p-8 relative overflow-hidden group flex flex-col justify-start gap-3 text-left cursor-pointer active:scale-95 transition-all border-white/5 shadow-xl hover:border-primary/20"
               >
-                <div className={`size-14 sm:size-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-lg group-hover:bg-primary group-hover:text-background-dark transition-colors`}>
-                  <span className="material-symbols-outlined text-3xl sm:text-4xl">{cat.icon}</span>
+                <div className={`size-12 sm:size-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-lg group-hover:bg-primary group-hover:text-background-dark transition-colors`}>
+                  <span className="material-symbols-outlined text-[30px] sm:text-4xl" aria-hidden="true">{cat.icon}</span>
                 </div>
-                <div className="relative z-10">
-                  <h2 className="text-slate-900 dark:text-white text-lg sm:text-xl font-black leading-tight tracking-tight group-hover:text-primary transition-colors">{cat.name}</h2>
-                  <p className={`text-slate-900/30 dark:text-white/30 text-[9px] sm:text-[11px] font-black uppercase tracking-widest mt-1`}>{cat.description}</p>
+                <div className="relative z-10 min-w-0">
+                  <h2 className="text-slate-900 dark:text-white text-[1.35rem] sm:text-xl font-black leading-[1.05] tracking-tight group-hover:text-primary transition-colors">{cat.name}</h2>
+                  <p className="text-slate-900/35 dark:text-white/35 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.16em] sm:tracking-widest mt-2 leading-snug">{cat.description}</p>
                 </div>
                 <div className="absolute -bottom-4 -right-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                   <span className="material-symbols-outlined text-9xl">{cat.icon}</span>
+                   <span className="material-symbols-outlined text-8xl sm:text-9xl" aria-hidden="true">{cat.icon}</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 

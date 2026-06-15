@@ -22,10 +22,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollaps
     { id: 'travel', label: 'Travel', icon: 'flight' },
     { id: 'me', label: 'Profile', icon: 'person' },
   ];
+  const mobileTabs = tabs.filter(tab => ['home', 'discover', 'guide', 'travel', 'me'].includes(tab.id));
 
   return (
     <nav
-      className={`fixed z-dropdown bottom-[max(0.85rem,env(safe-area-inset-bottom))] left-1/2 right-auto flex h-[70px] w-[calc(100%-2rem)] max-w-[430px] -translate-x-1/2 items-center justify-around rounded-full border border-primary/15 bg-[#07120a]/95 px-3 shadow-[0_18px_44px_rgba(0,0,0,0.45)] backdrop-blur-2xl transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:border before:border-white/5
+      className={`fixed z-dropdown bottom-[max(0.7rem,env(safe-area-inset-bottom))] left-1/2 right-auto flex h-[60px] w-[calc(100%-1.5rem)] max-w-[380px] -translate-x-1/2 items-center justify-around rounded-full border border-primary/15 bg-[#07120a]/95 px-2 shadow-[0_14px_34px_rgba(0,0,0,0.42)] backdrop-blur-2xl transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:border before:border-white/5
         lg:top-0 lg:bottom-0 lg:left-0 lg:right-auto lg:h-screen lg:min-h-0 lg:max-w-none lg:translate-x-0 lg:rounded-none lg:border-t-0 lg:border-r lg:border-white/10 lg:bg-white/5 lg:px-3 lg:py-5 lg:pt-safe lg:shadow-2xl lg:backdrop-blur-[16px] lg:before:hidden lg:flex-col lg:justify-start lg:items-stretch lg:gap-2
         ${isCollapsed ? 'lg:w-24' : 'lg:w-72'}`}
       aria-label="Main navigation"
@@ -49,7 +50,25 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollaps
         </button>
       </div>
 
-      <div className="contents lg:flex lg:flex-col lg:gap-2">
+      <div className="contents lg:hidden">
+        {mobileTabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            aria-label={tab.label}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            className={`relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full transition-all duration-300
+              ${activeTab === tab.id ? 'bg-white text-[#07120a] shadow-[0_0_0_2px_rgba(244,209,37,0.7),0_8px_18px_rgba(0,0,0,0.32)]' : 'text-white/65 hover:text-primary'}`}
+          >
+            <span className={`material-symbols-outlined text-[23px] ${activeTab === tab.id ? 'fill-1' : ''}`} aria-hidden="true">
+              {tab.icon}
+            </span>
+            <span className="sr-only">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="hidden lg:flex lg:flex-col lg:gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
