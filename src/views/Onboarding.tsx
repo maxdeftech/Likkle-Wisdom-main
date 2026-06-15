@@ -92,7 +92,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onFinish }) => {
   };
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col bg-background-dark overflow-hidden font-display pt-safe text-white">
+    <div className="fixed inset-0 flex w-full flex-col bg-background-dark overflow-hidden font-display pt-safe text-white">
       <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-5 sm:p-6 pt-safe mt-2">
         {step > 1 ? (
           <button onClick={() => setStep(step - 1)} className="size-10 flex items-center justify-center rounded-full glass">
