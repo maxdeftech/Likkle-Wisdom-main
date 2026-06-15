@@ -107,11 +107,13 @@
   }
 
   .dark body {
-    @apply bg-background-dark text-white;
+    background-color: #0a1a0f !important;
+    @apply text-white;
   }
 
   html:not(.dark) body {
-    @apply bg-slate-50 text-slate-900;
+    background-color: #f8fafc !important; /* slate-50 */
+    @apply text-slate-900;
   }
 }
 

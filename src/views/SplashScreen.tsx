@@ -7,7 +7,7 @@ interface SplashScreenProps {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ progress, message }) => {
   return (
-    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-between bg-zinc-950 p-8 font-sans overflow-hidden">
+    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-between bg-background-dark p-8 font-sans overflow-hidden">
       <div className="h-12 w-full"></div>
 
       <div className="flex flex-col items-center justify-center space-y-8 animate-fade-in">

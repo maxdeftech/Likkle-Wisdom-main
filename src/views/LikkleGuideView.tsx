@@ -37,14 +37,12 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  // Persist messages
   useEffect(() => {
     saveMessages(messages);
   }, [messages]);
@@ -101,7 +99,6 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
     sessionStorage.removeItem(STORAGE_KEY);
   };
 
-  // TTS
   const speakText = (text: string, msgId: string) => {
     const synth = typeof window !== 'undefined' ? (window as any).speechSynthesis : null;
     if (!synth || typeof synth.cancel !== 'function') return;
@@ -115,7 +112,6 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
     synth.speak(utterance);
   };
 
-  // STT
   const toggleListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -154,10 +150,10 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-black/20 backdrop-blur-xl">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-black/20 backdrop-blur-xl">
         <button
           onClick={() => onTabChange('home')}
-          className="size-10 rounded-full glass flex items-center justify-center text-white/70 hover:text-primary transition-colors"
+          className="size-10 rounded-full glass flex items-center justify-center text-slate-500 dark:text-white/70 hover:text-primary transition-colors"
           aria-label="Back to Home"
         >
           <span className="material-symbols-outlined text-xl">arrow_back</span>
@@ -167,13 +163,13 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
             <span className="material-symbols-outlined text-primary text-xl">smart_toy</span>
           </div>
           <div className="min-w-0">
-            <h1 className="text-white font-black text-sm uppercase tracking-wide truncate">Likkle Guide</h1>
-            <p className="text-white/40 text-[10px] font-bold tracking-wider">AI Assistant &amp; Jamaica Travel Guide</p>
+            <h1 className="text-slate-900 dark:text-white font-black text-sm uppercase tracking-wide truncate">Likkle Guide</h1>
+            <p className="text-slate-400 dark:text-white/40 text-[10px] font-bold tracking-wider">AI Assistant &amp; Jamaica Travel Guide</p>
           </div>
         </div>
         <button
           onClick={clearChat}
-          className="size-10 rounded-full glass flex items-center justify-center text-white/50 hover:text-red-400 transition-colors"
+          className="size-10 rounded-full glass flex items-center justify-center text-slate-400 dark:text-white/50 hover:text-red-400 transition-colors"
           aria-label="Clear chat"
           title="Clear chat"
         >
@@ -188,8 +184,8 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
             <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 mb-4">
               <span className="material-symbols-outlined text-primary text-4xl">smart_toy</span>
             </div>
-            <h2 className="text-white font-black text-lg mb-1">Welcome to Likkle Guide</h2>
-            <p className="text-white/50 text-sm max-w-xs mb-6">
+            <h2 className="text-slate-900 dark:text-white font-black text-lg mb-1">Welcome to Likkle Guide</h2>
+            <p className="text-slate-500 dark:text-white/50 text-sm max-w-xs mb-6">
               Ask me anything about the app or Jamaica travel. Mi deh yah fi help!
             </p>
             <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
@@ -197,9 +193,9 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
                 <button
                   key={topic.label}
                   onClick={() => sendMessage(topic.prompt)}
-                  className="glass rounded-xl px-3 py-2.5 text-left border border-white/10 hover:border-primary/30 transition-colors group"
+                  className="glass rounded-xl px-3 py-2.5 text-left border border-slate-200 dark:border-white/10 hover:border-primary/30 transition-colors group"
                 >
-                  <span className="text-white/80 text-xs font-semibold group-hover:text-primary transition-colors">{topic.label}</span>
+                  <span className="text-slate-700 dark:text-white/80 text-xs font-semibold group-hover:text-primary transition-colors">{topic.label}</span>
                 </button>
               ))}
             </div>
@@ -208,12 +204,12 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
 
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-1' : 'order-1'}`}>
+            <div className="max-w-[85%]">
               <div
                 className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   msg.role === 'user'
-                    ? 'bg-primary/20 text-white border border-primary/20 rounded-br-md'
-                    : 'glass text-white/90 border border-white/10 rounded-bl-md'
+                    ? 'bg-primary/20 text-slate-900 dark:text-white border border-primary/20 rounded-br-md'
+                    : 'glass text-slate-800 dark:text-white/90 border border-slate-200 dark:border-white/10 rounded-bl-md'
                 }`}
               >
                 {msg.content.split('\n').map((line, i) => (
@@ -227,7 +223,7 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
                 <div className="flex items-center gap-1 mt-1 ml-1">
                   <button
                     onClick={() => speakText(msg.content, msg.id)}
-                    className="size-7 rounded-full flex items-center justify-center text-white/30 hover:text-primary transition-colors"
+                    className="size-7 rounded-full flex items-center justify-center text-slate-400 dark:text-white/30 hover:text-primary transition-colors"
                     aria-label={speakingId === msg.id ? 'Stop speaking' : 'Read aloud'}
                   >
                     <span className="material-symbols-outlined text-sm">
@@ -236,7 +232,7 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
                   </button>
                   <button
                     onClick={() => navigator.clipboard?.writeText(msg.content)}
-                    className="size-7 rounded-full flex items-center justify-center text-white/30 hover:text-primary transition-colors"
+                    className="size-7 rounded-full flex items-center justify-center text-slate-400 dark:text-white/30 hover:text-primary transition-colors"
                     aria-label="Copy message"
                   >
                     <span className="material-symbols-outlined text-sm">content_copy</span>
@@ -249,14 +245,14 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="glass rounded-2xl rounded-bl-md px-4 py-3 border border-white/10">
+            <div className="glass rounded-2xl rounded-bl-md px-4 py-3 border border-slate-200 dark:border-white/10">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   <span className="size-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="size-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="size-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-white/40 text-xs">Likkle Guide thinking...</span>
+                <span className="text-slate-400 dark:text-white/40 text-xs">Likkle Guide thinking...</span>
               </div>
             </div>
           </div>
@@ -264,18 +260,20 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-white/10 bg-black/20 backdrop-blur-xl pb-safe">
+      <div className="px-4 py-3 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-black/20 backdrop-blur-xl pb-safe">
         <div className="flex items-end gap-2">
           <button
             onClick={toggleListening}
             className={`size-10 shrink-0 rounded-full flex items-center justify-center transition-colors ${
-              isListening ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'glass text-white/50 hover:text-primary border border-white/10'
+              isListening
+                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                : 'glass text-slate-400 dark:text-white/50 hover:text-primary border border-slate-200 dark:border-white/10'
             }`}
             aria-label={isListening ? 'Stop listening' : 'Voice input'}
           >
             <span className="material-symbols-outlined text-lg">{isListening ? 'mic_off' : 'mic'}</span>
           </button>
-          <div className="flex-1 glass rounded-2xl border border-white/10 focus-within:border-primary/30 transition-colors">
+          <div className="flex-1 glass rounded-2xl border border-slate-200 dark:border-white/10 focus-within:border-primary/30 transition-colors">
             <textarea
               ref={inputRef}
               value={input}
@@ -283,7 +281,7 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
               onKeyDown={handleKeyDown}
               placeholder="Ask Likkle Guide..."
               rows={1}
-              className="w-full bg-transparent text-white text-sm px-4 py-2.5 resize-none outline-none placeholder:text-white/30 max-h-24"
+              className="w-full bg-transparent text-slate-900 dark:text-white text-sm px-4 py-2.5 resize-none outline-none placeholder:text-slate-400 dark:placeholder:text-white/30 max-h-24"
               style={{ minHeight: '40px' }}
             />
           </div>
@@ -293,7 +291,7 @@ const LikkleGuideView: React.FC<LikkleGuideViewProps> = ({ onTabChange }) => {
             className={`size-10 shrink-0 rounded-full flex items-center justify-center transition-all ${
               input.trim() && !isLoading
                 ? 'bg-primary text-background-dark shadow-lg shadow-primary/30 active:scale-90'
-                : 'glass text-white/20 border border-white/10'
+                : 'glass text-slate-300 dark:text-white/20 border border-slate-200 dark:border-white/10'
             }`}
             aria-label="Send message"
           >

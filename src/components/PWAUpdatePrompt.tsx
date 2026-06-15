@@ -7,9 +7,17 @@ const PWAUpdatePrompt: React.FC = () => {
     updateServiceWorker
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
+      // Check for updates immediately, then every 30 minutes
       registration?.update().catch((error) => {
         console.error('PWA update check failed:', error);
       });
+      if (registration) {
+        setInterval(() => {
+          registration.update().catch((error) => {
+            console.error('PWA periodic update check failed:', error);
+          });
+        }, 30 * 60 * 1000);
+      }
     },
     onRegisterError(error) {
       console.error('PWA registration failed:', error);

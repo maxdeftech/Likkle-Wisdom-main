@@ -27,14 +27,14 @@ export default defineConfig(({ command, mode }) => {
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['icons/*.png'],
       manifest: {
         name: 'Likkle Wisdom',
         short_name: 'Wisdom',
         description: 'Daily Jamaican quotes, affirmations, Bible notes, and journal wisdom',
-        theme_color: '#f7df1e',
-        background_color: '#ffffff',
+        theme_color: '#0a1a0f',
+        background_color: '#0a1a0f',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -63,7 +63,6 @@ export default defineConfig(({ command, mode }) => {
         globIgnores: ['**/data/kjv_bible.json'],
         // Avoid terser minification of SW to prevent "Unexpected early exit" race with Rollup close phase
         mode: 'development',
-        skipWaiting: true,
         clientsClaim: true,
         runtimeCaching: [
           {

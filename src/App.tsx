@@ -29,7 +29,7 @@ import TravelView from './views/TravelView';
 import LikkleGuideView from './views/LikkleGuideView';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
-import NavigationChatbot from './components/NavigationChatbot';
+// NavigationChatbot removed — Likkle Guide page replaces it
 import WelcomeModal from './components/WelcomeModal';
 import GuestAuthModal from './components/GuestAuthModal';
 import { useIsDesktop } from './hooks/useIsDesktop';
@@ -673,24 +673,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleBotNavigate = (type: string, value: string) => {
-    if (type === 'tab') {
-      setActiveTab(value as Tab);
-      setActiveCategory(null);
-      setView('main');
-      setShowSettings(false);
-      setShowAI(false);
-      setPublicProfileId(null);
-    } else if (type === 'setting') {
-      if (value === 'settings') handleOpenSettings();
-      if (value === 'website') window.open('https://www.likklewisdom.com/', '_blank');
-      if (value === 'mdt_website') window.open('https://maxdeftech.wixsite.com/mdt-ja', '_blank');
-      if (value === 'ai') handleOpenAI();
-      if (value === 'alerts') handleOpenAlerts();
-    } else if (type === 'external' && value) {
-      window.open(value, '_blank');
-    }
-  };
 
   const renderContent = () => {
     if (view === 'privacy') return <LegalView type="privacy" onClose={() => setView('main')} />;
@@ -843,9 +825,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {user && (
-        <NavigationChatbot onNavigate={handleBotNavigate} />
-      )}
       {showAlerts && user && (
         <AlertsView
           user={user}
