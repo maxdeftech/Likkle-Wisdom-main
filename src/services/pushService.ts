@@ -4,7 +4,8 @@ import { supabase } from './supabase';
 const PLATFORM = Capacitor.getPlatform() as 'ios' | 'android' | 'web';
 const WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY?.trim();
 
-export type PushOpenTarget = 'verse' | 'quote' | 'wisdom' | 'alert' | 'home';
+export type PushNotificationTopic = 'daily' | 'updates';
+export type PushOpenTarget = 'verse' | 'quote' | 'wisdom' | 'alert' | 'home' | 'update';
 
 type NotificationHandlers = {
   onOpenTarget?: (target: PushOpenTarget) => void;
@@ -14,6 +15,20 @@ let notificationHandlers: NotificationHandlers = {};
 let listenersAttached = false;
 
 const getNotificationPreferenceKey = (userId: string) => `likkle_wisdom_notifications_enabled_${userId}`;
+const getUpdateNotificationPreferenceKey = (userId: string) => `likkle_wisdom_update_notifications_enabled_${userId}`;
+
+function isValidUser(userId: string): boolean {
+  return !!userId && userId !== 'guest';
+}
+
+function getEnabledTopics(userId: string): PushNotificationTopic[] {
+  if (!isValidUser(userId)) return [];
+
+  const topics: PushNotificationTopic[] = [];
+  if (localStorage.getItem(getNotificationPreferenceKey(userId)) === 'true') topics.push('daily');
+  if (localStorage.getItem(getUpdateNotificationPreferenceKey(userId)) === 'true') topics.push('updates');
+  return topics;
+}
 
 function attachListeners(): void {
   if (PLATFORM === 'web' || listenersAttached) return;
@@ -77,6 +92,7 @@ async function registerWebPush(userId: string): Promise<void> {
       user_id: userId,
       token: JSON.stringify(subscription.toJSON()),
       platform: 'web',
+      enabled_types: getEnabledTopics(userId),
       updated_at: new Date().toISOString()
     },
     { onConflict: 'user_id,platform' }
@@ -89,8 +105,21 @@ export const PushService = {
   },
 
   isEnabled(userId: string): boolean {
-    if (!userId || userId === 'guest') return false;
+    return PushService.isDailyEnabled(userId);
+  },
+
+  isDailyEnabled(userId: string): boolean {
+    if (!isValidUser(userId)) return false;
     return localStorage.getItem(getNotificationPreferenceKey(userId)) === 'true';
+  },
+
+  isUpdateEnabled(userId: string): boolean {
+    if (!isValidUser(userId)) return false;
+    return localStorage.getItem(getUpdateNotificationPreferenceKey(userId)) === 'true';
+  },
+
+  hasAnyEnabledTopic(userId: string): boolean {
+    return getEnabledTopics(userId).length > 0;
   },
 
   getBrowserPermission(): NotificationPermission | 'unsupported' {
@@ -106,6 +135,7 @@ export const PushService = {
 
   async registerAndSyncToken(userId: string): Promise<void> {
     if (!supabase || userId === 'guest') return;
+    if (!PushService.hasAnyEnabledTopic(userId)) return;
 
     if (PLATFORM === 'web') {
       try {
@@ -141,6 +171,7 @@ export const PushService = {
                 user_id: userId,
                 token,
                 platform: PLATFORM,
+                enabled_types: getEnabledTopics(userId),
                 updated_at: new Date().toISOString()
               },
               { onConflict: 'user_id,platform' }
@@ -158,26 +189,65 @@ export const PushService = {
   },
 
   async setEnabled(userId: string, enabled: boolean): Promise<boolean> {
+    return PushService.setDailyEnabled(userId, enabled);
+  },
+
+  async setDailyEnabled(userId: string, enabled: boolean): Promise<boolean> {
+    return PushService.setTopicEnabled(userId, 'daily', enabled);
+  },
+
+  async setUpdateEnabled(userId: string, enabled: boolean): Promise<boolean> {
+    return PushService.setTopicEnabled(userId, 'updates', enabled);
+  },
+
+  async setTopicEnabled(userId: string, topic: PushNotificationTopic, enabled: boolean): Promise<boolean> {
     if (!supabase || userId === 'guest') return false;
+    const preferenceKey = topic === 'daily' ? getNotificationPreferenceKey(userId) : getUpdateNotificationPreferenceKey(userId);
 
     if (!enabled) {
-      localStorage.setItem(getNotificationPreferenceKey(userId), 'false');
-      await PushService.removeToken(userId);
+      localStorage.setItem(preferenceKey, 'false');
+      if (PushService.hasAnyEnabledTopic(userId)) {
+        await PushService.registerAndSyncToken(userId);
+      } else {
+        await PushService.removeToken(userId);
+      }
       return false;
     }
 
-    localStorage.setItem(getNotificationPreferenceKey(userId), 'true');
+    localStorage.setItem(preferenceKey, 'true');
     await PushService.registerAndSyncToken(userId);
 
     if (PLATFORM === 'web') {
       const granted = PushService.getBrowserPermission() === 'granted';
       if (!granted) {
-        localStorage.setItem(getNotificationPreferenceKey(userId), 'false');
+        localStorage.setItem(preferenceKey, 'false');
       }
       return granted;
     }
 
     return true;
+  },
+
+  async showUpdateReadyNotification(userId: string): Promise<void> {
+    if (PLATFORM !== 'web' || !PushService.isUpdateEnabled(userId)) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const title = 'Likkle Wisdom update ready';
+    const options: NotificationOptions = {
+      body: 'A fresh version is ready. Tap to update now.',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
+      tag: 'likkle-wisdom-update',
+      data: { url: '/?push=update', type: 'update' },
+    };
+
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration('/web-push/') || await navigator.serviceWorker.ready;
+      await registration.showNotification(title, options);
+      return;
+    }
+
+    new Notification(title, options);
   },
 
   async removeToken(userId: string): Promise<void> {

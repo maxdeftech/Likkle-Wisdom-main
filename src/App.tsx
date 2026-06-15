@@ -178,7 +178,7 @@ const App: React.FC = () => {
   // Push notifications: native apps use APNs/FCM; PWA uses Web Push
   useEffect(() => {
     if (!user || user.isGuest) return;
-    if (!PushService.isEnabled(user.id)) return;
+    if (!PushService.hasAnyEnabledTopic(user.id)) return;
     PushService.registerAndSyncToken(user.id);
   }, [user?.id, user?.isGuest]);
 
@@ -189,9 +189,21 @@ const App: React.FC = () => {
         setView('main');
         if (target === 'verse') setActiveTab('bible');
         else if (target === 'alert') setShowAlerts(true);
+        else if (target === 'update') setActiveTab('home');
         else setActiveTab('home');
       }
     });
+  }, []);
+
+  useEffect(() => {
+    const pushTarget = new URLSearchParams(window.location.search).get('push');
+    if (!pushTarget) return;
+
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    setView('main');
+    if (pushTarget === 'verse') setActiveTab('bible');
+    else if (pushTarget === 'alert') setShowAlerts(true);
+    else setActiveTab('home');
   }, []);
 
   useEffect(() => {
@@ -863,7 +875,7 @@ const App: React.FC = () => {
         )
       )}
       <PWAInstallPrompt />
-      <PWAUpdatePrompt />
+      <PWAUpdatePrompt userId={user && !user.isGuest ? user.id : undefined} />
     </div>
   );
 };

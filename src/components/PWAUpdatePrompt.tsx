@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { PushService } from '../services/pushService';
 
-const PWAUpdatePrompt: React.FC = () => {
+interface PWAUpdatePromptProps {
+  userId?: string;
+}
+
+const PWAUpdatePrompt: React.FC<PWAUpdatePromptProps> = ({ userId }) => {
+  const notifiedForCurrentUpdate = useRef(false);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker
@@ -23,6 +29,20 @@ const PWAUpdatePrompt: React.FC = () => {
       console.error('PWA registration failed:', error);
     }
   });
+
+  useEffect(() => {
+    if (!needRefresh) {
+      notifiedForCurrentUpdate.current = false;
+      return;
+    }
+
+    if (!userId || notifiedForCurrentUpdate.current) return;
+
+    notifiedForCurrentUpdate.current = true;
+    PushService.showUpdateReadyNotification(userId).catch((error) => {
+      console.warn('PWA update notification failed:', error);
+    });
+  }, [needRefresh, userId]);
 
   if (!needRefresh) return null;
 

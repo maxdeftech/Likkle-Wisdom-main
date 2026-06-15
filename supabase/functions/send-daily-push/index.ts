@@ -16,6 +16,7 @@ const WEB_PUSH_PUBLIC_KEY = Deno.env.get("WEB_PUSH_PUBLIC_KEY");
 const WEB_PUSH_PRIVATE_KEY = Deno.env.get("WEB_PUSH_PRIVATE_KEY");
 const WEB_PUSH_SUBJECT = Deno.env.get("WEB_PUSH_SUBJECT") || "mailto:admin@likklewisdom.com";
 const WEB_PUSH_TEST_SECRET = Deno.env.get("WEB_PUSH_TEST_SECRET");
+const DAILY_TOPIC = "daily";
 
 if (WEB_PUSH_PUBLIC_KEY && WEB_PUSH_PRIVATE_KEY) {
   webpush.setVapidDetails(WEB_PUSH_SUBJECT, WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY);
@@ -55,6 +56,10 @@ function getDailyVerse() {
 function getDailyWisdom() {
   const day = new Date().getTime() / (24 * 60 * 60 * 1000) | 0;
   return WISDOMS[day % WISDOMS.length];
+}
+
+function hasEnabledTopic(enabledTypes: string[] | null | undefined, topic: string) {
+  return Array.isArray(enabledTypes) && enabledTypes.includes(topic);
 }
 
 function getNotificationClock() {
@@ -113,7 +118,7 @@ Deno.serve(async (req) => {
 
     const { data: tokensData, error: tokensError } = await supabase
       .from("push_tokens")
-      .select("user_id, token, platform");
+      .select("user_id, token, platform, enabled_types");
 
     if (tokensError) {
       console.error("push_tokens query error:", tokensError);
@@ -123,7 +128,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const pushRows = (tokensData || []) as Array<{ user_id: string; token: string; platform: string }>;
+    const pushRows = ((tokensData || []) as Array<{ user_id: string; token: string; platform: string; enabled_types?: string[] | null }>)
+      .filter((row) => hasEnabledTopic(row.enabled_types, DAILY_TOPIC));
     if (pushRows.length === 0) {
       return new Response(JSON.stringify({ ok: true, sent: 0, total: 0 }), {
         headers: { "Content-Type": "application/json" },
@@ -153,11 +159,13 @@ Deno.serve(async (req) => {
       user_id: string;
       token: string;
       platform: string;
+      enabled_types?: string[] | null;
       profiles: { notify_quote_time?: string; notify_verse_time?: string; notify_wisdom_time?: string } | null;
     }> = pushRows.map((r) => ({
       user_id: r.user_id,
       token: r.token,
       platform: r.platform,
+      enabled_types: r.enabled_types,
       profiles: profilesMap.get(r.user_id) ?? null,
     }));
 

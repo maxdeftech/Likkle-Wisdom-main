@@ -35,8 +35,10 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [verseTime, setVerseTime] = useState('12:00');
   const [wisdomTime, setWisdomTime] = useState('08:00');
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => PushService.isEnabled(user.id));
+  const [updateNotificationsEnabled, setUpdateNotificationsEnabled] = useState(() => PushService.isUpdateEnabled(user.id));
   const [notificationPermission, setNotificationPermission] = useState(() => PushService.getBrowserPermission());
   const [notificationSaving, setNotificationSaving] = useState(false);
+  const [updateNotificationSaving, setUpdateNotificationSaving] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
 
   useEffect(() => {
     setNotificationsEnabled(PushService.isEnabled(user.id));
+    setUpdateNotificationsEnabled(PushService.isUpdateEnabled(user.id));
     setNotificationPermission(PushService.getBrowserPermission());
   }, [user.id]);
 
@@ -120,6 +123,40 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
       setNotificationMessage('Could not update notifications right now. Try again soon.');
     } finally {
       setNotificationSaving(false);
+    }
+  };
+
+  const handleToggleUpdateNotifications = async () => {
+    if (user.isGuest) return;
+
+    const nextEnabled = !updateNotificationsEnabled;
+    setUpdateNotificationSaving(true);
+    setNotificationMessage(null);
+
+    try {
+      const enabled = await PushService.setUpdateEnabled(user.id, nextEnabled);
+      const permission = PushService.getBrowserPermission();
+
+      setNotificationPermission(permission);
+      setUpdateNotificationsEnabled(enabled);
+
+      if (nextEnabled && !enabled) {
+        if (permission === 'denied') {
+          setNotificationMessage('Update alerts are blocked in this browser. Enable notifications in browser settings, then try again.');
+        } else if (permission === 'unsupported') {
+          setNotificationMessage('Update alerts are not supported on this browser.');
+        } else {
+          setNotificationMessage('Update alerts were not enabled. Try again when yuh ready.');
+        }
+        return;
+      }
+
+      setNotificationMessage(enabled ? 'Update alerts enabled.' : 'Update alerts turned off.');
+    } catch (error) {
+      console.error('Update notification toggle failed:', error);
+      setNotificationMessage('Could not update app update alerts right now. Try again soon.');
+    } finally {
+      setUpdateNotificationSaving(false);
     }
   };
 
@@ -335,7 +372,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
 
         {!user.isGuest && (
           <section>
-            <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Daily notifications</h3>
+            <h3 className="text-[11px] font-black tracking-[0.2em] text-slate-400 dark:text-white/40 mb-3 px-2 uppercase">Notifications</h3>
             <div className="glass rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 shadow-md">
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
@@ -345,7 +382,7 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                   <div className="flex flex-col">
                     <span className="font-bold text-slate-700 dark:text-white/80">Allow notifications</span>
                     <span className="text-[9px] text-slate-400 dark:text-white/40 font-bold uppercase tracking-wider">
-                      {notificationPermission === 'denied' ? 'Blocked by browser' : notificationsEnabled ? 'Daily reminders active' : 'No push reminders'}
+                      {notificationPermission === 'denied' ? 'Blocked by browser' : notificationsEnabled ? 'Daily reminders active' : 'Daily reminders off'}
                     </span>
                   </div>
                 </div>
@@ -356,6 +393,27 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                   className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 disabled:opacity-40 ${notificationsEnabled ? 'bg-primary' : 'bg-slate-200'}`}
                 >
                   <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${notificationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <span className="material-symbols-outlined">system_update</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-700 dark:text-white/80">App update alerts</span>
+                    <span className="text-[9px] text-slate-400 dark:text-white/40 font-bold uppercase tracking-wider">
+                      {notificationPermission === 'denied' ? 'Blocked by browser' : updateNotificationsEnabled ? 'Update push alerts active' : 'No update alerts'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleUpdateNotifications}
+                  disabled={updateNotificationSaving || notificationPermission === 'unsupported'}
+                  aria-label={updateNotificationsEnabled ? 'Turn app update alerts off' : 'Turn app update alerts on'}
+                  className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 disabled:opacity-40 ${updateNotificationsEnabled ? 'bg-primary' : 'bg-slate-200'}`}
+                >
+                  <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${updateNotificationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </button>
               </div>
               {notificationMessage && (
