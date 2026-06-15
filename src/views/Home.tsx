@@ -1,24 +1,9 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Quote, User, Tab, BibleAffirmation } from '../types';
 import { INITIAL_QUOTES, BIBLE_AFFIRMATIONS, CATEGORIES } from '../constants';
 import { useTTS } from '../hooks/useTTS';
 import OnlineCount from '../components/OnlineCount';
-const JAMAICA_IMAGES = [
-  // Verified working Unsplash images of Jamaica landmarks and Caribbean scenes
-  { url: 'https://images.unsplash.com/photo-1605218309111-d0a7a0d17877?w=800&auto=format&fit=crop', caption: "Dunn's River Falls" },
-  { url: 'https://images.unsplash.com/photo-1580237072617-771c3ecc4a24?w=800&auto=format&fit=crop', caption: 'Seven Mile Beach, Negril' },
-  { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop', caption: 'Blue Lagoon, Portland' },
-  { url: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&auto=format&fit=crop', caption: 'Jamaican Beach Paradise' },
-  { url: 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=800&auto=format&fit=crop', caption: 'Crystal Clear Waters' },
-  { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop', caption: 'Caribbean Coastline' },
-  { url: 'https://images.unsplash.com/photo-1541410965313-d53b3c16ef17?w=800&auto=format&fit=crop', caption: 'Blue Mountains, Jamaica' },
-  { url: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&auto=format&fit=crop', caption: 'Tropical Waterfall' },
-  { url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&auto=format&fit=crop', caption: 'Jamaican Sunset' },
-  { url: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&auto=format&fit=crop', caption: 'Palm Trees & Beach' },
-  { url: 'https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=800&auto=format&fit=crop', caption: 'Jamaican Coastline Vista' },
-  { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop', caption: 'Turquoise Caribbean Sea' },
-];
 
 interface HomeProps {
   user: User;
@@ -42,36 +27,6 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
     quote: null, wisdom: null, verse: null
   });
   const { speak, stop, isSpeaking } = useTTS();
-
-  // Dynamic image rotation for Craft Wisdom section
-  const [imgIndex, setImgIndex] = useState(0);
-  const [showImageViewer, setShowImageViewer] = useState(false);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setImgIndex(prev => (prev + 1) % JAMAICA_IMAGES.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleSaveImage = async () => {
-    const img = JAMAICA_IMAGES[imgIndex];
-    try {
-      const response = await fetch(img.url);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `likkle-wisdom-${img.caption.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      // Fallback: open in new tab
-      window.open(img.url, '_blank');
-    }
-  };
 
   // Load from constants to select random items
   const loadRandomQuote = useCallback((): Quote => {
@@ -132,6 +87,15 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
 
   const firstName = user?.username?.split(' ')[0] || 'Seeker';
   const currentItem = activeDaily === 'quote' ? localDaily.quote : activeDaily === 'wisdom' ? localDaily.wisdom : localDaily.verse;
+  const quickAccessItems: Array<{ id: Tab; label: string; description: string; icon: string }> = [
+    { id: 'home', label: 'Home', description: 'Daily', icon: 'home' },
+    { id: 'discover', label: 'Discover', description: 'Search', icon: 'explore' },
+    { id: 'guide', label: 'Likkle Guide', description: 'AI chat', icon: 'smart_toy' },
+    { id: 'bible', label: 'Bible', description: 'Read', icon: 'auto_stories' },
+    { id: 'book', label: 'Journal', description: 'Notes', icon: 'edit_note' },
+    { id: 'travel', label: 'Travel', description: 'Jamaica', icon: 'flight' },
+    { id: 'me', label: 'Profile', description: 'Cabinet', icon: 'person' },
+  ];
 
   // Reset reveal whenever the displayed item actually changes
   const currentItemId = currentItem?.id;
@@ -327,59 +291,60 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
         </div>
       </section>
 
-      <section className="mb-8 sm:mb-10" aria-label="Quick access">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => onTabChange('bible')}
-            className="glass flex min-h-[82px] items-center gap-3 rounded-2xl p-4 text-left active:scale-95 transition-all border-white/5"
-            aria-label="Open Bible"
-          >
-            <span className="material-symbols-outlined flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[26px] text-primary" aria-hidden="true">auto_stories</span>
-            <span className="min-w-0">
-              <span className="block text-sm font-black text-slate-900 dark:text-white">Bible</span>
-              <span className="block truncate text-[9px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Read & bookmark</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onTabChange('book')}
-            className="glass flex min-h-[82px] items-center gap-3 rounded-2xl p-4 text-left active:scale-95 transition-all border-white/5"
-            aria-label="Open Journal"
-          >
-            <span className="material-symbols-outlined flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[26px] text-primary" aria-hidden="true">edit_note</span>
-            <span className="min-w-0">
-              <span className="block text-sm font-black text-slate-900 dark:text-white">Journal</span>
-              <span className="block truncate text-[9px] font-black uppercase tracking-widest text-slate-900/40 dark:text-white/40">Likkle Book</span>
-            </span>
-          </button>
+      <section
+        className={`glass rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden relative group mb-6 border-white/5 shadow-xl transition-all ${!isOnline ? 'grayscale-[0.5]' : ''}`}
+        aria-label="Craft your own wisdom"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-jamaican-gold/10"></div>
+        <div className="absolute -right-8 -top-12 text-primary/10" aria-hidden="true">
+          <span className="material-symbols-outlined text-[9rem] sm:text-[12rem]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
         </div>
-      </section>
+        {!isOnline && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center bg-background-dark/50 backdrop-blur-[2px]">
+            <span className="material-symbols-outlined text-3xl text-red-400 mb-2">signal_wifi_off</span>
+            <p className="text-white font-black uppercase text-[10px] tracking-widest">Signal low fi brew magic</p>
+            <p className="text-white/50 font-medium text-[8px] uppercase tracking-widest mt-1">Connect fi craft custom wisdom</p>
+          </div>
+        )}
 
-      {/* Likkle Guide — AI assistant */}
-      <div className="mb-8 sm:mb-10 px-1">
         <button
           type="button"
-          onClick={() => onTabChange('guide')}
-          className="w-full relative overflow-hidden group bg-gradient-to-r from-primary to-jamaican-gold rounded-2xl p-[1px] shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 block text-left"
+          onClick={onOpenAI}
+          className="relative z-20 flex min-h-[132px] w-full items-center justify-between gap-4 p-5 text-left active:scale-[0.99] transition-transform sm:min-h-[160px] sm:p-7"
         >
-          <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors pointer-events-none" />
-          <div className="relative bg-background-dark/95 backdrop-blur-xl rounded-[15px] py-4 px-5 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="size-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <span className="material-symbols-outlined text-xl">smart_toy</span>
-              </div>
-              <div className="text-left">
-                <h3 className="text-white font-black text-sm uppercase tracking-wide">Likkle Guide</h3>
-                <p className="text-white/50 text-[10px] font-bold tracking-wider">Chat with yuh AI travel &amp; app assistant</p>
-              </div>
-            </div>
-            <div className="size-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white/5 transition-colors">
-              <span className="material-symbols-outlined text-white/50 text-lg group-hover:text-white group-hover:translate-x-0.5 transition-all">arrow_forward</span>
-            </div>
+          <div className="min-w-0 space-y-1.5 sm:space-y-2">
+            <p className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-1">
+              AI Magic <span className="material-symbols-outlined text-[14px] sm:text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            </p>
+            <h3 className="text-[1.6rem] sm:text-4xl font-black text-slate-900 dark:text-white leading-tight">Craft Yuh Own Wisdom</h3>
+            <p className="max-w-[18rem] text-xs sm:text-sm font-bold leading-snug text-slate-900/45 dark:text-white/45">Generate a custom quote, prayer, or affirmation.</p>
+          </div>
+          <div className="size-11 sm:size-14 shrink-0 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+            <span className="material-symbols-outlined text-xl sm:text-3xl" aria-hidden="true">verified</span>
           </div>
         </button>
-      </div>
+      </section>
+
+      <section className="mb-10 sm:mb-12" aria-label="Quick access">
+        <h2 className="mb-4 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Quick Access</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {quickAccessItems.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onTabChange(item.id)}
+              className="glass flex min-h-[92px] items-center gap-3 rounded-2xl p-3.5 text-left active:scale-95 transition-all border-white/5 sm:min-h-[104px] sm:p-4"
+              aria-label={`Open ${item.label}`}
+            >
+              <span className="material-symbols-outlined flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[24px] sm:text-[26px] text-primary" aria-hidden="true">{item.icon}</span>
+              <span className="min-w-0">
+                <span className="block text-sm sm:text-base font-black leading-tight text-slate-900 dark:text-white">{item.label}</span>
+                <span className="mt-1 block text-[9px] sm:text-[10px] font-black uppercase tracking-[0.14em] text-slate-900/40 dark:text-white/40">{item.description}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="mb-8" role="region" aria-label="Island Vibes categories">
         <div className="flex items-center justify-between mb-6">
@@ -406,122 +371,6 @@ const Home: React.FC<HomeProps> = ({ user, isOnline, onFavorite, onOpenAI, onTab
           ))}
         </div>
       </section>
-
-      <section
-        className={`glass rounded-[2rem] sm:rounded-[3rem] overflow-hidden relative group cursor-pointer mb-10 border-white/5 shadow-2xl h-56 sm:h-72 transition-all ${!isOnline ? 'grayscale-[0.5]' : ''}`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10"></div>
-
-        {/* Dynamic rotating images */}
-        {JAMAICA_IMAGES.map((img, i) => (
-          <img
-            key={i}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
-            src={img.url}
-            alt={img.caption}
-          />
-        ))}
-
-        {/* Image caption */}
-        <div className="absolute top-4 left-4 z-20">
-          <span className="text-[8px] font-black uppercase tracking-widest text-white/40 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">
-            {JAMAICA_IMAGES[imgIndex].caption}
-          </span>
-        </div>
-
-        {/* View / Save buttons */}
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowImageViewer(true); }}
-            className="size-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white active:scale-90 transition-all"
-            title="View larger"
-          >
-            <span className="material-symbols-outlined text-base">fullscreen</span>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleSaveImage(); }}
-            className="size-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white active:scale-90 transition-all"
-            title="Save image"
-          >
-            <span className="material-symbols-outlined text-base">download</span>
-          </button>
-        </div>
-
-        {/* Dot indicators */}
-        <div className="absolute bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-          {JAMAICA_IMAGES.map((_, i) => (
-            <div key={i} className={`rounded-full transition-all duration-300 ${i === imgIndex ? 'w-5 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-white/30'}`} />
-          ))}
-        </div>
-
-        {!isOnline && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-8 text-center bg-background-dark/40 backdrop-blur-[2px]">
-            <span className="material-symbols-outlined text-4xl text-red-400 mb-2">signal_wifi_off</span>
-            <p className="text-white font-black uppercase text-[10px] tracking-widest">Signal low fi brew magic</p>
-            <p className="text-white/50 font-medium text-[8px] uppercase tracking-widest mt-1">Connect fi craft custom wisdom</p>
-          </div>
-        )}
-
-        <div onClick={onOpenAI} className="absolute bottom-5 sm:bottom-10 left-5 sm:left-10 z-20 w-full flex justify-between pr-10 sm:pr-20 items-end">
-          <div className="space-y-1 sm:space-y-3">
-            <p className="text-[10px] sm:text-[12px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-1">
-              AI Magic <span className="material-symbols-outlined text-[14px] sm:text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-            </p>
-            <h3 className="text-[1.65rem] sm:text-4xl font-black text-white leading-none">Craft Yuh Own Wisdom</h3>
-          </div>
-          <div className="size-11 sm:size-16 glass rounded-2xl flex items-center justify-center text-primary border-primary/30">
-            <span className="material-symbols-outlined text-xl sm:text-3xl" aria-hidden="true">verified</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Image Viewer Lightbox */}
-      {showImageViewer && (
-        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowImageViewer(false)}>
-          <div className="relative max-w-full max-h-full flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            {/* Close button on image */}
-            <button 
-              onClick={() => setShowImageViewer(false)}
-              className="absolute top-4 right-4 size-12 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center text-white z-10 active:scale-90 transition-all shadow-xl border border-white/20"
-            >
-              <span className="material-symbols-outlined text-2xl">close</span>
-            </button>
-
-            {/* Image */}
-            <img
-              src={JAMAICA_IMAGES[imgIndex].url.replace('w=800', 'w=1600')}
-              alt={JAMAICA_IMAGES[imgIndex].caption}
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
-            />
-
-            {/* Caption and Save button */}
-            <div className="flex items-center gap-4 mt-4">
-              <p className="text-white/60 text-sm font-bold">{JAMAICA_IMAGES[imgIndex].caption}</p>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleSaveImage(); }}
-                className="flex items-center gap-2 px-5 py-3 bg-primary text-background-dark rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg"
-              >
-                <span className="material-symbols-outlined text-sm">download</span>
-                Save
-              </button>
-            </div>
-
-            {/* Navigation arrows */}
-            <button
-              onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex - 1 + JAMAICA_IMAGES.length) % JAMAICA_IMAGES.length); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center text-white active:scale-90 transition-all shadow-xl border border-white/20"
-            >
-              <span className="material-symbols-outlined text-2xl">chevron_left</span>
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setImgIndex((imgIndex + 1) % JAMAICA_IMAGES.length); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 size-12 rounded-full bg-black/70 backdrop-blur-sm flex items-center justify-center text-white active:scale-90 transition-all shadow-xl border border-white/20"
-            >
-              <span className="material-symbols-outlined text-2xl">chevron_right</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

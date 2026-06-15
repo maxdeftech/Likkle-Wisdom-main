@@ -885,8 +885,8 @@ const App: React.FC = () => {
           />
         )
       )}
-      <PWAInstallPrompt install={pwaInstall} />
-      <PWAUpdatePrompt userId={user && !user.isGuest ? user.id : undefined} />
+      {view === 'main' && <PWAInstallPrompt install={pwaInstall} />}
+      {view === 'main' && <PWAUpdatePrompt userId={user && !user.isGuest ? user.id : undefined} />}
     </div>
   );
 };

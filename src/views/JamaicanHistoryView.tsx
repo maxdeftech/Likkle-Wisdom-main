@@ -56,8 +56,8 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
   const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="fixed inset-0 z-overlay bg-white dark:bg-background-dark flex flex-col font-display overflow-hidden animate-fade-in" role="article" aria-label="Jamaican History">
-      <header className="sticky top-0 z-sticky flex items-center gap-3 px-4 py-4 pt-safe glass backdrop-blur-md border-b border-white/5">
+    <div className="flex flex-col h-full bg-white dark:bg-transparent font-display overflow-hidden animate-fade-in" role="article" aria-label="Jamaican History">
+      <header className="sticky top-0 z-sticky flex items-center gap-3 px-4 py-4 glass backdrop-blur-md border-b border-white/5">
         <button
           onClick={onClose}
           aria-label="Back to Discover"
@@ -72,7 +72,7 @@ const JamaicanHistoryView: React.FC<JamaicanHistoryViewProps> = ({ onClose }) =>
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 pb-24">
-        <div className="max-w-3xl mx-auto space-y-10">
+        <div className="space-y-10">
           {/* Hero */}
           <div className="text-center py-8 animate-fade-in">
             <div className="inline-flex items-center justify-center size-20 rounded-3xl bg-gradient-to-br from-jamaican-gold to-primary/30 border border-jamaican-gold/30 mb-6 animate-float">
