@@ -10,6 +10,7 @@ import { streamTravelText } from '../../services/geminiService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import PlaceReviews from '../../components/travel/PlaceReviews';
+import PullUpHandle from '../../components/PullUpHandle';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { useAIProgress } from '../../hooks/useAIProgress';
 import { addFavourite, fetchFavourites, removeFavourite } from '../../services/travelFavouritesService';
@@ -458,7 +459,11 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               >
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
               </button>
-              <div className="absolute left-1/2 top-[calc(max(1rem,env(safe-area-inset-top))+1rem)] h-1 w-10 -translate-x-1/2 rounded-full bg-slate-300 dark:bg-white/20" aria-hidden="true" />
+              <PullUpHandle
+                onClose={() => setSelectedPlace(null)}
+                className="absolute left-1/2 top-[calc(max(1rem,env(safe-area-inset-top))+0.625rem)] flex h-6 w-16 -translate-x-1/2 items-center justify-center"
+                barClassName="h-1 w-10 rounded-full bg-slate-300 dark:bg-white/20"
+              />
               <button
                 type="button"
                 onClick={() => toggleSaved(selectedPlace)}
@@ -492,7 +497,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               style={{ marginTop: -70 }}
               className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[2.15rem] bg-white px-5 pb-5 pt-3 text-slate-950 no-scrollbar dark:bg-[#07120a] dark:text-white"
             >
-              <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-slate-200 dark:bg-white/20" aria-hidden="true" />
+              <PullUpHandle onClose={() => setSelectedPlace(null)} />
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h2 className="truncate text-[1.45rem] font-black leading-tight tracking-tight">{selectedPlace.name}</h2>

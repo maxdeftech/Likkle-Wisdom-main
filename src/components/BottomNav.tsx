@@ -8,9 +8,11 @@ interface BottomNavProps {
   onToggleCollapsed: () => void;
   onOpenSettings: () => void;
   onSignOut: () => void;
+  showInstallButton?: boolean;
+  onInstallApp?: () => void;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollapsed, onToggleCollapsed, onOpenSettings, onSignOut }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollapsed, onToggleCollapsed, onOpenSettings, onSignOut, showInstallButton = false, onInstallApp }) => {
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
     { id: 'discover', label: 'Discover', icon: 'explore' },
@@ -73,6 +75,17 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, isCollaps
       </div>
 
       <div className="hidden lg:mt-auto lg:flex lg:flex-col lg:gap-2 lg:border-t lg:border-white/10 lg:px-0 lg:pt-4">
+        {showInstallButton && onInstallApp && (
+          <button
+            onClick={onInstallApp}
+            aria-label="Install app"
+            title={isCollapsed ? 'Install app' : undefined}
+            className={`h-14 rounded-2xl text-primary transition-all lg:flex lg:items-center lg:gap-3 lg:px-4 lg:hover:bg-primary/10 ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`}
+          >
+            <span className="material-symbols-outlined text-[24px]" aria-hidden="true">download</span>
+            <span className={`text-[11px] font-black uppercase tracking-[0.16em] ${isCollapsed ? 'lg:sr-only' : ''}`}>Install App</span>
+          </button>
+        )}
         <button
           onClick={onOpenSettings}
           aria-label="Open settings"

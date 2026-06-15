@@ -33,6 +33,7 @@ import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import WelcomeModal from './components/WelcomeModal';
 import GuestAuthModal from './components/GuestAuthModal';
 import { useIsDesktop } from './hooks/useIsDesktop';
+import { usePWAInstall } from './hooks/usePWAInstall';
 import { validateWisdomText } from './utils/validation';
 
 export type NotificationPayload = {
@@ -92,6 +93,7 @@ const App: React.FC = () => {
   const [travelTab, setTravelTab] = useState<TravelTab>('maps');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const isDesktop = useIsDesktop();
+  const pwaInstall = usePWAInstall();
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [manualRefreshMessage, setManualRefreshMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -871,10 +873,12 @@ const App: React.FC = () => {
             onToggleCollapsed={() => setIsNavCollapsed(prev => !prev)}
             onOpenSettings={handleOpenSettings}
             onSignOut={handleSignOut}
+            showInstallButton={pwaInstall.canInstall}
+            onInstallApp={pwaInstall.handleInstallClick}
           />
         )
       )}
-      <PWAInstallPrompt />
+      <PWAInstallPrompt install={pwaInstall} />
       <PWAUpdatePrompt userId={user && !user.isGuest ? user.id : undefined} />
     </div>
   );

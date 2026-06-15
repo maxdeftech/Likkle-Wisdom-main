@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet';
 import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
+import PullUpHandle from '../../components/PullUpHandle';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AviationRoute, aviationRoutes, inboundRoutes, FlightDirection } from '../../data/aviationRoutes';
@@ -276,7 +277,11 @@ const AviationModule: React.FC = () => {
           >
             {/* Header */}
             <div className="relative overflow-hidden bg-[#0a1a0f] px-5 pb-5 pt-4">
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
+              <PullUpHandle
+                onClose={() => setDetailRoute(null)}
+                className="mx-auto mb-3 flex h-7 w-20 items-center justify-center"
+                barClassName="h-1 w-10 rounded-full bg-white/20"
+              />
 
               <div className="flex items-start justify-between gap-3">
                 <div>
