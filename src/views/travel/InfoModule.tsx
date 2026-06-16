@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MapContainer, Marker, Polygon, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import MapLayerControl from '../../components/travel/MapLayerControl';
+import PullUpHandle from '../../components/PullUpHandle';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
@@ -60,6 +62,37 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
+const InfoPullUpShell: React.FC<{
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ onClose, children }) => createPortal((
+  <div
+    className="fixed inset-0 z-[2147483647] flex flex-col justify-end overflow-hidden bg-black/45 backdrop-blur-sm lg:items-center lg:justify-center lg:p-6"
+    onClick={onClose}
+  >
+    <article
+      style={{ animation: 'slideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1)' }}
+      className="relative flex max-h-[88dvh] w-full max-w-[430px] flex-col overflow-hidden rounded-t-[2rem] bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.35)] dark:bg-[#0d1f13] lg:rounded-[2rem]"
+      onClick={event => event.stopPropagation()}
+    >
+      <div className="sticky top-0 z-20 flex min-h-[58px] items-center justify-between bg-white px-5 pt-4 dark:bg-[#0d1f13]">
+        <span className="size-10" aria-hidden="true" />
+        <PullUpHandle
+          onClose={onClose}
+          className="absolute left-1/2 top-4 flex h-7 w-20 -translate-x-1/2 items-center justify-center"
+          barClassName="h-1 w-12 rounded-full bg-slate-300 dark:bg-white/20"
+        />
+        <button type="button" onClick={onClose} className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 shadow-lg dark:bg-white/10 dark:text-white" aria-label="Close">
+          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <div className="min-h-0 overflow-y-auto px-5 pb-6 pt-2 no-scrollbar">
+        {children}
+      </div>
+    </article>
+  </div>
+), document.body);
+
 // ————— Quick topics for chat —————
 const QUICK_TOPICS = [
   { label: "Do's & Don'ts", prompt: "What are the most important do's and don'ts for tourists visiting Jamaica?" },
@@ -86,6 +119,8 @@ const ContactsSection: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationPreferenceEnabled, setLocationPreferenceEnabled] = useState(() => localStorage.getItem(LOCATION_PREF_KEY) === 'true');
+  const [selectedContact, setSelectedContact] = useState<EmergencyContact | null>(null);
+  const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [typeFilter, setTypeFilter] = useState<EmergencyContact['type'] | 'all'>('all');
   const [parishFilter, setParishFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -214,9 +249,9 @@ const ContactsSection: React.FC = () => {
                   attribution={satelliteView ? MAP_TILES.satellite.attribution : MAP_TILES.street.attribution}
                   url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
                 />
-                {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
+                {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} eventHandlers={{ click: () => setShowLocationDetails(true) }} />}
                 {nearest5.map(c => (
-                  <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
+                  <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)} eventHandlers={{ click: () => setSelectedContact(c) }}>
                     <Tooltip direction="top" offset={[0, -18]}><span className="text-xs font-black">{c.name}</span></Tooltip>
                   </Marker>
                 ))}
@@ -300,14 +335,14 @@ const ContactsSection: React.FC = () => {
                 url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
               />
               {filtered.filter(c => c.parish !== 'National').map(c => (
-                <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
+                <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)} eventHandlers={{ click: () => setSelectedContact(c) }}>
                   <Tooltip direction="top" offset={[0, -18]}>
                     <span className="text-xs font-black">{c.name}</span><br />
                     <span className="text-[10px]">{c.phone}</span>
                   </Tooltip>
                 </Marker>
               ))}
-              {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
+              {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} eventHandlers={{ click: () => setShowLocationDetails(true) }} />}
             </MapContainer>
             <div className="absolute bottom-4 right-4 z-[500]">
               <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
@@ -350,6 +385,92 @@ const ContactsSection: React.FC = () => {
           </div>
         )}
       </section>
+
+      {selectedContact && (
+        <InfoPullUpShell onClose={() => setSelectedContact(null)}>
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-lg" style={{ background: CONTACT_TYPE_META[selectedContact.type].color + '22' }}>
+                <span className="material-symbols-outlined text-[28px]" style={{ color: CONTACT_TYPE_META[selectedContact.type].color }}>{CONTACT_TYPE_META[selectedContact.type].icon}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">{CONTACT_TYPE_META[selectedContact.type].label}</p>
+                <h3 className="mt-1 text-xl font-black leading-tight text-slate-950 dark:text-white">{selectedContact.name}</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-white/45">{selectedContact.parish}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <a href={`tel:${selectedContact.phone}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-500 text-[11px] font-black uppercase tracking-widest text-white">
+                <span className="material-symbols-outlined text-[18px]">call</span>
+                Call
+              </a>
+              {selectedContact.email ? (
+                <a href={`mailto:${selectedContact.email}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/10 text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-300">
+                  <span className="material-symbols-outlined text-[18px]">mail</span>
+                  Email
+                </a>
+              ) : (
+                <a href={`https://www.google.com/maps/search/?api=1&query=${selectedContact.coordinates[0]},${selectedContact.coordinates[1]}`} target="_blank" rel="noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 text-[11px] font-black uppercase tracking-widest text-primary">
+                  <span className="material-symbols-outlined text-[18px]">map</span>
+                  Maps
+                </a>
+              )}
+            </div>
+
+            <section className="rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Details</p>
+              <div className="mt-3 space-y-3 text-sm font-semibold text-slate-700 dark:text-white/70">
+                <p className="flex items-start gap-2">
+                  <span className="material-symbols-outlined mt-0.5 text-[17px] text-slate-400">location_on</span>
+                  <span>{selectedContact.address}</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <span className="material-symbols-outlined mt-0.5 text-[17px] text-slate-400">call</span>
+                  <span>{selectedContact.phone}</span>
+                </p>
+                {selectedContact.is24hr && (
+                  <p className="flex items-start gap-2">
+                    <span className="material-symbols-outlined mt-0.5 text-[17px] text-green-500">schedule</span>
+                    <span>Open 24 hours</span>
+                  </p>
+                )}
+                {userLocation && (
+                  <p className="flex items-start gap-2">
+                    <span className="material-symbols-outlined mt-0.5 text-[17px] text-blue-500">near_me</span>
+                    <span>{haversine(userLocation[0], userLocation[1], selectedContact.coordinates[0], selectedContact.coordinates[1]).toFixed(1)} km from your current location</span>
+                  </p>
+                )}
+                {selectedContact.notes && <p>{selectedContact.notes}</p>}
+              </div>
+            </section>
+          </div>
+        </InfoPullUpShell>
+      )}
+      {showLocationDetails && userLocation && (
+        <InfoPullUpShell onClose={() => setShowLocationDetails(false)}>
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-500 shadow-lg">
+                <span className="material-symbols-outlined text-[28px]">my_location</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Current Position</p>
+                <h3 className="mt-1 text-xl font-black leading-tight text-slate-950 dark:text-white">Your location</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-white/45">Used to find nearby emergency contacts.</p>
+              </div>
+            </div>
+            <section className="rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">Coordinates</p>
+              <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-white/70">{userLocation[0].toFixed(5)}, {userLocation[1].toFixed(5)}</p>
+            </section>
+            <a href={`https://www.google.com/maps/search/?api=1&query=${userLocation[0]},${userLocation[1]}`} target="_blank" rel="noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 text-[11px] font-black uppercase tracking-widest text-white">
+              <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+              Open in Maps
+            </a>
+          </div>
+        </InfoPullUpShell>
+      )}
     </div>
   );
 };
@@ -511,6 +632,7 @@ const DangerMapSection: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
   const [mapZoom, setMapZoom] = useState(9);
   const [satelliteView, setSatelliteView] = useState(false);
+  const [showLocationDetails, setShowLocationDetails] = useState(false);
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -607,7 +729,7 @@ const DangerMapSection: React.FC = () => {
               <Tooltip>{zone.name} — {SEVERITY_META[zone.severity].label}</Tooltip>
             </Polygon>
           ))}
-          {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
+          {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} eventHandlers={{ click: () => setShowLocationDetails(true) }} />}
         </MapContainer>
         <div className="absolute bottom-4 right-4 z-[500]">
           <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
@@ -626,7 +748,8 @@ const DangerMapSection: React.FC = () => {
 
       {/* Zone detail panel */}
       {selectedZone && (
-        <section className="glass rounded-2xl p-4 shadow-2xl">
+        <InfoPullUpShell onClose={() => setSelectedZone(null)}>
+        <section className="space-y-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -674,6 +797,31 @@ const DangerMapSection: React.FC = () => {
             </div>
           )}
         </section>
+        </InfoPullUpShell>
+      )}
+      {showLocationDetails && userLocation && (
+        <InfoPullUpShell onClose={() => setShowLocationDetails(false)}>
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-500 shadow-lg">
+                <span className="material-symbols-outlined text-[28px]">my_location</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Current Position</p>
+                <h3 className="mt-1 text-xl font-black leading-tight text-slate-950 dark:text-white">Your location</h3>
+                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-white/45">Used for nearby danger-zone awareness.</p>
+              </div>
+            </div>
+            <section className="rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">Coordinates</p>
+              <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-white/70">{userLocation[0].toFixed(5)}, {userLocation[1].toFixed(5)}</p>
+            </section>
+            <a href={`https://www.google.com/maps/search/?api=1&query=${userLocation[0]},${userLocation[1]}`} target="_blank" rel="noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 text-[11px] font-black uppercase tracking-widest text-white">
+              <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+              Open in Maps
+            </a>
+          </div>
+        </InfoPullUpShell>
       )}
 
       {/* General safety tips */}
