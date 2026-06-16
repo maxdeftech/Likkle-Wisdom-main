@@ -318,6 +318,9 @@ const ContactsSection: React.FC = () => {
               </button>
             ))}
           </div>
+          <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
+            Swipe left or right for more options
+          </p>
           <select value={parishFilter} onChange={e => setParishFilter(e.target.value)} className="h-11 w-full rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-red-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
             <option value="">All Parishes</option>
             {PARISHES.map(p => <option key={p} value={p}>{p}</option>)}
@@ -695,6 +698,9 @@ const DangerMapSection: React.FC = () => {
           </button>
         ))}
       </div>
+      <p className="text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
+        Swipe left or right for more options
+      </p>
 
       {/* Proximity alert */}
       {proximityAlert && (
@@ -947,6 +953,9 @@ const NewsSection: React.FC = () => {
             </button>
           ))}
         </div>
+        <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
+          Swipe left or right for more options
+        </p>
       </section>
 
       {error && (
@@ -1029,6 +1038,9 @@ const InfoModule: React.FC<InfoModuleProps> = ({ user }) => {
           </button>
         ))}
       </div>
+      <p className="text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
+        Swipe left or right for more options
+      </p>
 
       {/* All sections stay mounted for state preservation */}
       <div style={{ display: activeInfoTab === 'contacts' ? 'block' : 'none' }}>

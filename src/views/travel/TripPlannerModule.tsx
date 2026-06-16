@@ -327,6 +327,9 @@ ${MANDATORY_SECURITY_SUFFIX}`;
               );
             })}
           </div>
+          <p className="mb-4 text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
+            Swipe left or right for more options
+          </p>
 
           {!isDesktop && (
             <div className="mb-4 space-y-3">
