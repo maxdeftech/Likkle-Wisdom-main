@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { aviationRoutes } from '../../data/aviationRoutes';
 import { travelPlaces } from '../../data/travelPlaces';
-import { streamTravelText } from '../../services/geminiService';
+import { streamTravelText, MANDATORY_SECURITY_SUFFIX } from '../../services/geminiService';
 import { notifyAIComplete } from '../../services/localNotificationsService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import { generateTripPDF } from '../../utils/travel/generateTripPDF';
@@ -179,7 +179,13 @@ Accommodation: ${form.accommodation}
 Matching route estimate: ${matchingRoute ? `${matchingRoute.origin.code} to ${matchingRoute.destination.code}, ${matchingRoute.estimatedCost}, ${matchingRoute.durationHours} hours` : 'No static route matched'}
 Jamaica attraction data to cross-reference where useful: ${relevantPlaces}
 
-Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping essentials cost estimates, total breakdown, budget sufficiency, saving tips, and a short cosmetics/travel essentials estimator.`,
+Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping essentials cost estimates, total breakdown, budget sufficiency, saving tips, and a short cosmetics/travel essentials estimator.
+
+Also include security-specific financial advice:
+- Safe ATM and money exchange practices in ${form.destination}
+- How to protect cash and cards while travelling
+- Travel insurance recommendations
+${MANDATORY_SECURITY_SUFFIX}`,
       fallback,
       (partial) => setResult(partial)
     );

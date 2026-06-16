@@ -94,12 +94,55 @@ function extractText(node: any): string {
   return '';
 }
 
+/** Linkify Jamaica phone numbers (119, 110, 1-876-XXX-XXXX) */
+const linkifyPhones = (text: string) =>
+  text.replace(/(119|110|1-876-\d{3}-\d{4})/g, '[$1](tel:$1)');
+
+/** Check if a line is the Security Tips header */
+const isSecurityHeader = (text: string) =>
+  /security tips/i.test(text) || /🛡️/.test(text);
+
 interface TravelMarkdownProps {
   children: string;
 }
 
-const TravelMarkdown: React.FC<TravelMarkdownProps> = ({ children }) => (
-  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{children}</ReactMarkdown>
-);
+const TravelMarkdown: React.FC<TravelMarkdownProps> = ({ children }) => {
+  // Split content at the Security Tips section for distinct styling
+  const securityMatch = children.match(/^([\s\S]*?)(#{1,3}\s*🛡️?\s*Security Tips[\s\S]*)$/im);
+
+  if (securityMatch) {
+    const mainContent = securityMatch[1];
+    const securityContent = linkifyPhones(securityMatch[2]);
+
+    return (
+      <>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{mainContent}</ReactMarkdown>
+        <div className="mt-6 rounded-2xl border-l-4 border-red-500 bg-red-500/5 dark:bg-red-500/10 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-red-500">shield</span>
+            <span className="text-red-500 font-black text-sm uppercase tracking-widest">Security Tips</span>
+          </div>
+          <div className="security-tips-content">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                ...markdownComponents,
+                a: ({ href, children: linkChildren }) => (
+                  <a href={href} className="text-red-500 font-bold underline">{linkChildren}</a>
+                ),
+              }}
+            >
+              {securityContent.replace(/^#{1,3}\s*🛡️?\s*Security Tips\s*/im, '')}
+            </ReactMarkdown>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{children}</ReactMarkdown>
+  );
+};
 
 export default TravelMarkdown;

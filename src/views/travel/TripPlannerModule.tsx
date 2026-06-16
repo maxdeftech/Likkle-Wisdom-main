@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { TravelCategory, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
-import { streamTravelText } from '../../services/geminiService';
+import { streamTravelText, MANDATORY_SECURITY_SUFFIX } from '../../services/geminiService';
 import { notifyAIComplete } from '../../services/localNotificationsService';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { addStopToPlan, fetchOrCreateActivePlan, fetchStopsForPlan, removeStopFromPlan, TripPlan, TripStop, updatePlanName } from '../../services/tripPlannerService';
@@ -181,7 +181,15 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
         .sort((a, b) => a.stop.day_number - b.stop.day_number || a.stop.stop_order - b.stop.stop_order)
         .map(({ stop, place }) => `Day ${stop.day_number}: ${place.name}`)
         .join('\n')
-    }\n\nPlease give me: 1) Tips for sequencing these stops efficiently. 2) Estimated transport time between stops. 3) Any must-do activities at each location. 4) Suggestions for what to add or remove. Format with markdown headings.`;
+    }\n\nPlease give me: 1) Tips for sequencing these stops efficiently. 2) Estimated transport time between stops. 3) Any must-do activities at each location. 4) Suggestions for what to add or remove. Format with markdown headings.
+
+For each area/parish in the itinerary, include:
+- Safety assessment for that specific area
+- Best times to visit each location safely
+- Areas to avoid near the planned stops
+- Safe transportation between stops
+- Emergency contacts near the itinerary locations
+${MANDATORY_SECURITY_SUFFIX}`;
     const response = await streamTravelText(prompt, 'Add more stops to build a stronger Jamaica itinerary.', (partial) => setAiResponse(partial));
     setAiResponse(response);
     sessionStorage.setItem('lw_trip_aiResponse', response);

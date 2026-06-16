@@ -1,14 +1,14 @@
 import React from 'react';
 
-export type TravelTab = 'maps' | 'aviation' | 'planner' | 'tripplanner';
+export type TravelTab = 'info' | 'maps' | 'aviation' | 'planner' | 'tripplanner';
 
 interface TravelBottomNavProps {
   activeTab: TravelTab;
   onTabChange: (tab: TravelTab) => void;
-  onBack: () => void;
 }
 
 const tabs: { id: TravelTab; label: string; icon: string }[] = [
+  { id: 'info', label: 'Info', icon: 'shield' },
   { id: 'maps', label: 'Maps', icon: 'map' },
   { id: 'aviation', label: 'Routes', icon: 'connecting_airports' },
   { id: 'planner', label: 'Finance', icon: 'savings' },
@@ -21,21 +21,11 @@ const navButtonClass = (active = false) => `relative flex size-10 shrink-0 items
     : 'text-white/70 hover:text-primary'
 }`;
 
-const TravelBottomNav: React.FC<TravelBottomNavProps> = ({ activeTab, onTabChange, onBack }) => (
+const TravelBottomNav: React.FC<TravelBottomNavProps> = ({ activeTab, onTabChange }) => (
   <nav className="pointer-events-none fixed bottom-[max(0.7rem,env(safe-area-inset-bottom))] left-1/2 z-[9000] w-[calc(100%-1.5rem)] max-w-[380px] -translate-x-1/2 lg:hidden" aria-label="Travel navigation">
     <div
       className="pointer-events-auto relative flex h-[60px] items-center justify-around rounded-full border border-primary/15 bg-[#07120a]/95 px-2 shadow-[0_14px_34px_rgba(0,0,0,0.42)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-0 before:rounded-full before:border before:border-white/5"
     >
-      <button
-        type="button"
-        onClick={onBack}
-        aria-label="Back to Likkle Wisdom"
-        className={navButtonClass(false)}
-      >
-        <span className="material-symbols-outlined text-[23px]" aria-hidden="true">home</span>
-        <span className="sr-only">Home</span>
-      </button>
-
       {tabs.map(tab => {
         const active = activeTab === tab.id;
         return (

@@ -6,7 +6,7 @@ import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
-import { streamTravelText } from '../../services/geminiService';
+import { streamTravelText, MANDATORY_SECURITY_SUFFIX } from '../../services/geminiService';
 import { notifyAIComplete } from '../../services/localNotificationsService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
@@ -249,7 +249,14 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
     const nearest = visiblePlaces.slice(0, 6).map(place => `${place.name} (${travelCategoryMeta[place.category].label})`).join(', ');
     const fallback = `Destination suggestion\n\nTry building the trip around ${visiblePlaces[0]?.name || 'Kingston and Ocho Rios'}. Keep transport flexible, reserve part of the budget for entry fees, and compare nearby places such as ${nearest || 'Dunns River Falls, Devon House, and Seven Mile Beach'}.`;
     const response = await streamTravelText(
-      `Create a Jamaica travel destination guide for this request: "${prompt}". Include destination name, why it fits, estimated cost, and nearest places from this app data to highlight: ${nearest}.`,
+      `Create a Jamaica travel destination guide for this request: "${prompt}". Include destination name, why it fits, estimated cost, and nearest places from this app data to highlight: ${nearest}.
+
+Include safety information for this specific location:
+- How safe is this area for tourists
+- Best times to visit
+- What to watch out for (crowds, pickpockets, etc.)
+- Nearest emergency services (police station, hospital)
+${MANDATORY_SECURITY_SUFFIX}`,
       fallback,
       (partial) => setGuideResponse(partial)
     );

@@ -91,7 +91,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>('splash');
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('home');
-  const [travelTab, setTravelTab] = useState<TravelTab>('maps');
+  const [travelTab, setTravelTab] = useState<TravelTab>('info');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const isDesktop = useIsDesktop();
   const pwaInstall = usePWAInstall();
@@ -757,7 +757,7 @@ const App: React.FC = () => {
           onBack={() => {
             setActiveTab('home');
             setActiveCategory(null);
-            setTravelTab('maps');
+            setTravelTab('info');
           }}
           onGuestRestricted={() => setShowAuthGate(true)}
           travelTab={travelTab}
@@ -913,11 +913,6 @@ const App: React.FC = () => {
           <TravelBottomNav
             activeTab={travelTab}
             onTabChange={setTravelTab}
-            onBack={() => {
-              setActiveTab('home');
-              setActiveCategory(null);
-              setTravelTab('maps');
-            }}
           />
         ) : (
           <BottomNav

@@ -1,5 +1,6 @@
 import { User } from '../types';
 import { TravelTab } from '../components/TravelBottomNav';
+import InfoModule from './travel/InfoModule';
 import MapsModule from './travel/MapsModule';
 import AviationModule from './travel/AviationModule';
 import FinancialPlannerModule from './travel/FinancialPlannerModule';
@@ -14,6 +15,7 @@ interface TravelViewProps {
 }
 
 const travelTabs: { id: TravelTab; label: string; icon: string }[] = [
+  { id: 'info', label: 'Safety Info', icon: 'shield' },
   { id: 'maps', label: 'Maps', icon: 'map' },
   { id: 'aviation', label: 'Aviation Routes', icon: 'connecting_airports' },
   { id: 'planner', label: 'Financial Planner', icon: 'savings' },
@@ -69,6 +71,9 @@ const TravelView: React.FC<TravelViewProps> = ({ user, onBack, onGuestRestricted
       {/* All modules stay mounted; inactive ones are hidden with CSS.
           This preserves AI-generated content and form state when switching sub-tabs. */}
       <div className="px-4 py-5 sm:px-6 lg:px-8">
+        <div style={{ display: travelTab === 'info' ? 'block' : 'none' }}>
+          <InfoModule user={user} />
+        </div>
         <div style={{ display: travelTab === 'maps' ? 'block' : 'none' }}>
           <MapsModule user={user} onGuestRestricted={onGuestRestricted} />
         </div>

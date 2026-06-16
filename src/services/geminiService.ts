@@ -443,4 +443,139 @@ Keep responses concise, warm, and helpful. Use Jamaican expressions naturally bu
   }
 }
 
+// ————— Safety Chat —————
+
+const SAFETY_SYSTEM_PROMPT = `You are a Jamaica Tourist Safety Advisor within the Likkle Wisdom app.
+Your role is to keep tourists safe in Jamaica. You provide:
+
+1. DO'S AND DON'TS — cultural etiquette, behaviour tips, scam awareness
+2. AREA-SPECIFIC SAFETY — when the user mentions a location, give specific safety info for that area
+3. TIME-BASED ADVICE — when to be indoors, when to avoid certain areas, safe hours
+4. BELONGING PROTECTION — safeguarding valuables, what not to wear/carry
+5. VIGILANCE TIPS — situational awareness, transportation safety, nightlife safety
+6. EMERGENCY PROCEDURES — what to do if robbed, injured, or in danger
+
+Rules:
+- Be factual and balanced. Jamaica is a beautiful country. Don't fearmonger, but be honest about risks.
+- When the user tells you where they're staying, give specific neighbourhood tips.
+- Format responses with clear sections using markdown headers and bullet points.
+- Include relevant emergency numbers when appropriate (119 Police, 110 Fire/Ambulance).
+- Speak in a warm, friendly tone — mix in light Patois where natural.
+- If the user asks about a specific area, include: safety level, best times to visit, what to watch out for, nearest emergency services.`;
+
+export async function streamSafetyChat(
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  onChunk: (partialText: string) => void,
+  userLocation?: { lat: number; lng: number; placeName?: string }
+): Promise<string> {
+  const apiKey = getOpenRouterApiKey();
+  if (!apiKey) {
+    const fallback = "Mi cyaan chat right now — di API key nuh set up yet.";
+    onChunk(fallback);
+    return fallback;
+  }
+
+  let systemContent = SAFETY_SYSTEM_PROMPT;
+  if (userLocation) {
+    systemContent += `\n\nThe user's current location is approximately: ${userLocation.placeName || `${userLocation.lat}, ${userLocation.lng}`}. Factor this into your safety advice.`;
+  }
+
+  const apiMessages: ChatMessage[] = [
+    { role: 'system', content: systemContent },
+    ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+  ];
+
+  const tryStream = async (model: string): Promise<string> => {
+    assertFreeOpenRouterModel(model);
+
+    const response = await fetch(OPENROUTER_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://www.likklewisdom.com',
+        'X-Title': 'Likkle Wisdom'
+      },
+      body: JSON.stringify({
+        model,
+        messages: apiMessages,
+        temperature: 0.7,
+        max_tokens: 1200,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof data?.error?.message === 'string'
+          ? data.error.message
+          : `OpenRouter stream failed with status ${response.status}`
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body for streaming');
+
+    const decoder = new TextDecoder();
+    let full = '';
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        const payload = trimmed.slice(6);
+        if (payload === '[DONE]') continue;
+        try {
+          const json = JSON.parse(payload);
+          const token = json.choices?.[0]?.delta?.content;
+          if (token) {
+            full += token;
+            onChunk(full);
+          }
+        } catch { /* skip malformed SSE lines */ }
+      }
+    }
+
+    if (!full) throw new Error('Stream returned no content');
+    return full;
+  };
+
+  try {
+    return await tryStream(PRIMARY_MODEL);
+  } catch (primaryError) {
+    console.info('OpenRouter primary safety stream failed; trying fallback.', primaryError);
+    try {
+      return await tryStream(FALLBACK_MODEL);
+    } catch (fallbackError) {
+      console.info('Safety stream fallback error:', fallbackError);
+      const errMsg = "Hmm, mi mind fuzzy right now. Try ask again inna likkle bit.";
+      onChunk(errMsg);
+      return errMsg;
+    }
+  }
+}
+
+// ————— Mandatory Security Suffix —————
+
+export const MANDATORY_SECURITY_SUFFIX = `
+
+IMPORTANT — SECURITY SECTION (MANDATORY):
+At the end of your response, you MUST include a section titled "## 🛡️ Security Tips" containing:
+1. Location-specific safety advice for the areas mentioned in the response
+2. General tips: safeguarding belongings, safe transportation, scam awareness
+3. Time-based warnings: safe hours, when to be indoors, areas to avoid at night
+4. Emergency numbers: 119 (Police), 110 (Fire/Ambulance)
+5. Nearest hospitals or police stations relevant to the mentioned locations
+This section is NOT optional — it must appear in every response.
+`;
+
 export { KEY_MISSING_RESPONSE };

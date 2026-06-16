@@ -1,0 +1,687 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, Marker, Polygon, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
+import TravelMarkdown from '../../components/travel/TravelMarkdown';
+import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { User } from '../../types';
+import { EMERGENCY_CONTACTS, CONTACT_TYPE_META, PARISHES, EmergencyContact } from '../../data/emergencyContacts';
+import { DANGER_ZONES, SEVERITY_META, GENERAL_TIME_WARNINGS, GENERAL_SAFETY_TIPS, DangerZone } from '../../data/dangerZones';
+import { streamSafetyChat } from '../../services/geminiService';
+import { useAIProgress } from '../../hooks/useAIProgress';
+
+type InfoTab = 'contacts' | 'chat' | 'dangermap';
+
+interface InfoModuleProps {
+  user: User;
+}
+
+const INFO_TABS: { id: InfoTab; label: string; icon: string }[] = [
+  { id: 'contacts', label: 'Contacts', icon: 'contact_phone' },
+  { id: 'chat', label: 'Safety AI', icon: 'security' },
+  { id: 'dangermap', label: 'Danger Map', icon: 'warning' },
+];
+
+const JAMAICA_CENTER: [number, number] = [18.1096, -77.2975];
+
+// ————— Haversine distance —————
+const haversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+// ————— Map helpers —————
+const MapRecenter: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
+  const map = useMap();
+  useEffect(() => { map.setView(center, zoom, { animate: true }); }, [center, map, zoom]);
+  return null;
+};
+
+const makeContactIcon = (type: EmergencyContact['type']) => L.divIcon({
+  className: 'info-contact-marker',
+  html: `<span style="background:${CONTACT_TYPE_META[type].color};display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3)"><i class="material-symbols-outlined" style="font-size:18px;color:#fff">${CONTACT_TYPE_META[type].icon}</i></span>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+const userLocationIcon = L.divIcon({
+  className: 'travel-user-location-marker',
+  html: '<span class="travel-user-location-dot"></span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+
+// ————— Quick topics for chat —————
+const QUICK_TOPICS = [
+  { label: "Do's & Don'ts", prompt: "What are the most important do's and don'ts for tourists visiting Jamaica?" },
+  { label: 'Beach Safety', prompt: 'What safety tips should I know for Jamaican beaches?' },
+  { label: 'Nightlife Tips', prompt: 'How can I stay safe enjoying nightlife in Jamaica?' },
+  { label: 'Transportation', prompt: "What's the safest way to get around Jamaica as a tourist?" },
+  { label: "Where I'm Staying", prompt: "I'd like safety tips for the area I'm staying in." },
+  { label: 'Scam Awareness', prompt: 'What common scams should tourists watch out for in Jamaica?' },
+  { label: 'Money Safety', prompt: 'How should I handle cash, ATMs, and valuables safely in Jamaica?' },
+  { label: 'Hiking & Nature', prompt: 'What safety precautions for hiking and nature excursions in Jamaica?' },
+];
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+// =======================================
+// CONTACTS SECTION
+// =======================================
+const ContactsSection: React.FC = () => {
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<EmergencyContact['type'] | 'all'>('all');
+  const [parishFilter, setParishFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [showMapView, setShowMapView] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
+  const [mapZoom, setMapZoom] = useState(9);
+
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Location is not available on this device.');
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        setLocationError(null);
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationError('Enable location in your device settings to see nearest contacts.');
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const contactsWithDistance = useMemo(() => {
+    if (!userLocation) return null;
+    return EMERGENCY_CONTACTS
+      .filter(c => c.parish !== 'National')
+      .map(c => ({ ...c, distance: haversine(userLocation[0], userLocation[1], c.coordinates[0], c.coordinates[1]) }))
+      .sort((a, b) => a.distance - b.distance);
+  }, [userLocation]);
+
+  const nearest5 = contactsWithDistance?.slice(0, 5) ?? [];
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return EMERGENCY_CONTACTS.filter(c => {
+      if (typeFilter !== 'all' && c.type !== typeFilter) return false;
+      if (parishFilter && c.parish !== parishFilter) return false;
+      if (q && !c.name.toLowerCase().includes(q) && !c.parish.toLowerCase().includes(q) && !c.address.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [typeFilter, parishFilter, search]);
+
+  return (
+    <div className="space-y-5">
+      {/* Quick-dial hero */}
+      <div className="grid grid-cols-2 gap-3">
+        <a href="tel:119" className="glass flex items-center gap-4 rounded-2xl border-blue-500/20 p-5 active:scale-95 transition-transform">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-blue-500/20">
+            <span className="material-symbols-outlined text-2xl text-blue-500">local_police</span>
+          </div>
+          <div>
+            <p className="text-lg font-black text-slate-900 dark:text-white">119</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Police</p>
+          </div>
+        </a>
+        <a href="tel:110" className="glass flex items-center gap-4 rounded-2xl border-red-500/20 p-5 active:scale-95 transition-transform">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-red-500/20">
+            <span className="material-symbols-outlined text-2xl text-red-500">local_hospital</span>
+          </div>
+          <div>
+            <p className="text-lg font-black text-slate-900 dark:text-white">110</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Fire / Ambulance</p>
+          </div>
+        </a>
+      </div>
+
+      {/* Nearest to you */}
+      <section className="glass rounded-2xl p-4 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">Nearest to You</p>
+            <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">Emergency contacts nearby</p>
+          </div>
+          {!userLocation && (
+            <button type="button" onClick={requestLocation} disabled={locationLoading} className="flex h-10 items-center gap-2 rounded-2xl bg-red-500 px-4 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-60">
+              <span className="material-symbols-outlined text-[16px]">{locationLoading ? 'progress_activity' : 'my_location'}</span>
+              {locationLoading ? 'Finding…' : 'Turn On Location'}
+            </button>
+          )}
+        </div>
+        {locationError && <p className="mb-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-600 dark:text-red-300">{locationError}</p>}
+        {nearest5.length > 0 && (
+          <>
+            <div className="mb-4 overflow-hidden rounded-2xl border border-white/10">
+              <MapContainer center={userLocation || JAMAICA_CENTER} zoom={13} scrollWheelZoom={false} className="h-[200px] w-full">
+                <InvalidateMapSize />
+                <MapRecenter center={userLocation || JAMAICA_CENTER} zoom={13} />
+                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
+                {nearest5.map(c => (
+                  <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
+                    <Tooltip direction="top" offset={[0, -18]}><span className="text-xs font-black">{c.name}</span></Tooltip>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+            <div className="space-y-2">
+              {nearest5.map(c => (
+                <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full" style={{ background: CONTACT_TYPE_META[c.type].color + '22' }}>
+                      <span className="material-symbols-outlined text-[18px]" style={{ color: CONTACT_TYPE_META[c.type].color }}>{CONTACT_TYPE_META[c.type].icon}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-950 dark:text-white">{c.name}</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-white/40">{c.distance.toFixed(1)} km away</p>
+                    </div>
+                  </div>
+                  <a href={`tel:${c.phone}`} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+                    <span className="material-symbols-outlined text-[20px]">call</span>
+                  </a>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {!userLocation && !locationError && (
+          <div className="rounded-2xl border border-dashed border-red-500/25 p-6 text-center">
+            <span className="material-symbols-outlined text-4xl text-red-500/40">location_off</span>
+            <p className="mt-2 text-sm font-black text-slate-900 dark:text-white">Enable location to see nearest emergency contacts</p>
+          </div>
+        )}
+      </section>
+
+      {/* Full directory */}
+      <section className="glass rounded-2xl p-4 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">Full Directory</p>
+            <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">{filtered.length} contacts</p>
+          </div>
+          <button type="button" onClick={() => setShowMapView(!showMapView)} className="flex h-10 items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 text-[10px] font-black uppercase tracking-widest text-red-500">
+            <span className="material-symbols-outlined text-[16px]">{showMapView ? 'list' : 'map'}</span>
+            {showMapView ? 'List' : 'Map'}
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="mb-4 space-y-3">
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts…" className="h-11 w-full rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-red-500 dark:border-white/10 dark:bg-white/5 dark:text-white" />
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            {(['all', 'police', 'hospital', 'fire', 'clinic', 'embassy', 'coastguard'] as const).map(type => (
+              <button key={type} type="button" onClick={() => setTypeFilter(type)} className={`flex min-w-fit items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${typeFilter === type ? 'border-red-500 bg-red-500 text-white' : 'border-slate-950/10 text-slate-600 dark:border-white/10 dark:text-white/60'}`}>
+                {type === 'all' ? 'All' : CONTACT_TYPE_META[type].label}
+              </button>
+            ))}
+          </div>
+          <select value={parishFilter} onChange={e => setParishFilter(e.target.value)} className="h-11 w-full rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-red-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
+            <option value="">All Parishes</option>
+            {PARISHES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+
+        {showMapView ? (
+          <div className="overflow-hidden rounded-2xl border border-white/10">
+            <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[350px] w-full lg:h-[450px]">
+              <InvalidateMapSize />
+              <MapRecenter center={mapCenter} zoom={mapZoom} />
+              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {filtered.filter(c => c.parish !== 'National').map(c => (
+                <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
+                  <Tooltip direction="top" offset={[0, -18]}>
+                    <span className="text-xs font-black">{c.name}</span><br />
+                    <span className="text-[10px]">{c.phone}</span>
+                  </Tooltip>
+                </Marker>
+              ))}
+              {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
+            </MapContainer>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map(c => (
+              <article key={c.id} className="rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ background: CONTACT_TYPE_META[c.type].color + '22' }}>
+                    <span className="material-symbols-outlined text-[20px]" style={{ color: CONTACT_TYPE_META[c.type].color }}>{CONTACT_TYPE_META[c.type].icon}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-black text-slate-950 dark:text-white">{c.name}</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-slate-500 dark:text-white/40">{c.parish} — {c.address}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1.5 text-[10px] font-black text-red-500">
+                        <span className="material-symbols-outlined text-[14px]">call</span>
+                        {c.phone}
+                      </a>
+                      {c.email && (
+                        <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1.5 text-[10px] font-black text-blue-500">
+                          <span className="material-symbols-outlined text-[14px]">mail</span>
+                          Email
+                        </a>
+                      )}
+                      {c.is24hr && (
+                        <span className="flex items-center gap-1 rounded-full bg-green-500/10 px-3 py-1.5 text-[10px] font-black text-green-600 dark:text-green-400">
+                          <span className="material-symbols-outlined text-[14px]">schedule</span>
+                          24hr
+                        </span>
+                      )}
+                    </div>
+                    {c.notes && <p className="mt-1.5 text-[10px] font-bold text-slate-400 dark:text-white/30">{c.notes}</p>}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+// =======================================
+// SAFETY CHAT SECTION
+// =======================================
+const SafetyChatSection: React.FC = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const aiProgress = useAIProgress(isStreaming, messages.length > 0 && !isStreaming);
+
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }); });
+  }, []);
+
+  useEffect(() => { scrollToBottom(); }, [messages, streamingText, scrollToBottom]);
+
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: text.trim() };
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
+    setInput('');
+    setIsStreaming(true);
+    setStreamingText('');
+
+    const history = nextMessages.map(m => ({ role: m.role, content: m.content }));
+    const fullResponse = await streamSafetyChat(history, (partial) => setStreamingText(partial));
+
+    setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: fullResponse }]);
+    setStreamingText('');
+    setIsStreaming(false);
+  };
+
+  const speakText = (text: string, msgId: string) => {
+    const synth = typeof window !== 'undefined' ? (window as any).speechSynthesis : null;
+    if (!synth || typeof synth.cancel !== 'function') return;
+    synth.cancel();
+    if (speakingId === msgId) { setSpeakingId(null); return; }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = () => setSpeakingId(null);
+    setSpeakingId(msgId);
+    synth.speak(utterance);
+  };
+
+  const startVoiceInput = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript;
+      if (transcript) setInput(transcript);
+    };
+    recognition.start();
+  };
+
+  const hasMessages = messages.length > 0;
+
+  return (
+    <div className="flex flex-col" style={{ height: hasMessages ? 'calc(100vh - 320px)' : 'auto', minHeight: hasMessages ? '400px' : 'auto' }}>
+      {!hasMessages && (
+        <div className="space-y-4">
+          <div className="text-center">
+            <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-full bg-red-500/10">
+              <span className="material-symbols-outlined text-3xl text-red-500">security</span>
+            </div>
+            <h3 className="text-xl font-black text-slate-950 dark:text-white">Jamaica Safety Advisor</h3>
+            <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-white/50">Ask me anything about staying safe in Jamaica</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {QUICK_TOPICS.map(topic => (
+              <button key={topic.label} type="button" onClick={() => sendMessage(topic.prompt)} className="glass rounded-2xl p-3 text-left transition-all hover:border-red-500/30 active:scale-95">
+                <p className="text-xs font-black text-slate-900 dark:text-white">{topic.label}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasMessages && (
+        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pb-4 no-scrollbar">
+          {messages.map(msg => (
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl p-4 ${msg.role === 'user' ? 'bg-red-500/20 text-slate-900 dark:text-white' : 'glass border-l-4 border-red-500/40'}`}>
+                {msg.role === 'assistant' ? (
+                  <div className="travel-md">
+                    <TravelMarkdown>{msg.content}</TravelMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold">{msg.content}</p>
+                )}
+                {msg.role === 'assistant' && (
+                  <button type="button" onClick={() => speakText(msg.content, msg.id)} className="mt-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-red-500">
+                    <span className="material-symbols-outlined text-[14px]">{speakingId === msg.id ? 'stop' : 'volume_up'}</span>
+                    {speakingId === msg.id ? 'Stop' : 'Listen'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {isStreaming && streamingText && (
+            <div className="flex justify-start">
+              <div className="glass max-w-[85%] rounded-2xl border-l-4 border-red-500/40 p-4">
+                <div className="travel-md"><TravelMarkdown>{streamingText}</TravelMarkdown></div>
+                <span className="ml-1 inline-block size-2 animate-pulse rounded-full bg-red-500 align-middle" />
+              </div>
+            </div>
+          )}
+          {isStreaming && !streamingText && (
+            <div className="flex justify-start">
+              <div className="glass max-w-[85%] rounded-2xl p-4">
+                <AILoadingSkeleton progress={aiProgress} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Input bar */}
+      <div className="mt-3 flex gap-2">
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
+          placeholder="Ask about safety in Jamaica…"
+          disabled={isStreaming}
+          className="h-12 min-w-0 flex-1 rounded-2xl border border-slate-950/10 bg-white/70 px-4 text-sm font-bold text-slate-950 outline-none focus:border-red-500 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-white"
+        />
+        <button type="button" onClick={startVoiceInput} disabled={isStreaming} className="glass flex size-12 items-center justify-center rounded-2xl text-slate-950 dark:text-white disabled:opacity-60" aria-label="Voice input">
+          <span className="material-symbols-outlined">mic</span>
+        </button>
+        <button type="button" onClick={() => sendMessage(input)} disabled={isStreaming || !input.trim()} className="flex size-12 items-center justify-center rounded-2xl bg-red-500 text-white disabled:opacity-60" aria-label="Send">
+          <span className="material-symbols-outlined">{isStreaming ? 'progress_activity' : 'send'}</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// =======================================
+// DANGER MAP SECTION
+// =======================================
+type TimeFilter = 'all' | 'now' | 'afterdark' | 'latenight';
+
+const DangerMapSection: React.FC = () => {
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [selectedZone, setSelectedZone] = useState<DangerZone | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
+  const [mapZoom, setMapZoom] = useState(9);
+
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(
+      pos => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const currentHour = new Date().getHours();
+
+  const filteredZones = useMemo(() => {
+    if (timeFilter === 'all') return DANGER_ZONES;
+    return DANGER_ZONES.filter(zone => {
+      if (!zone.timeWarning) return false;
+      const tw = zone.timeWarning.toLowerCase();
+      if (timeFilter === 'now') {
+        if (currentHour >= 18 && tw.includes('dark')) return true;
+        if (currentHour >= 22 && tw.includes('night')) return true;
+        if (currentHour < 6 && tw.includes('morning')) return true;
+        if (tw.includes('daytime') && currentHour >= 6 && currentHour < 18) return true;
+        return false;
+      }
+      if (timeFilter === 'afterdark') return tw.includes('dark') || tw.includes('night') || tw.includes('daytime');
+      if (timeFilter === 'latenight') return tw.includes('night') || tw.includes('late');
+      return true;
+    });
+  }, [timeFilter, currentHour]);
+
+  const proximityAlert = useMemo(() => {
+    if (!userLocation) return null;
+    return DANGER_ZONES.filter(z => z.severity === 'high').find(z => {
+      const centroid = z.polygon.reduce(([lat, lng], [pLat, pLng]) => [lat + pLat / z.polygon.length, lng + pLng / z.polygon.length], [0, 0]) as [number, number];
+      return haversine(userLocation[0], userLocation[1], centroid[0], centroid[1]) < 2;
+    });
+  }, [userLocation]);
+
+  const nearestContacts = useMemo(() => {
+    if (!selectedZone) return [];
+    const centroid = selectedZone.polygon.reduce(([lat, lng], [pLat, pLng]) => [lat + pLat / selectedZone.polygon.length, lng + pLng / selectedZone.polygon.length], [0, 0]) as [number, number];
+    return EMERGENCY_CONTACTS
+      .filter(c => c.parish !== 'National')
+      .map(c => ({ ...c, distance: haversine(centroid[0], centroid[1], c.coordinates[0], c.coordinates[1]) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+  }, [selectedZone]);
+
+  return (
+    <div className="space-y-5">
+      {/* Time filter */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {([
+          { id: 'all' as TimeFilter, label: 'All Zones' },
+          { id: 'now' as TimeFilter, label: 'Now' },
+          { id: 'afterdark' as TimeFilter, label: 'After Dark' },
+          { id: 'latenight' as TimeFilter, label: 'Late Night' },
+        ]).map(f => (
+          <button key={f.id} type="button" onClick={() => setTimeFilter(f.id)} className={`flex min-w-fit items-center rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${timeFilter === f.id ? 'border-red-500 bg-red-500 text-white' : 'border-slate-950/10 text-slate-600 dark:border-white/10 dark:text-white/60'}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Proximity alert */}
+      {proximityAlert && (
+        <div className="flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+          <span className="material-symbols-outlined text-red-500">warning</span>
+          <p className="text-sm font-black text-red-600 dark:text-red-400">You are near {proximityAlert.name} — exercise extreme caution</p>
+        </div>
+      )}
+
+      {/* Map */}
+      <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+        <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[44vh] min-h-[320px] w-full lg:h-[56vh] lg:min-h-[420px]">
+          <InvalidateMapSize />
+          <MapRecenter center={mapCenter} zoom={mapZoom} />
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          {filteredZones.map(zone => (
+            <Polygon
+              key={zone.id}
+              positions={zone.polygon}
+              pathOptions={{
+                color: SEVERITY_META[zone.severity].borderColor,
+                fillColor: SEVERITY_META[zone.severity].color,
+                fillOpacity: SEVERITY_META[zone.severity].fillOpacity,
+                weight: 2,
+              }}
+              eventHandlers={{ click: () => setSelectedZone(zone) }}
+            >
+              <Tooltip>{zone.name} — {SEVERITY_META[zone.severity].label}</Tooltip>
+            </Polygon>
+          ))}
+          {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
+        </MapContainer>
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 items-center">
+        {Object.entries(SEVERITY_META).map(([key, meta]) => (
+          <div key={key} className="flex items-center gap-1.5">
+            <div className="size-3 rounded-full" style={{ backgroundColor: meta.color }} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-white/50">{meta.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Zone detail panel */}
+      {selectedZone && (
+        <section className="glass rounded-2xl p-4 shadow-2xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]" style={{ color: SEVERITY_META[selectedZone.severity].color }}>{SEVERITY_META[selectedZone.severity].icon}</span>
+                <h3 className="text-lg font-black text-slate-950 dark:text-white">{selectedZone.name}</h3>
+              </div>
+              <p className="mt-0.5 text-[10px] font-bold text-slate-500 dark:text-white/40">{selectedZone.parish}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white" style={{ background: SEVERITY_META[selectedZone.severity].color }}>
+                {SEVERITY_META[selectedZone.severity].label}
+              </span>
+              <button type="button" onClick={() => setSelectedZone(null)} className="flex size-9 items-center justify-center rounded-full bg-slate-950/5 dark:bg-white/10" aria-label="Close">
+                <span className="material-symbols-outlined text-[18px] text-slate-700 dark:text-white">close</span>
+              </button>
+            </div>
+          </div>
+          <p className="text-sm font-semibold leading-relaxed text-slate-700 dark:text-white/70">{selectedZone.description}</p>
+          {selectedZone.timeWarning && (
+            <div className="mt-3 flex items-center gap-2 rounded-2xl bg-amber-500/10 px-4 py-2">
+              <span className="material-symbols-outlined text-[16px] text-amber-600">schedule</span>
+              <p className="text-xs font-black text-amber-700 dark:text-amber-300">{selectedZone.timeWarning}</p>
+            </div>
+          )}
+          <div className="mt-3 space-y-1.5">
+            {selectedZone.tips.map((tip, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-1 block size-2 shrink-0 rounded-full bg-red-500" />
+                <p className="text-sm font-semibold text-slate-700 dark:text-white/70">{tip}</p>
+              </div>
+            ))}
+          </div>
+          {nearestContacts.length > 0 && (
+            <div className="mt-4 border-t border-slate-950/10 pt-3 dark:border-white/10">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-red-500">Nearby Emergency Contacts</p>
+              {nearestContacts.map(c => (
+                <div key={c.id} className="flex items-center justify-between gap-2 py-1.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-slate-950 dark:text-white">{c.name}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-white/40">{c.distance.toFixed(1)} km</p>
+                  </div>
+                  <a href={`tel:${c.phone}`} className="text-xs font-black text-red-500">{c.phone}</a>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* General safety tips */}
+      <section className="glass rounded-2xl p-4 shadow-2xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">Time-of-Day Warnings</p>
+        <div className="mt-3 space-y-2">
+          {GENERAL_TIME_WARNINGS.map(w => (
+            <div key={w.time} className="flex items-start gap-3 rounded-2xl bg-slate-950/5 p-3 dark:bg-white/5">
+              <span className="material-symbols-outlined mt-0.5 text-[20px] text-amber-500">{w.icon}</span>
+              <div>
+                <p className="text-sm font-black text-slate-950 dark:text-white">{w.time}</p>
+                <p className="mt-0.5 text-xs font-semibold text-slate-600 dark:text-white/50">{w.advice}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="glass rounded-2xl p-4 shadow-2xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">General Safety Tips</p>
+        <div className="mt-3 space-y-2">
+          {GENERAL_SAFETY_TIPS.map((tip, i) => (
+            <div key={i} className="flex items-start gap-2 py-1">
+              <span className="material-symbols-outlined mt-0.5 text-[16px] text-red-500">shield</span>
+              <p className="text-sm font-semibold text-slate-700 dark:text-white/70">{tip}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// =======================================
+// INFO MODULE (MAIN)
+// =======================================
+const InfoModule: React.FC<InfoModuleProps> = ({ user }) => {
+  const [activeInfoTab, setActiveInfoTab] = useState<InfoTab>('contacts');
+
+  return (
+    <div className="space-y-6">
+      {/* Sub-navigation pill bar */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar rounded-2xl bg-slate-950/5 p-1 dark:bg-white/5" role="tablist" aria-label="Safety information sections">
+        {INFO_TABS.map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeInfoTab === tab.id}
+            onClick={() => setActiveInfoTab(tab.id)}
+            className={`flex min-w-fit flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+              activeInfoTab === tab.id
+                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                : 'text-slate-600 hover:text-slate-950 dark:text-white/50 dark:hover:text-white'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* All sections stay mounted for state preservation */}
+      <div style={{ display: activeInfoTab === 'contacts' ? 'block' : 'none' }}>
+        <ContactsSection />
+      </div>
+      <div style={{ display: activeInfoTab === 'chat' ? 'block' : 'none' }}>
+        <SafetyChatSection />
+      </div>
+      <div style={{ display: activeInfoTab === 'dangermap' ? 'block' : 'none' }}>
+        <DangerMapSection />
+      </div>
+    </div>
+  );
+};
+
+export default InfoModule;
