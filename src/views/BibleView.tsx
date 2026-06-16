@@ -9,6 +9,7 @@ interface BibleViewProps {
   user: User;
   isOnline: boolean;
   onBookmark: (verse: any) => void;
+  initialReference?: string | null;
 }
 
 interface BibleNote {
@@ -74,7 +75,16 @@ type KJVAsset = {
   books: KJVAssetBook[];
 };
 
-const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => {
+const parseBibleReference = (reference: string) => {
+  const match = reference.trim().match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
+  if (!match) return null;
+  const parsedBook = match[1].trim();
+  const parsedChapter = Number(match[2]);
+  if (!BOOK_CHAPTERS[parsedBook] || !Number.isFinite(parsedChapter)) return null;
+  return { book: parsedBook, chapter: Math.min(Math.max(parsedChapter, 1), BOOK_CHAPTERS[parsedBook]) };
+};
+
+const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark, initialReference }) => {
   const [book, setBook] = useState('Psalms');
   const [chapter, setChapter] = useState(23);
   const [verses, setVerses] = useState<any[]>([]);
@@ -90,6 +100,14 @@ const BibleView: React.FC<BibleViewProps> = ({ user, isOnline, onBookmark }) => 
   const [fullBibleStashed, setFullBibleStashed] = useState(() => localStorage.getItem('kjv_full_bible_offline') === 'true');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const { speak, stop, isSpeaking } = useTTS();
+
+  useEffect(() => {
+    if (!initialReference) return;
+    const parsed = parseBibleReference(initialReference);
+    if (!parsed) return;
+    setBook(parsed.book);
+    setChapter(parsed.chapter);
+  }, [initialReference]);
 
   // Bible Notes & Highlights state
   const [bibleNotes, setBibleNotes] = useState<BibleNote[]>(() => {

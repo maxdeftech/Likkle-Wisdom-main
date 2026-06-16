@@ -216,8 +216,8 @@ const Profile: React.FC<ProfileProps> = ({ user, entries, quotes, iconic, bible,
   };
 
   return (
-    <div className="p-6 pt-safe pb-24 animate-fade-in relative min-h-full font-display" role="region" aria-label="Profile">
-      <header className="flex items-center justify-between py-12" role="banner">
+    <div className="p-6 pt-2 sm:pt-safe pb-24 animate-fade-in relative min-h-full font-display" role="region" aria-label="Profile">
+      <header className="flex items-center justify-between py-4 sm:py-12" role="banner">
         <div className="flex items-center gap-4">
           {!isOwnProfile && onClose && (
             <button

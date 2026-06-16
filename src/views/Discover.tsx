@@ -1,11 +1,12 @@
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CATEGORIES, ICONIC_QUOTES } from '../constants';
 import { Quote, IconicQuote, BibleAffirmation, UserWisdom } from '../types';
 
 interface DiscoverProps {
   onCategoryClick: (id: string) => void;
   onOpenJamaicanHistory?: () => void;
+  onOpenBible?: (reference: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   isOnline: boolean;
@@ -15,8 +16,63 @@ interface DiscoverProps {
   userWisdoms?: UserWisdom[];
 }
 
-const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHistory, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [], userWisdoms = [] }) => {
+type BibleSearchResult = BibleAffirmation & { source: 'affirmation' | 'full' };
+
+type KJVAsset = {
+  books: {
+    book: string;
+    chapters: {
+      chapter: string | number;
+      verses: { verse: string | number; text: string }[];
+    }[];
+  }[];
+};
+
+const normalizeBibleText = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim();
+
+const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHistory, onOpenBible, searchQuery, onSearchChange, isOnline, quotes = [], iconic = [], bible = [], userWisdoms = [] }) => {
   const q = searchQuery.toLowerCase().trim();
+  const [fullBibleIndex, setFullBibleIndex] = useState<BibleSearchResult[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFullBibleIndex = async () => {
+      try {
+        const response = await fetch('/data/kjv_bible.json');
+        if (!response.ok) return;
+        const data = await response.json() as KJVAsset;
+        if (cancelled || !Array.isArray(data.books)) return;
+
+        const index = data.books.flatMap(book =>
+          book.chapters.flatMap(chapter =>
+            chapter.verses.map(verse => {
+              const chapterNumber = Number(chapter.chapter);
+              const verseNumber = Number(verse.verse);
+              const reference = `${book.book} ${chapterNumber}:${verseNumber}`;
+              return {
+                id: `kjv-${book.book.replace(/\s+/g, '_').toLowerCase()}-${chapterNumber}-${verseNumber}`,
+                reference,
+                kjv: verse.text,
+                patois: '',
+                category: 'Word & Powah' as const,
+                isFavorite: false,
+                source: 'full' as const
+              };
+            })
+          )
+        );
+        setFullBibleIndex(index);
+      } catch (error) {
+        console.warn('Full Bible search index could not load:', error);
+      }
+    };
+
+    loadFullBibleIndex();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Search content when query > 1 char
   const quoteResults = useMemo(() => {
@@ -24,10 +80,19 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
     return quotes.filter(item => item.patois.toLowerCase().includes(q) || item.english.toLowerCase().includes(q)).slice(0, 8);
   }, [q, quotes]);
 
-  const bibleResults = useMemo(() => {
+  const bibleResults = useMemo<BibleSearchResult[]>(() => {
     if (q.length < 2) return [];
-    return bible.filter(item => item.reference.toLowerCase().includes(q) || item.patois.toLowerCase().includes(q) || item.kjv.toLowerCase().includes(q)).slice(0, 8);
-  }, [q, bible]);
+    const affirmationResults = bible
+      .filter(item => item.reference.toLowerCase().includes(q) || item.patois.toLowerCase().includes(q) || item.kjv.toLowerCase().includes(q))
+      .map(item => ({ ...item, source: 'affirmation' as const }));
+    const seen = new Set(affirmationResults.map(item => item.reference));
+    const fullResults = fullBibleIndex.filter(item => {
+      if (seen.has(item.reference)) return false;
+      const reference = normalizeBibleText(item.reference);
+      return reference.includes(q) || normalizeBibleText(item.kjv).includes(q);
+    });
+    return [...affirmationResults, ...fullResults].slice(0, 12);
+  }, [q, bible, fullBibleIndex]);
 
   const iconicResults = useMemo(() => {
     if (q.length < 2) return [];
@@ -82,8 +147,8 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
         <div className="space-y-8 mb-12" role="region" aria-label="Search results" aria-live="polite">
           {!hasResults && (
             <div className="text-center py-12 glass rounded-[2rem]" role="status">
-              <span className="material-symbols-outlined text-5xl text-white/10 mb-3" aria-hidden="true">search_off</span>
-              <p className="text-white/20 text-xs font-black uppercase tracking-widest">No results fi "{searchQuery}"</p>
+              <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-white/10 mb-3" aria-hidden="true">search_off</span>
+              <p className="text-slate-500 dark:text-white/20 text-xs font-black uppercase tracking-widest">No results fi "{searchQuery}"</p>
             </div>
           )}
 
@@ -96,8 +161,8 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
                   <button key={cat.id} onClick={() => onCategoryClick(cat.id)} className="glass rounded-2xl p-4 flex items-center gap-3 text-left active:scale-95 transition-all">
                     <span className="material-symbols-outlined text-primary text-xl">{cat.icon}</span>
                     <div>
-                      <p className="text-white font-bold text-sm">{cat.name}</p>
-                      <p className="text-white/30 text-[9px] uppercase">{cat.description}</p>
+                      <p className="text-slate-900 dark:text-white font-bold text-sm">{cat.name}</p>
+                      <p className="text-slate-500 dark:text-white/30 text-[9px] uppercase">{cat.description}</p>
                     </div>
                   </button>
                 ))}
@@ -112,8 +177,8 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
               <div className="space-y-2">
                 {quoteResults.map(item => (
                   <div key={item.id} className="glass rounded-2xl p-4">
-                    <p className="text-white font-bold text-sm italic">"{item.patois}"</p>
-                    <p className="text-white/40 text-xs mt-1">{item.english}</p>
+                    <p className="text-slate-900 dark:text-white font-bold text-sm italic">"{item.patois}"</p>
+                    <p className="text-slate-500 dark:text-white/40 text-xs mt-1">{item.english}</p>
                   </div>
                 ))}
               </div>
@@ -126,11 +191,11 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
               <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-4">Bible Verses ({bibleResults.length})</h3>
               <div className="space-y-2">
                 {bibleResults.map(item => (
-                  <div key={item.id} className="glass rounded-2xl p-4 border-primary/10">
+                  <button key={item.id} type="button" onClick={() => onOpenBible?.(item.reference)} className="glass w-full rounded-2xl p-4 border-primary/10 text-left active:scale-[0.99] transition-all">
                     <p className="text-primary text-[10px] font-black uppercase tracking-widest mb-1">{item.reference}</p>
-                    <p className="text-white font-bold text-sm italic">"{item.kjv}"</p>
-                    <p className="text-white/40 text-xs mt-1">{item.patois}</p>
-                  </div>
+                    <p className="text-slate-900 dark:text-white font-bold text-sm italic">"{item.kjv}"</p>
+                    {item.patois && <p className="text-slate-500 dark:text-white/40 text-xs mt-1">{item.patois}</p>}
+                  </button>
                 ))}
               </div>
             </div>
@@ -143,7 +208,7 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
               <div className="space-y-2">
                 {iconicResults.map(item => (
                   <div key={item.id} className="glass rounded-2xl p-4 border-jamaican-gold/10">
-                    <p className="text-white font-bold text-sm italic">"{item.text}"</p>
+                    <p className="text-slate-900 dark:text-white font-bold text-sm italic">"{item.text}"</p>
                     <p className="text-jamaican-gold/60 text-[10px] font-black uppercase mt-2 tracking-wider">— {item.author}</p>
                   </div>
                 ))}
@@ -157,8 +222,8 @@ const Discover: React.FC<DiscoverProps> = ({ onCategoryClick, onOpenJamaicanHist
               <div className="space-y-2">
                 {userWisdomResults.map(item => (
                   <div key={item.id} className="glass rounded-2xl p-4 border-primary/10">
-                    <p className="text-white font-bold text-sm italic">"{item.patois}"</p>
-                    <p className="text-white/40 text-xs mt-1">{item.english}</p>
+                    <p className="text-slate-900 dark:text-white font-bold text-sm italic">"{item.patois}"</p>
+                    <p className="text-slate-500 dark:text-white/40 text-xs mt-1">{item.english}</p>
                   </div>
                 ))}
               </div>

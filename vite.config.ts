@@ -53,8 +53,8 @@ export default defineConfig(({ command, mode }) => {
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,png,svg,json,ico,woff,woff2}'],
-        globIgnores: ['**/data/kjv_bible.json'],
         // Avoid terser minification of SW to prevent "Unexpected early exit" race with Rollup close phase
         mode: 'development',
         clientsClaim: true,

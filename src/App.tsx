@@ -144,8 +144,11 @@ const App: React.FC = () => {
   }, []);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBibleReference, setSelectedBibleReference] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [notification, setNotification] = useState<NotificationPayload | null>(null);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  const offlineBannerRef = useRef<HTMLDivElement>(null);
   const showNotification = useCallback((message: string, opts?: { type?: NotificationPayload['type']; action?: NotificationPayload['action'] }) => {
     setNotification({ message, ...opts });
   }, []);
@@ -270,6 +273,19 @@ const App: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  useEffect(() => {
+    if (isOnline || !showOfflineBanner) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!offlineBannerRef.current?.contains(event.target as Node)) {
+        setShowOfflineBanner(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [isOnline, showOfflineBanner]);
 
   const handleToggleTheme = useCallback(() => {
     setIsDarkMode(prev => !prev);
@@ -683,6 +699,13 @@ const App: React.FC = () => {
     setActiveCategory(categoryId);
   };
 
+  const handleOpenBibleReference = useCallback((reference: string) => {
+    setSelectedBibleReference(reference);
+    setActiveTab('bible');
+    setActiveCategory(null);
+    setView('main');
+  }, []);
+
   const handleRefreshApp = async () => {
     setManualRefreshMessage("Syncing latest wisdom...");
     setLoadingProgress(35);
@@ -724,10 +747,10 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'home': return <Home user={user} isOnline={isOnline} onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} onCategoryClick={handleOpenCategory} onFavorite={handleToggleFavorite} onOpenAI={handleOpenAI} onOpenAlerts={handleOpenAlerts} alertsCount={unreadAlertsCount} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} quotes={quotes} bibleAffirmations={bibleAffirmations} />;
-      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} userWisdoms={userWisdoms} />;
+      case 'discover': return <Discover searchQuery={searchQuery} onSearchChange={setSearchQuery} onCategoryClick={handleOpenCategory} onOpenJamaicanHistory={() => setView('jamaicanHistory')} onOpenBible={handleOpenBibleReference} isOnline={isOnline} quotes={quotes} iconic={iconicQuotes} bible={bibleAffirmations} userWisdoms={userWisdoms} />;
       case 'guide': return <LikkleGuideView onTabChange={(tab) => { setActiveTab(tab); setActiveCategory(null); }} />;
-      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} isOnline={isOnline} />;
-      case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} />;
+      case 'bible': return <BibleView user={user} onBookmark={handleBookmarkBibleVerse} isOnline={isOnline} initialReference={selectedBibleReference} />;
+      case 'book': return <LikkleBook entries={journalEntries} onAdd={handleAddJournalEntry} onDelete={handleDeleteJournalEntry} searchQuery={searchQuery} onSearchChange={setSearchQuery} isNavCollapsed={isNavCollapsed} />;
       case 'travel': return (
         <TravelView
           user={user}
@@ -756,12 +779,20 @@ const App: React.FC = () => {
       <div className="fixed inset-0 jamaica-gradient opacity-60 pointer-events-none z-0" aria-hidden="true"></div>
 
       {!isOnline && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-notification animate-fade-in pointer-events-none" role="status" aria-live="polite" aria-label="You are offline. Stashed wisdom is active.">
-          <div className="glass px-6 py-2 rounded-full border-red-500/20 bg-background-dark/80 flex items-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-white/5">
-            <span className="material-symbols-outlined text-red-500 text-sm animate-pulse" aria-hidden="true">wifi_off</span>
+        <div ref={offlineBannerRef} className="fixed top-6 right-4 z-notification" role="status" aria-live="polite" aria-label="You are offline. Stashed wisdom is active.">
+          <button
+            type="button"
+            onClick={() => setShowOfflineBanner(prev => !prev)}
+            className="glass flex size-12 items-center justify-center rounded-2xl border border-red-500/20 bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.18)] dark:bg-background-dark/80"
+            aria-expanded={showOfflineBanner}
+            aria-label={showOfflineBanner ? 'Hide offline status' : 'Show offline status'}
+          >
+            <span className="material-symbols-outlined text-red-500 text-xl animate-pulse" aria-hidden="true">wifi_off</span>
+          </button>
+          <div className={`absolute right-0 top-full mt-2 w-max origin-top-right rounded-2xl border border-red-500/20 px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.28)] glass transition-all duration-200 ${showOfflineBanner ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'}`}>
             <div className="flex flex-col items-start leading-none">
-              <span className="text-[9px] font-black uppercase text-white tracking-[0.2em]">Signal Low</span>
-              <span className="text-[7px] font-bold uppercase text-white/40 tracking-[0.1em]">Stashed wisdom active</span>
+              <span className="text-[9px] font-black uppercase text-slate-900 dark:text-white tracking-[0.2em]">Signal Low</span>
+              <span className="mt-1 text-[7px] font-bold uppercase text-slate-500 dark:text-white/40 tracking-[0.1em]">Stashed wisdom active</span>
             </div>
           </div>
         </div>

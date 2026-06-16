@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';
@@ -47,6 +47,15 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [14, 14]
 });
 
+const extractUsdAmount = (value?: string) => {
+  if (!value) return null;
+  const normalized = value.replace(/[–—]/g, '-');
+  const rangeMatch = normalized.match(/\$?\s*(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)/);
+  if (rangeMatch) return Number(rangeMatch[2]);
+  const amountMatch = normalized.match(/\$?\s*(\d+(?:\.\d+)?)/);
+  return amountMatch ? Number(amountMatch[1]) : null;
+};
+
 const MapRecenter: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
   const map = useMap();
   React.useEffect(() => {
@@ -67,7 +76,12 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
   const [mapZoom, setMapZoom] = useState(10);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const locationWatchId = useRef<number | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
+  const maxPlaceCost = useMemo(() => Math.max(100, ...travelPlaces.map(place => extractUsdAmount(place.averageCost) ?? 0)), []);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPlaceCost]);
   const [savedPlaceIds, setSavedPlaceIds] = useState<string[]>([]);
   const [showSavedPanel, setShowSavedPanel] = useState(false);
   const [tripLists, setTripLists] = useState<TripList[]>(() => readJson<TripList[]>(LISTS_KEY, []));
@@ -104,6 +118,14 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
     el.style.height = `${el.scrollHeight}px`;
   }, [guidePrompt]);
 
+  useEffect(() => {
+    return () => {
+      if (locationWatchId.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchId.current);
+      }
+    };
+  }, []);
+
   const resizeGuideTextarea = (element: HTMLTextAreaElement) => {
     element.style.height = 'auto';
     element.style.height = `${element.scrollHeight}px`;
@@ -118,10 +140,11 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
         place.description.toLowerCase().includes(normalizedQuery) ||
         travelCategoryMeta[place.category].label.toLowerCase().includes(normalizedQuery);
       const matchesCategory = activeFilters.has('all') || categoryFilters.length === 0 || categoryFilters.includes(place.category);
-      const matchesPrice = !activeFilters.has('prices') || !!place.averageCost;
+      const placeCost = extractUsdAmount(place.averageCost);
+      const matchesPrice = !activeFilters.has('prices') || (placeCost !== null && placeCost >= priceRange[0] && placeCost <= priceRange[1]);
       return matchesQuery && matchesCategory && matchesPrice;
     });
-  }, [activeFilters, query]);
+  }, [activeFilters, priceRange, query]);
 
   const selectedRelatedPlaces = useMemo(() => {
     if (!selectedPlace) return [];
@@ -147,14 +170,43 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
     });
   };
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(position => {
+  const toggleLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Location is not available on this device.');
+      return;
+    }
+
+    if (locationEnabled) {
+      if (locationWatchId.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchId.current);
+        locationWatchId.current = null;
+      }
+      setLocationEnabled(false);
+      setUserLocation(null);
+      return;
+    }
+
+    const handleLocation = (position: GeolocationPosition) => {
       const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
       setUserLocation(coords);
       setMapCenter(coords);
       setMapZoom(13);
-    });
+      setLocationError(null);
+    };
+    const handleLocationError = () => {
+      setLocationError('Enable location in your device settings to see your position on the map.');
+      setLocationEnabled(false);
+    };
+
+    setLocationEnabled(true);
+    navigator.geolocation.getCurrentPosition(handleLocation, handleLocationError, { enableHighAccuracy: true, timeout: 10000 });
+    locationWatchId.current = navigator.geolocation.watchPosition(handleLocation, handleLocationError, { enableHighAccuracy: true, maximumAge: 15000 });
+  };
+
+  const centerOnMe = () => {
+    if (!userLocation) return;
+    setMapCenter(userLocation);
+    setMapZoom(14);
   };
 
   const toggleSaved = async (place: TravelPlace) => {
@@ -234,10 +286,16 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
               className="h-12 w-full rounded-2xl border border-slate-950/10 bg-white/70 pl-12 pr-4 text-sm font-bold text-slate-950 outline-none focus:border-primary dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </label>
-          <button type="button" onClick={useMyLocation} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[11px] font-black uppercase tracking-widest text-background-dark">
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">my_location</span>
-            Use My Location
+          <button type="button" onClick={toggleLocation} className={`flex h-12 items-center justify-center gap-2 rounded-2xl px-5 text-[11px] font-black uppercase tracking-widest ${locationEnabled ? 'bg-blue-600 text-white' : 'bg-primary text-background-dark'}`} aria-pressed={locationEnabled}>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{locationEnabled ? 'my_location' : 'location_disabled'}</span>
+            My Location
           </button>
+          {userLocation && (
+            <button type="button" onClick={centerOnMe} className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-5 text-[11px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-300">
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">center_focus_strong</span>
+              Center
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -276,6 +334,47 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
         <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/25 lg:hidden" aria-hidden="true">
           ← swipe to see more options →
         </p>
+        {locationError && (
+          <p className="mt-3 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs font-bold text-blue-700 dark:text-blue-200" role="status">
+            {locationError}
+          </p>
+        )}
+
+        {activeFilters.has('prices') && (
+          <div className="mt-4 glass rounded-2xl p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Price Range</p>
+                <p className="text-sm font-black text-slate-950 dark:text-white">USD ${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}</p>
+              </div>
+              <span className="material-symbols-outlined text-jamaican-gold" aria-hidden="true">payments</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Minimum</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxPlaceCost}
+                  value={priceRange[0]}
+                  onChange={event => setPriceRange(([, max]) => [Math.min(Number(event.target.value), max), max])}
+                  className="w-full accent-primary"
+                />
+              </label>
+              <label className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-white/40">Maximum</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxPlaceCost}
+                  value={priceRange[1]}
+                  onChange={event => setPriceRange(([min]) => [min, Math.max(Number(event.target.value), min)])}
+                  className="w-full accent-primary"
+                />
+              </label>
+            </div>
+          </div>
+        )}
 
         {showSavedPanel && (
           <div className="mt-4 rounded-2xl border border-primary/15 bg-white/70 p-4 dark:bg-white/5">

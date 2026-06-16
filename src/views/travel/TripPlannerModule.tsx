@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet';
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,6 +12,7 @@ import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { addStopToPlan, fetchOrCreateActivePlan, fetchStopsForPlan, removeStopFromPlan, TripPlan, TripStop, updatePlanName } from '../../services/tripPlannerService';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import { useAIProgress } from '../../hooks/useAIProgress';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 type FilterId = TravelCategory | 'all';
 
@@ -27,12 +28,28 @@ const makeDayMarker = (dayNumber: number) => L.divIcon({
   iconAnchor: [18, 18],
 });
 
+const userLocationIcon = L.divIcon({
+  className: 'travel-user-location-marker',
+  html: '<span class="travel-user-location-dot"></span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14]
+});
+
+const MapRecenter: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
+  const map = useMap();
+  React.useEffect(() => {
+    map.setView(center, zoom, { animate: true });
+  }, [center, map, zoom]);
+  return null;
+};
+
 interface TripPlannerModuleProps {
   user: User;
   onGuestRestricted: () => void;
 }
 
 const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRestricted }) => {
+  const isDesktop = useIsDesktop();
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [plan, setPlan] = useState<TripPlan | null>(null);
   const [stops, setStops] = useState<TripStop[]>([]);
@@ -42,6 +59,13 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
   const [planNameDraft, setPlanNameDraft] = useState('My Jamaica Trip');
   const [aiResponse, setAiResponse] = useState(() => sessionStorage.getItem('lw_trip_aiResponse') || '');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [placesExpanded, setPlacesExpanded] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
+  const [mapZoom, setMapZoom] = useState(8);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const locationWatchId = React.useRef<number | null>(null);
   const aiProgress = useAIProgress(isAiLoading, !!aiResponse && !isAiLoading);
 
   const placeById = useMemo(() => new Map(travelPlaces.map(place => [place.id, place])), []);
@@ -96,6 +120,14 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
   React.useEffect(() => {
     void loadPlan();
   }, [loadPlan]);
+
+  React.useEffect(() => {
+    return () => {
+      if (locationWatchId.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchId.current);
+      }
+    };
+  }, []);
 
   const addPlace = async (placeId: string) => {
     if (user.isGuest) {
@@ -157,6 +189,48 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
     notifyAIComplete('trip');
   };
 
+  const toggleLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Location is not available on this device.');
+      return;
+    }
+
+    if (locationEnabled) {
+      if (locationWatchId.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchId.current);
+        locationWatchId.current = null;
+      }
+      setLocationEnabled(false);
+      setUserLocation(null);
+      return;
+    }
+
+    const handleLocation = (position: GeolocationPosition) => {
+      const coords: [number, number] = [position.coords.latitude, position.coords.longitude];
+      setUserLocation(coords);
+      setMapCenter(coords);
+      setMapZoom(13);
+      setLocationEnabled(true);
+      setLocationError(null);
+    };
+    const handleLocationError = () => {
+      setLocationError('Enable location in your device settings to see your position on the map.');
+      setLocationEnabled(false);
+    };
+
+    navigator.geolocation.getCurrentPosition(handleLocation, handleLocationError, { enableHighAccuracy: true, timeout: 10000 });
+    locationWatchId.current = navigator.geolocation.watchPosition(handleLocation, handleLocationError, { enableHighAccuracy: true, maximumAge: 15000 });
+  };
+
+  const centerOnMe = () => {
+    if (!userLocation) return;
+    setMapCenter(userLocation);
+    setMapZoom(14);
+  };
+
+  const placesVisible = isDesktop || placesExpanded;
+  const previewPlaces = pickerPlaces.slice(0, 3);
+
   if (user.isGuest) {
     return (
       <div className="glass rounded-2xl p-6 text-center shadow-2xl">
@@ -213,9 +287,38 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
             })}
           </div>
 
+          {!isDesktop && (
+            <div className="mb-4 space-y-3">
+              <button onClick={() => setPlacesExpanded(prev => !prev)} className="glass flex w-full items-center justify-between rounded-2xl p-4 text-left">
+                <span>
+                  <span className="block text-[10px] font-black uppercase tracking-[0.22em] text-primary">Places</span>
+                  <span className="font-bold text-slate-900 dark:text-white">Places ({pickerPlaces.length})</span>
+                </span>
+                <span className="material-symbols-outlined text-primary transition-transform" style={{ transform: placesExpanded ? 'rotate(180deg)' : 'rotate(0)' }} aria-hidden="true">
+                  expand_more
+                </span>
+              </button>
+              {!placesExpanded && (
+                <div className="grid gap-2">
+                  {previewPlaces.map(place => (
+                    <div key={place.id} className="flex items-center gap-3 rounded-2xl bg-white/70 p-2 text-sm font-black text-slate-950 dark:bg-white/5 dark:text-white">
+                      <img src={place.imageUrl} alt="" className="size-12 rounded-xl object-cover" />
+                      <span className="min-w-0 flex-1 truncate">{place.name}</span>
+                    </div>
+                  ))}
+                  {pickerPlaces.length > previewPlaces.length && (
+                    <button type="button" onClick={() => setPlacesExpanded(true)} className="rounded-2xl border border-primary/30 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-primary">
+                      Show all {pickerPlaces.length} places
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {loading ? (
             <p className="py-10 text-center text-sm font-bold text-slate-400">Loading trip planner...</p>
-          ) : (
+          ) : placesVisible ? (
             <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {pickerPlaces.map(place => {
                 const existing = stops.find(stop => stop.place_id === place.id);
@@ -253,7 +356,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
                 );
               })}
             </div>
-          )}
+          ) : null}
         </section>
 
         <aside className="min-w-0 space-y-4 lg:space-y-5">
@@ -262,8 +365,24 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Visual Itinerary</p>
               <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">{stops.length} stops planned</h2>
             </div>
-            <MapContainer center={JAMAICA_CENTER} zoom={8} scrollWheelZoom className="h-[300px] w-full sm:h-[360px] lg:h-[420px]">
+            <div className="border-t border-white/10 p-3">
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={toggleLocation} className={`flex h-10 items-center gap-2 rounded-2xl px-4 text-[10px] font-black uppercase tracking-widest ${locationEnabled ? 'bg-blue-600 text-white' : 'bg-primary text-background-dark'}`} aria-pressed={locationEnabled}>
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">{locationEnabled ? 'my_location' : 'location_disabled'}</span>
+                  My Location
+                </button>
+                {userLocation && (
+                  <button type="button" onClick={centerOnMe} className="flex h-10 items-center gap-2 rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-300">
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">center_focus_strong</span>
+                    Center
+                  </button>
+                )}
+              </div>
+              {locationError && <p className="mt-2 text-xs font-bold text-blue-700 dark:text-blue-200">{locationError}</p>}
+            </div>
+            <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[300px] w-full sm:h-[360px] lg:h-[420px]">
               <InvalidateMapSize />
+              <MapRecenter center={mapCenter} zoom={mapZoom} />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -295,6 +414,7 @@ const TripPlannerModule: React.FC<TripPlannerModuleProps> = ({ user, onGuestRest
                   </Tooltip>
                 </Marker>
               ))}
+              {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
             </MapContainer>
           </section>
 

@@ -7,9 +7,10 @@ interface LikkleBookProps {
   onDelete: (id: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  isNavCollapsed?: boolean;
 }
 
-const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searchQuery, onSearchChange }) => {
+const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searchQuery, onSearchChange, isNavCollapsed = false }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -25,11 +26,13 @@ const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searc
   };
 
   if (showAdd) {
+    const writeShellClass = `fixed inset-y-0 left-0 right-0 z-[120] bg-white dark:bg-background-dark flex h-dvh w-auto max-w-none flex-col font-display overflow-hidden animate-fade-in shadow-2xl transition-[left] duration-300 ${isNavCollapsed ? 'lg:left-24' : 'lg:left-72'}`;
+
     return (
-      <div className="absolute inset-0 z-[100] bg-white dark:bg-background-dark p-4 flex flex-col font-display overflow-hidden animate-fade-in shadow-2xl">
+      <div className={writeShellClass} role="dialog" aria-modal="true" aria-labelledby="journal-write-title">
         <div className="absolute inset-0 jamaica-gradient opacity-5 pointer-events-none"></div>
 
-        <header className="relative z-10 flex items-center justify-between pt-12 pb-4 px-2">
+        <header className="relative z-10 flex shrink-0 items-center justify-between px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowAdd(false)}
@@ -38,15 +41,15 @@ const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searc
             >
               <span className="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
-            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Write Move</h2>
+            <h2 id="journal-write-title" className="text-xl font-black tracking-tight text-slate-900 dark:text-white">Write Move</h2>
           </div>
           <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary" aria-hidden="true">
             <span className="material-symbols-outlined text-2xl">draw</span>
           </div>
         </header>
 
-        <div className="flex-1 relative z-10 flex flex-col gap-4 overflow-hidden px-2">
-          <div className="glass rounded-[2rem] p-6 flex flex-col shadow-2xl border-slate-200 dark:border-white/5 relative overflow-hidden flex-1 mb-4">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-4 sm:px-6 lg:px-8">
+          <div className="glass rounded-[2rem] p-4 sm:p-6 flex min-h-0 flex-col shadow-2xl border-slate-200 dark:border-white/5 relative overflow-hidden flex-1">
             <div className="mb-3 shrink-0">
               <input
                 type="text"
@@ -81,7 +84,7 @@ const LikkleBook: React.FC<LikkleBookProps> = ({ entries, onAdd, onDelete, searc
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 shrink-0 pb-12 px-2">
+          <div className="grid grid-cols-2 gap-4 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <button
               onClick={() => setShowAdd(false)}
               className="glass h-14 rounded-2xl font-black text-slate-900/40 dark:text-white/40 uppercase tracking-widest text-[10px] active:scale-95 transition-all border border-slate-200 dark:border-white/10"

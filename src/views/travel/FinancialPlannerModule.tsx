@@ -30,6 +30,9 @@ interface SavedPlan {
   budget: number;
   currency: Currency;
   response: string;
+  form: PlannerForm;
+  estimatedTotal: number;
+  nights: number;
 }
 
 interface SavingsGoal {
@@ -87,6 +90,7 @@ const FinancialPlannerModule: React.FC = () => {
   const [result, setResult] = useState(() => sessionStorage.getItem('lw_financial_result') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(() => readJson<SavedPlan[]>(PLAN_KEY, []));
+  const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
   const [goal, setGoal] = useState<SavingsGoal>(() => readJson<SavingsGoal>(GOAL_KEY, { targetAmount: 1500, currentSavings: 250, targetDate: '' }));
   const [essentialsOpen, setEssentialsOpen] = useState(false);
   const [openDay, setOpenDay] = useState(1);
@@ -123,6 +127,7 @@ const FinancialPlannerModule: React.FC = () => {
 
   const updateForm = <K extends keyof PlannerForm>(key: K, value: PlannerForm[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
+    setLoadedPlanName(null);
   };
 
   const toggleInterest = (interest: string) => {
@@ -137,6 +142,7 @@ const FinancialPlannerModule: React.FC = () => {
   const generatePlan = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
+    setLoadedPlanName(null);
     setResult('');
     const relevantPlaces = travelPlaces
       .filter(place => form.interests.some(interest => {
@@ -189,11 +195,37 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
         createdAt: new Date().toISOString(),
         budget,
         currency: form.currency,
-        response: result
+        response: result,
+        form,
+        estimatedTotal,
+        nights
       }, ...prev];
       localStorage.setItem(PLAN_KEY, JSON.stringify(next));
       return next;
     });
+  };
+
+  const loadSavedPlan = (plan: SavedPlan) => {
+    if (plan.form) {
+      setForm(plan.form);
+    } else {
+      setForm(prev => ({
+        ...prev,
+        destination: plan.destination,
+        budget: String(plan.budget),
+        currency: plan.currency
+      }));
+    }
+    setResult(plan.response || '');
+    sessionStorage.setItem('lw_financial_result', plan.response || '');
+    setLoadedPlanName(plan.destination);
+    setOpenDay(1);
+  };
+
+  const startFreshPlan = () => {
+    setLoadedPlanName(null);
+    setResult('');
+    sessionStorage.removeItem('lw_financial_result');
   };
 
   const saveGoal = (nextGoal: SavingsGoal) => {
@@ -323,6 +355,17 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
 
       {(result || isLoading) && (
         <section className="glass rounded-2xl p-4 shadow-2xl">
+          {loadedPlanName && (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">Viewing saved plan</p>
+                <p className="text-sm font-black text-slate-950 dark:text-white">{loadedPlanName}</p>
+              </div>
+              <button type="button" onClick={startFreshPlan} className="rounded-2xl border border-primary/30 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-primary">
+                Start Fresh
+              </button>
+            </div>
+          )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Plan Result</p>
@@ -471,10 +514,11 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Saved Plans</p>
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {savedPlans.slice(0, 4).map(plan => (
-              <div key={plan.id} className="rounded-2xl bg-slate-950/5 p-4 dark:bg-white/5">
+              <button key={plan.id} type="button" onClick={() => loadSavedPlan(plan)} className="rounded-2xl bg-slate-950/5 p-4 text-left transition-all hover:bg-primary/10 dark:bg-white/5">
                 <h3 className="font-black text-slate-950 dark:text-white">{plan.destination}</h3>
                 <p className="mt-1 text-xs font-bold text-slate-500 dark:text-white/40">{new Date(plan.createdAt).toLocaleDateString()} - {plan.currency} {plan.budget.toLocaleString()}</p>
-              </div>
+                {plan.response && <p className="mt-2 line-clamp-2 text-xs font-semibold text-slate-600 dark:text-white/50">Includes generated trip plan</p>}
+              </button>
             ))}
           </div>
         </section>

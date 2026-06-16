@@ -14,7 +14,7 @@
   direction: ltr;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  overflow: visible;
   width: 1em;
   height: 1em;
 }

@@ -32,7 +32,11 @@ const getArcPoints = (route: AviationRoute): [number, number][] => {
 };
 
 const routeSearchText = (route: AviationRoute) => [
+  route.origin.city,
+  route.origin.name,
+  route.origin.code,
   route.destination.city,
+  route.destination.name,
   route.destination.country,
   route.destination.code,
   route.airlines.join(' ')
@@ -165,17 +169,19 @@ const AviationModule: React.FC = () => {
                     {route.destination.city}, {route.destination.country}
                   </Tooltip>
                 </Marker>
-                {selected && (
-                  <Marker
-                    position={arc[1]}
-                    icon={planeIcon}
-                    eventHandlers={{ click: () => openRouteDetail(route) }}
-                  >
-                    <Tooltip direction="top" offset={[0, -14]} permanent={false} className="aviation-tooltip">
-                      {route.destination.flag} {route.destination.city}, {route.destination.country}
-                    </Tooltip>
-                  </Marker>
-                )}
+                <Marker
+                  position={arc[1]}
+                  icon={planeIcon}
+                  zIndexOffset={selected ? 600 : 500}
+                  opacity={selected ? 1 : 0.72}
+                  eventHandlers={{ click: () => openRouteDetail(route) }}
+                >
+                  <Tooltip direction="top" offset={[0, -14]} permanent={false} className="aviation-tooltip">
+                    {direction === 'from'
+                      ? `${route.destination.flag} ${route.destination.city}, ${route.destination.country}`
+                      : `${route.origin.city} to ${route.destination.city}`}
+                  </Tooltip>
+                </Marker>
               </React.Fragment>
             );
           })}
