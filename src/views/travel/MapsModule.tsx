@@ -7,6 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { streamTravelText, MANDATORY_SECURITY_SUFFIX } from '../../services/geminiService';
+import { MAP_TILES } from '../../constants/mapTiles';
 import { notifyAIComplete } from '../../services/localNotificationsService';
 import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
@@ -78,6 +79,7 @@ const MapsModule: React.FC<MapsModuleProps> = ({ user, onGuestRestricted }) => {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [satelliteView, setSatelliteView] = useState(false);
   const locationWatchId = useRef<number | null>(null);
   const [legendOpen, setLegendOpen] = useState(false);
   const maxPlaceCost = useMemo(() => Math.max(100, ...travelPlaces.map(place => extractUsdAmount(place.averageCost) ?? 0)), []);
@@ -431,8 +433,9 @@ ${MANDATORY_SECURITY_SUFFIX}`,
           <InvalidateMapSize />
           <MapRecenter center={mapCenter} zoom={mapZoom} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={satelliteView ? 'sat' : 'street'}
+            attribution={satelliteView ? MAP_TILES.satellite.attribution : MAP_TILES.street.attribution}
+            url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
           />
           {visiblePlaces.map(place => (
             <Marker
@@ -453,7 +456,11 @@ ${MANDATORY_SECURITY_SUFFIX}`,
           {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
         </MapContainer>
 
-        <div className="absolute bottom-4 right-4 z-[500]">
+        <div className="absolute bottom-4 right-4 z-[500] flex flex-col items-end gap-2">
+          <button type="button" onClick={() => setSatelliteView(prev => !prev)} className={`glass flex items-center gap-2 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest shadow-2xl ${satelliteView ? 'bg-blue-600 text-white' : 'text-slate-950 dark:text-white'}`} aria-pressed={satelliteView}>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{satelliteView ? 'map' : 'satellite_alt'}</span>
+            {satelliteView ? 'Street' : 'Satellite'}
+          </button>
           <button type="button" onClick={() => setLegendOpen(prev => !prev)} className="glass flex items-center gap-2 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-950 shadow-2xl dark:text-white">
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">legend_toggle</span>
             Legend

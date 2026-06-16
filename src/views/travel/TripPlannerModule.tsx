@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
 import { TravelCategory, travelCategoryMeta, travelPlaces } from '../../data/travelPlaces';
 import { streamTravelText, MANDATORY_SECURITY_SUFFIX } from '../../services/geminiService';
+import { MAP_TILES } from '../../constants/mapTiles';
 import { notifyAIComplete } from '../../services/localNotificationsService';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { addStopToPlan, fetchOrCreateActivePlan, fetchStopsForPlan, removeStopFromPlan, TripPlan, TripStop, updatePlanName } from '../../services/tripPlannerService';
@@ -391,10 +392,7 @@ ${MANDATORY_SECURITY_SUFFIX}`;
             <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[300px] w-full sm:h-[360px] lg:h-[420px]">
               <InvalidateMapSize />
               <MapRecenter center={mapCenter} zoom={mapZoom} />
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
               {/* Full route line connecting all stops across all days */}
               {stopsWithPlaces.length > 1 && (
                 <Polyline

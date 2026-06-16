@@ -10,6 +10,7 @@ import { EMERGENCY_CONTACTS, CONTACT_TYPE_META, PARISHES, EmergencyContact } fro
 import { DANGER_ZONES, SEVERITY_META, GENERAL_TIME_WARNINGS, GENERAL_SAFETY_TIPS, DangerZone } from '../../data/dangerZones';
 import { streamSafetyChat } from '../../services/geminiService';
 import { useAIProgress } from '../../hooks/useAIProgress';
+import { MAP_TILES } from '../../constants/mapTiles';
 
 type InfoTab = 'contacts' | 'chat' | 'dangermap';
 
@@ -172,7 +173,7 @@ const ContactsSection: React.FC = () => {
               <MapContainer center={userLocation || JAMAICA_CENTER} zoom={13} scrollWheelZoom={false} className="h-[200px] w-full">
                 <InvalidateMapSize />
                 <MapRecenter center={userLocation || JAMAICA_CENTER} zoom={13} />
-                <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
                 {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
                 {nearest5.map(c => (
                   <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
@@ -243,7 +244,7 @@ const ContactsSection: React.FC = () => {
             <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[350px] w-full lg:h-[450px]">
               <InvalidateMapSize />
               <MapRecenter center={mapCenter} zoom={mapZoom} />
-              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
               {filtered.filter(c => c.parish !== 'National').map(c => (
                 <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
                   <Tooltip direction="top" offset={[0, -18]}>
@@ -528,7 +529,7 @@ const DangerMapSection: React.FC = () => {
         <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[44vh] min-h-[320px] w-full lg:h-[56vh] lg:min-h-[420px]">
           <InvalidateMapSize />
           <MapRecenter center={mapCenter} zoom={mapZoom} />
-          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
           {filteredZones.map(zone => (
             <Polygon
               key={zone.id}
