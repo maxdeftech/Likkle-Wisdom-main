@@ -336,6 +336,10 @@ Ensure the text editor/textarea stretches full width within the content area bou
 
 ---
 
+**See `INFO-MODULE-PROMPT.md` for the full Info (Tourist Safety) module implementation prompt — kept in a separate file.**
+
+---
+
 ## Implementation Order (Suggested)
 
 1. **Quick wins first:** 1.1, 1.2, 1.5A, 2.2, 3.1 (text colour fixes and spacing)
@@ -344,6 +348,7 @@ Ensure the text editor/textarea stretches full width within the content area bou
 4. **Content additions:** 1.4 (quotes and wisdoms — large but mechanical)
 5. **Feature additions:** 1.3 (Bible search), 1.7 (offline Bible), 1.12 (live location)
 6. **Asset work:** 1.11 (real images — requires research/sourcing)
+7. **Info module:** See `INFO-MODULE-PROMPT.md` for full phased implementation
 
 ---
 
@@ -359,3 +364,5 @@ For every change, verify:
 - [ ] Screen reader announces changes correctly
 - [ ] No TypeScript errors
 - [ ] No console warnings
+
+**Info module testing:** See `INFO-MODULE-PROMPT.md` for full testing checklist.
