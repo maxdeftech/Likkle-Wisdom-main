@@ -91,6 +91,7 @@ const FinancialPlannerModule: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(() => readJson<SavedPlan[]>(PLAN_KEY, []));
   const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
+  const [loadedPlanId, setLoadedPlanId] = useState<string | null>(null);
   const [goal, setGoal] = useState<SavingsGoal>(() => readJson<SavingsGoal>(GOAL_KEY, { targetAmount: 1500, currentSavings: 250, targetDate: '' }));
   const [essentialsOpen, setEssentialsOpen] = useState(false);
   const [openDay, setOpenDay] = useState(1);
@@ -128,6 +129,7 @@ const FinancialPlannerModule: React.FC = () => {
   const updateForm = <K extends keyof PlannerForm>(key: K, value: PlannerForm[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setLoadedPlanName(null);
+    setLoadedPlanId(null);
   };
 
   const toggleInterest = (interest: string) => {
@@ -143,6 +145,7 @@ const FinancialPlannerModule: React.FC = () => {
     event.preventDefault();
     setIsLoading(true);
     setLoadedPlanName(null);
+    setLoadedPlanId(null);
     setResult('');
     const relevantPlaces = travelPlaces
       .filter(place => form.interests.some(interest => {
@@ -219,13 +222,27 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
     setResult(plan.response || '');
     sessionStorage.setItem('lw_financial_result', plan.response || '');
     setLoadedPlanName(plan.destination);
+    setLoadedPlanId(plan.id);
     setOpenDay(1);
   };
 
   const startFreshPlan = () => {
     setLoadedPlanName(null);
+    setLoadedPlanId(null);
     setResult('');
     sessionStorage.removeItem('lw_financial_result');
+  };
+
+  const deleteSavedPlan = (planId: string) => {
+    setSavedPlans(prev => {
+      const next = prev.filter(plan => plan.id !== planId);
+      localStorage.setItem(PLAN_KEY, JSON.stringify(next));
+      return next;
+    });
+
+    if (loadedPlanId === planId) {
+      startFreshPlan();
+    }
   };
 
   const saveGoal = (nextGoal: SavingsGoal) => {
@@ -514,11 +531,23 @@ Return a day-by-day itinerary, flight/accommodation/meals/activity/shopping esse
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">Saved Plans</p>
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {savedPlans.slice(0, 4).map(plan => (
-              <button key={plan.id} type="button" onClick={() => loadSavedPlan(plan)} className="rounded-2xl bg-slate-950/5 p-4 text-left transition-all hover:bg-primary/10 dark:bg-white/5">
-                <h3 className="font-black text-slate-950 dark:text-white">{plan.destination}</h3>
-                <p className="mt-1 text-xs font-bold text-slate-500 dark:text-white/40">{new Date(plan.createdAt).toLocaleDateString()} - {plan.currency} {plan.budget.toLocaleString()}</p>
-                {plan.response && <p className="mt-2 line-clamp-2 text-xs font-semibold text-slate-600 dark:text-white/50">Includes generated trip plan</p>}
-              </button>
+              <article key={plan.id} className="rounded-2xl bg-slate-950/5 p-4 transition-all hover:bg-primary/10 dark:bg-white/5">
+                <div className="flex items-start justify-between gap-3">
+                  <button type="button" onClick={() => loadSavedPlan(plan)} className="min-w-0 flex-1 text-left" aria-label={`Load saved plan for ${plan.destination}`}>
+                    <h3 className="truncate font-black text-slate-950 dark:text-white">{plan.destination}</h3>
+                    <p className="mt-1 text-xs font-bold text-slate-500 dark:text-white/40">{new Date(plan.createdAt).toLocaleDateString()} - {plan.currency} {plan.budget.toLocaleString()}</p>
+                    {plan.response && <p className="mt-2 line-clamp-2 text-xs font-semibold text-slate-600 dark:text-white/50">Includes generated trip plan</p>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteSavedPlan(plan.id)}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                    aria-label={`Delete saved plan for ${plan.destination}`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]" aria-hidden="true">delete</span>
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
         </section>
