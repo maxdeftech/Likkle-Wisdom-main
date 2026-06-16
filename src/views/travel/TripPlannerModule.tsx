@@ -18,6 +18,7 @@ import { useIsDesktop } from '../../hooks/useIsDesktop';
 type FilterId = TravelCategory | 'all';
 
 const JAMAICA_CENTER: [number, number] = [18.1096, -77.2975];
+const LOCATION_PREF_KEY = 'likkle_location_enabled';
 const DAY_COLORS = ['#13ec5b', '#38bdf8', '#a78bfa', '#fb7185', '#f59e0b', '#14b8a6', '#f4d125'];
 const dayOptions = Array.from({ length: 30 }, (_, index) => index + 1);
 const filterOrder: FilterId[] = ['all', 'hotels', 'villas', 'airbnb', 'nature', 'culture', 'adventure', 'airports'];
@@ -198,20 +199,14 @@ ${MANDATORY_SECURITY_SUFFIX}`;
     notifyAIComplete('trip');
   };
 
-  const toggleLocation = () => {
+  const enableLocation = () => {
     if (!navigator.geolocation) {
       setLocationError('Location is not available on this device.');
       return;
     }
-
-    if (locationEnabled) {
-      if (locationWatchId.current !== null) {
-        navigator.geolocation.clearWatch(locationWatchId.current);
-        locationWatchId.current = null;
-      }
-      setLocationEnabled(false);
-      setUserLocation(null);
-      return;
+    if (locationWatchId.current !== null) {
+      navigator.geolocation.clearWatch(locationWatchId.current);
+      locationWatchId.current = null;
     }
 
     const handleLocation = (position: GeolocationPosition) => {
@@ -230,6 +225,41 @@ ${MANDATORY_SECURITY_SUFFIX}`;
     navigator.geolocation.getCurrentPosition(handleLocation, handleLocationError, { enableHighAccuracy: true, timeout: 10000 });
     locationWatchId.current = navigator.geolocation.watchPosition(handleLocation, handleLocationError, { enableHighAccuracy: true, maximumAge: 15000 });
   };
+
+  const disableLocation = () => {
+    if (locationWatchId.current !== null) {
+      navigator.geolocation.clearWatch(locationWatchId.current);
+      locationWatchId.current = null;
+    }
+    setLocationEnabled(false);
+    setUserLocation(null);
+  };
+
+  const toggleLocation = () => {
+    if (locationEnabled) {
+      localStorage.setItem(LOCATION_PREF_KEY, 'false');
+      window.dispatchEvent(new CustomEvent('likkle-location-preference-change', { detail: { enabled: false } }));
+      disableLocation();
+      return;
+    }
+
+    localStorage.setItem(LOCATION_PREF_KEY, 'true');
+    window.dispatchEvent(new CustomEvent('likkle-location-preference-change', { detail: { enabled: true } }));
+    enableLocation();
+  };
+
+  React.useEffect(() => {
+    if (localStorage.getItem(LOCATION_PREF_KEY) === 'true') enableLocation();
+
+    const handlePreferenceChange = (event: Event) => {
+      const enabled = (event as CustomEvent<{ enabled: boolean }>).detail?.enabled;
+      if (enabled) enableLocation();
+      else disableLocation();
+    };
+
+    window.addEventListener('likkle-location-preference-change', handlePreferenceChange);
+    return () => window.removeEventListener('likkle-location-preference-change', handlePreferenceChange);
+  }, []);
 
   const centerOnMe = () => {
     if (!userLocation) return;

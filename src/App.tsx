@@ -45,6 +45,17 @@ export type NotificationPayload = {
 
 const SWIPE_THRESHOLD = 50;
 
+const mergeLatestQuotes = (cachedQuotes: Quote[]) => {
+  const cachedById = new Map(cachedQuotes.map(quote => [quote.id, quote]));
+  const latestIds = new Set(INITIAL_QUOTES.map(quote => quote.id));
+  const mergedLatest = INITIAL_QUOTES.map(quote => {
+    const cached = cachedById.get(quote.id);
+    return cached ? { ...quote, isFavorite: cached.isFavorite, updatedAt: cached.updatedAt } : quote;
+  });
+  const localOnlyQuotes = cachedQuotes.filter(quote => !latestIds.has(quote.id));
+  return [...mergedLatest, ...localOnlyQuotes];
+};
+
 const NotificationBanner: React.FC<{
   payload: NotificationPayload;
   onDismiss: () => void;
@@ -254,7 +265,11 @@ const App: React.FC = () => {
     const cachedVerses = localStorage.getItem('lkkle_verses');
     const cachedUserWisdoms = localStorage.getItem('lkkle_user_wisdoms');
 
-    if (cachedQuotes) setQuotes(JSON.parse(cachedQuotes));
+    if (cachedQuotes) {
+      const mergedQuotes = mergeLatestQuotes(JSON.parse(cachedQuotes));
+      setQuotes(mergedQuotes);
+      localStorage.setItem('lkkle_quotes', JSON.stringify(mergedQuotes));
+    }
     if (cachedIconic) setIconicQuotes(JSON.parse(cachedIconic));
     if (cachedBible) setBibleAffirmations(JSON.parse(cachedBible));
     if (cachedEntries) setJournalEntries(JSON.parse(cachedEntries));

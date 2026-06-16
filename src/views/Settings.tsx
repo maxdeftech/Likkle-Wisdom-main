@@ -6,6 +6,7 @@ import { USERNAME_MAX_LENGTH, validateUsername } from '../utils/validation';
 
 const LIKKLE_WISDOM_WEBSITE = 'https://www.likklewisdom.com/';
 const MAXWELL_DEFINITIVE_WEBSITE = 'https://maxdeftech.wixsite.com/mdt-ja';
+const LOCATION_PREF_KEY = 'likkle_location_enabled';
 
 interface SettingsProps {
   user: User;
@@ -40,6 +41,12 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [updateNotificationSaving, setUpdateNotificationSaving] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
+  const [locationEnabled, setLocationEnabled] = useState(() => localStorage.getItem(LOCATION_PREF_KEY) === 'true');
+  const [locationPermission, setLocationPermission] = useState<'unknown' | 'unsupported' | PermissionState>(() => (
+    'geolocation' in navigator ? 'unknown' : 'unsupported'
+  ));
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (user.isGuest || !supabase) return;
@@ -77,6 +84,33 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     setUpdateNotificationsEnabled(PushService.isUpdateEnabled(user.id));
     setNotificationPermission(PushService.getBrowserPermission());
   }, [user.id]);
+
+  useEffect(() => {
+    if (!navigator.permissions?.query || !('geolocation' in navigator)) return;
+
+    let permissionStatus: PermissionStatus | null = null;
+    let isMounted = true;
+
+    navigator.permissions.query({ name: 'geolocation' as PermissionName })
+      .then(status => {
+        if (!isMounted) return;
+        permissionStatus = status;
+        setLocationPermission(status.state);
+        status.onchange = () => {
+          setLocationPermission(status.state);
+          if (status.state === 'denied') {
+            localStorage.setItem(LOCATION_PREF_KEY, 'false');
+            setLocationEnabled(false);
+          }
+        };
+      })
+      .catch(() => setLocationPermission('unknown'));
+
+    return () => {
+      isMounted = false;
+      if (permissionStatus) permissionStatus.onchange = null;
+    };
+  }, []);
 
   const saveNotificationPref = async (field: string, value: string) => {
     if (!supabase || user.isGuest) return;
@@ -158,6 +192,43 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
     } finally {
       setUpdateNotificationSaving(false);
     }
+  };
+
+  const handleToggleLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationPermission('unsupported');
+      setLocationMessage('Location is not supported on this device.');
+      return;
+    }
+
+    if (locationEnabled) {
+      localStorage.setItem(LOCATION_PREF_KEY, 'false');
+      window.dispatchEvent(new CustomEvent('likkle-location-preference-change', { detail: { enabled: false } }));
+      setLocationEnabled(false);
+      setLocationMessage('Location turned off.');
+      return;
+    }
+
+    setLocationSaving(true);
+    setLocationMessage(null);
+
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        localStorage.setItem(LOCATION_PREF_KEY, 'true');
+        window.dispatchEvent(new CustomEvent('likkle-location-preference-change', { detail: { enabled: true } }));
+        setLocationEnabled(true);
+        setLocationPermission('granted');
+        setLocationMessage('Location stays on for map tools.');
+        setLocationSaving(false);
+      },
+      () => {
+        localStorage.setItem(LOCATION_PREF_KEY, 'false');
+        setLocationEnabled(false);
+        setLocationMessage('Enable location in your device settings to leave it on.');
+        setLocationSaving(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   const handleChangePassword = async () => {
@@ -367,6 +438,32 @@ const Settings: React.FC<SettingsProps> = ({ user, isDarkMode, onToggleTheme, on
                 <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${user.isPublic !== false ? 'translate-x-5' : 'translate-x-0'}`}></div>
               </button>
             </div>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">{locationEnabled ? 'my_location' : 'location_disabled'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-slate-700 dark:text-white/80">Keep location on</span>
+                  <span className="text-[9px] text-slate-400 dark:text-white/40 font-bold uppercase tracking-wider">
+                    {locationPermission === 'denied' ? 'Blocked by device' : locationEnabled ? 'Map tools can follow you' : 'Map tools ask when needed'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleLocation}
+                disabled={locationSaving || locationPermission === 'unsupported'}
+                aria-label={locationEnabled ? 'Turn location off' : 'Turn location on'}
+                className={`h-7 w-12 rounded-full relative transition-all duration-300 flex items-center px-1 disabled:opacity-40 ${locationEnabled ? 'bg-primary' : 'bg-slate-200'}`}
+              >
+                <div className={`size-5 bg-white rounded-full shadow-lg transition-transform duration-300 transform ${locationEnabled ? 'translate-x-5' : 'translate-x-0'}`}></div>
+              </button>
+            </div>
+            {locationMessage && (
+              <div className="px-4 py-3 bg-primary/5">
+                <p className="text-[10px] font-black uppercase tracking-wider text-primary/80">{locationMessage}</p>
+              </div>
+            )}
           </div>
         </section>
 
