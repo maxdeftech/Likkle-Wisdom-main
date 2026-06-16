@@ -143,11 +143,22 @@ export const DANGER_ZONES: DangerZone[] = [
   // ===== MONTEGO BAY =====
   {
     id: 'dz-4',
-    name: 'Canterbury / Norwood',
+    name: 'Canterbury',
     parish: 'St. James',
-    description: 'Areas outside the tourist corridor with elevated crime rates.',
+    description: 'Montego Bay community west of the city centre and outside the main tourist corridor.',
     severity: 'high',
-    polygon: [[18.4800, -77.9350], [18.4800, -77.9250], [18.4730, -77.9250], [18.4730, -77.9350]],
+    polygon: box(18.4798, -77.9170, 0.005, 0.005),
+    timeWarning: 'Highest caution at night outside organized tours or local guidance',
+    tips: ['Stay within the Hip Strip and tourist corridor', 'Do not venture into interior communities', 'Use hotel-arranged transportation']
+  },
+  {
+    id: 'dz-26',
+    name: 'Norwood',
+    parish: 'St. James',
+    description: 'Montego Bay community east of Canterbury and inland from the resort corridor.',
+    severity: 'high',
+    polygon: box(18.4922, -77.8863, 0.006, 0.007),
+    timeWarning: 'Highest caution at night outside organized tours or local guidance',
     tips: ['Stay within the Hip Strip and tourist corridor', 'Do not venture into interior communities', 'Use hotel-arranged transportation']
   },
   {
@@ -156,7 +167,8 @@ export const DANGER_ZONES: DangerZone[] = [
     parish: 'St. James',
     description: 'Community area outside the tourist zone with periodic violence.',
     severity: 'high',
-    polygon: [[18.4850, -77.9400], [18.4850, -77.9320], [18.4790, -77.9320], [18.4790, -77.9400]],
+    polygon: box(18.5025, -77.8973, 0.006, 0.007),
+    timeWarning: 'Highest caution at night outside organized tours or local guidance',
     tips: ['Not a tourist destination', 'Stay on main highways if passing through', 'Keep windows up and doors locked']
   },
   {

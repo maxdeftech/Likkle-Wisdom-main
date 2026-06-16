@@ -10,10 +10,11 @@ import { User } from '../../types';
 import { EMERGENCY_CONTACTS, CONTACT_TYPE_META, PARISHES, EmergencyContact } from '../../data/emergencyContacts';
 import { DANGER_ZONES, SEVERITY_META, GENERAL_TIME_WARNINGS, GENERAL_SAFETY_TIPS, DangerZone } from '../../data/dangerZones';
 import { streamSafetyChat } from '../../services/geminiService';
+import { fetchJamaicaNews, JamaicaNewsArticle } from '../../services/newsService';
 import { useAIProgress } from '../../hooks/useAIProgress';
 import { MAP_TILES } from '../../constants/mapTiles';
 
-type InfoTab = 'contacts' | 'chat' | 'dangermap';
+type InfoTab = 'contacts' | 'chat' | 'dangermap' | 'news';
 
 interface InfoModuleProps {
   user: User;
@@ -23,9 +24,11 @@ const INFO_TABS: { id: InfoTab; label: string; icon: string }[] = [
   { id: 'contacts', label: 'Contacts', icon: 'contact_phone' },
   { id: 'chat', label: 'Safety AI', icon: 'security' },
   { id: 'dangermap', label: 'Danger Map', icon: 'warning' },
+  { id: 'news', label: 'News', icon: 'newspaper' },
 ];
 
 const JAMAICA_CENTER: [number, number] = [18.1096, -77.2975];
+const LOCATION_PREF_KEY = 'likkle_location_enabled';
 
 // ————— Haversine distance —————
 const haversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -82,6 +85,7 @@ const ContactsSection: React.FC = () => {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [locationPreferenceEnabled, setLocationPreferenceEnabled] = useState(() => localStorage.getItem(LOCATION_PREF_KEY) === 'true');
   const [typeFilter, setTypeFilter] = useState<EmergencyContact['type'] | 'all'>('all');
   const [parishFilter, setParishFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -98,7 +102,10 @@ const ContactsSection: React.FC = () => {
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(coords);
+        setMapCenter(coords);
+        setMapZoom(13);
         setLocationError(null);
         setLocationLoading(false);
       },
@@ -109,6 +116,33 @@ const ContactsSection: React.FC = () => {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, []);
+
+  useEffect(() => {
+    const syncLocationPreference = (enabled: boolean) => {
+      setLocationPreferenceEnabled(enabled);
+      if (enabled) {
+        requestLocation();
+        return;
+      }
+      setUserLocation(null);
+      setLocationError(null);
+      setLocationLoading(false);
+    };
+
+    syncLocationPreference(localStorage.getItem(LOCATION_PREF_KEY) === 'true');
+
+    const handlePreferenceChange = (event: Event) => {
+      const enabled = (event as CustomEvent<{ enabled: boolean }>).detail?.enabled ?? localStorage.getItem(LOCATION_PREF_KEY) === 'true';
+      syncLocationPreference(enabled);
+    };
+
+    window.addEventListener('likkle-location-preference-change', handlePreferenceChange);
+    window.addEventListener('storage', handlePreferenceChange);
+    return () => {
+      window.removeEventListener('likkle-location-preference-change', handlePreferenceChange);
+      window.removeEventListener('storage', handlePreferenceChange);
+    };
+  }, [requestLocation]);
 
   const contactsWithDistance = useMemo(() => {
     if (!userLocation) return null;
@@ -161,7 +195,7 @@ const ContactsSection: React.FC = () => {
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">Nearest to You</p>
             <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">Emergency contacts nearby</p>
           </div>
-          {!userLocation && (
+          {!userLocation && !locationPreferenceEnabled && (
             <button type="button" onClick={requestLocation} disabled={locationLoading} className="flex h-10 items-center gap-2 rounded-2xl bg-red-500 px-4 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-60">
               <span className="material-symbols-outlined text-[16px]">{locationLoading ? 'progress_activity' : 'my_location'}</span>
               {locationLoading ? 'Finding…' : 'Turn On Location'}
@@ -211,7 +245,14 @@ const ContactsSection: React.FC = () => {
             </div>
           </>
         )}
-        {!userLocation && !locationError && (
+        {!userLocation && !locationError && locationPreferenceEnabled && (
+          <div className="rounded-2xl border border-dashed border-blue-500/25 p-6 text-center">
+            <span className="material-symbols-outlined text-4xl text-blue-500/50">{locationLoading ? 'progress_activity' : 'my_location'}</span>
+            <p className="mt-2 text-sm font-black text-slate-900 dark:text-white">{locationLoading ? 'Finding your location...' : 'Location is on from Settings'}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-white/45">Nearest contacts will appear once your device shares a position.</p>
+          </div>
+        )}
+        {!userLocation && !locationError && !locationPreferenceEnabled && (
           <div className="rounded-2xl border border-dashed border-red-500/25 p-6 text-center">
             <span className="material-symbols-outlined text-4xl text-red-500/40">location_off</span>
             <p className="mt-2 text-sm font-black text-slate-900 dark:text-white">Enable location to see nearest emergency contacts</p>
@@ -667,6 +708,152 @@ const DangerMapSection: React.FC = () => {
 };
 
 // =======================================
+// NEWS SECTION
+// =======================================
+const newsFilters = [
+  { id: 'all', label: 'All' },
+  { id: 'crime', label: 'Crime' },
+  { id: 'politics', label: 'Politics' },
+  { id: 'health', label: 'Health' },
+  { id: 'entertainment', label: 'Entertainment' },
+  { id: 'hotels', label: 'Hotels' },
+  { id: 'tourism', label: 'Tourism' },
+] as const;
+
+type NewsFilter = typeof newsFilters[number]['id'];
+
+const formatNewsDate = (value?: string) => {
+  if (!value) return 'Latest';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Latest';
+  return new Intl.DateTimeFormat('en-JM', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
+};
+
+const articleMatchesFilter = (article: JamaicaNewsArticle, filter: NewsFilter) => {
+  if (filter === 'all') return true;
+  const haystack = `${article.category || ''} ${article.title} ${article.description}`.toLowerCase();
+  return haystack.includes(filter);
+};
+
+const NewsSection: React.FC = () => {
+  const [articles, setArticles] = useState<JamaicaNewsArticle[]>([]);
+  const [filter, setFilter] = useState<NewsFilter>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadNews = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const nextArticles = await fetchJamaicaNews();
+      setArticles(nextArticles);
+      if (nextArticles.length === 0) setError('No Jamaica news found right now. Try again shortly.');
+    } catch (loadError) {
+      console.error('Could not load Jamaica news', loadError);
+      setError('Could not load Jamaica news right now. Try again shortly.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadNews();
+  }, [loadNews]);
+
+  const filteredArticles = useMemo(
+    () => articles.filter(article => articleMatchesFilter(article, filter)),
+    [articles, filter]
+  );
+
+  return (
+    <div className="space-y-5">
+      <section className="glass rounded-2xl p-4 shadow-2xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500">Jamaica News</p>
+            <h3 className="mt-1 text-xl font-black text-slate-950 dark:text-white">Latest updates from Jamaica</h3>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-500 dark:text-white/45">Breaking, crime, entertainment, health, politics, hotels, and tourism from multiple Jamaica-focused sources.</p>
+          </div>
+          <button type="button" onClick={loadNews} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-60">
+            <span className={`material-symbols-outlined text-[17px] ${loading ? 'animate-spin' : ''}`}>{loading ? 'progress_activity' : 'refresh'}</span>
+            Refresh
+          </button>
+        </div>
+
+        <div className="mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+          {newsFilters.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setFilter(item.id)}
+              className={`flex min-w-fit rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all ${
+                filter === item.id ? 'border-red-500 bg-red-500 text-white' : 'border-slate-950/10 text-slate-600 dark:border-white/10 dark:text-white/60'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {error && (
+        <p className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-600 dark:text-red-300">{error}</p>
+      )}
+
+      {loading && articles.length === 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1, 2, 3].map(item => (
+            <div key={item} className="glass h-48 animate-pulse rounded-2xl p-4 shadow-2xl">
+              <div className="h-5 w-24 rounded-full bg-slate-950/10 dark:bg-white/10" />
+              <div className="mt-6 h-5 w-4/5 rounded-full bg-slate-950/10 dark:bg-white/10" />
+              <div className="mt-3 h-4 w-full rounded-full bg-slate-950/10 dark:bg-white/10" />
+              <div className="mt-2 h-4 w-2/3 rounded-full bg-slate-950/10 dark:bg-white/10" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {filteredArticles.map(article => (
+            <article key={article.id} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-950/5 dark:bg-slate-950/40 dark:ring-white/10">
+              {article.imageUrl && (
+                <img src={article.imageUrl} alt="" className="h-40 w-full object-cover" loading="lazy" />
+              )}
+              <div className="space-y-3 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-red-500">{article.provider}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white/35">{formatNewsDate(article.publishedAt)}</span>
+                </div>
+                <h4 className="line-clamp-2 text-base font-black leading-snug text-slate-950 dark:text-white">{article.title}</h4>
+                <p className="line-clamp-3 text-sm font-semibold leading-relaxed text-slate-600 dark:text-white/55">{article.description}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-white/35">{article.source}</span>
+                  <a href={article.url} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1.5 rounded-full bg-red-500 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white">
+                    Read
+                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {!loading && filteredArticles.length === 0 && !error && (
+        <div className="rounded-2xl border border-dashed border-red-500/25 p-8 text-center">
+          <span className="material-symbols-outlined text-4xl text-red-500/40">newspaper</span>
+          <p className="mt-2 text-sm font-black text-slate-900 dark:text-white">No stories match this filter right now.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// =======================================
 // INFO MODULE (MAIN)
 // =======================================
 const InfoModule: React.FC<InfoModuleProps> = ({ user }) => {
@@ -704,6 +891,9 @@ const InfoModule: React.FC<InfoModuleProps> = ({ user }) => {
       </div>
       <div style={{ display: activeInfoTab === 'dangermap' ? 'block' : 'none' }}>
         <DangerMapSection />
+      </div>
+      <div style={{ display: activeInfoTab === 'news' ? 'block' : 'none' }}>
+        <NewsSection />
       </div>
     </div>
   );
