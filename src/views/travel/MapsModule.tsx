@@ -13,6 +13,7 @@ import { TravelCategory, TravelPlace, travelCategoryMeta, travelPlaces } from '.
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
 import PlaceReviews from '../../components/travel/PlaceReviews';
 import PullUpHandle from '../../components/PullUpHandle';
+import MapLayerControl from '../../components/travel/MapLayerControl';
 import { generateGuidePDF } from '../../utils/travel/generateGuidePDF';
 import { useAIProgress } from '../../hooks/useAIProgress';
 import { addFavourite, fetchFavourites, removeFavourite } from '../../services/travelFavouritesService';
@@ -487,10 +488,7 @@ ${MANDATORY_SECURITY_SUFFIX}`,
         </MapContainer>
 
         <div className="absolute bottom-4 right-4 z-[500] flex flex-col items-end gap-2">
-          <button type="button" onClick={() => setSatelliteView(prev => !prev)} className={`glass flex items-center gap-2 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest shadow-2xl ${satelliteView ? 'bg-blue-600 text-white' : 'text-slate-950 dark:text-white'}`} aria-pressed={satelliteView}>
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{satelliteView ? 'map' : 'satellite_alt'}</span>
-            {satelliteView ? 'Street' : 'Satellite'}
-          </button>
+          <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
           <button type="button" onClick={() => setLegendOpen(prev => !prev)} className="glass flex items-center gap-2 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-950 shadow-2xl dark:text-white">
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">legend_toggle</span>
             Legend

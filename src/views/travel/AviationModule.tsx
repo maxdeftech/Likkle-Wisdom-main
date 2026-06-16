@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet';
 import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import PullUpHandle from '../../components/PullUpHandle';
+import MapLayerControl from '../../components/travel/MapLayerControl';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AviationRoute, aviationRoutes, inboundRoutes, FlightDirection } from '../../data/aviationRoutes';
@@ -49,6 +50,7 @@ const AviationModule: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedRouteId, setSelectedRouteId] = useState('kin-mia');
   const [detailRoute, setDetailRoute] = useState<AviationRoute | null>(null);
+  const [satelliteView, setSatelliteView] = useState(false);
 
   const allRoutes = direction === 'from' ? aviationRoutes : inboundRoutes;
 
@@ -138,10 +140,14 @@ const AviationModule: React.FC = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
         <MapContainer center={[27, -55]} zoom={3} minZoom={2} scrollWheelZoom className="h-[56vh] min-h-[420px] w-full">
           <InvalidateMapSize />
-          <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
+          <TileLayer
+            key={satelliteView ? 'sat' : 'street'}
+            attribution={satelliteView ? MAP_TILES.satellite.attribution : MAP_TILES.street.attribution}
+            url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
+          />
           {visibleRoutes.map(route => {
             const selected = selectedRoute.id === route.id;
             const arc = getArcPoints(route);
@@ -184,6 +190,9 @@ const AviationModule: React.FC = () => {
             );
           })}
         </MapContainer>
+        <div className="absolute bottom-4 right-4 z-[500]">
+          <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
+        </div>
       </div>
 
       <div className="glass rounded-2xl p-4 shadow-2xl">

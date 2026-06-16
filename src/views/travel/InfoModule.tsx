@@ -3,6 +3,7 @@ import { MapContainer, Marker, Polygon, TileLayer, Tooltip, useMap } from 'react
 import InvalidateMapSize from '../../components/travel/InvalidateMapSize';
 import TravelMarkdown from '../../components/travel/TravelMarkdown';
 import AILoadingSkeleton from '../../components/travel/AILoadingSkeleton';
+import MapLayerControl from '../../components/travel/MapLayerControl';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { User } from '../../types';
@@ -87,6 +88,7 @@ const ContactsSection: React.FC = () => {
   const [showMapView, setShowMapView] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
   const [mapZoom, setMapZoom] = useState(9);
+  const [satelliteView, setSatelliteView] = useState(false);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -169,11 +171,15 @@ const ContactsSection: React.FC = () => {
         {locationError && <p className="mb-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-600 dark:text-red-300">{locationError}</p>}
         {nearest5.length > 0 && (
           <>
-            <div className="mb-4 overflow-hidden rounded-2xl border border-white/10">
+            <div className="relative mb-4 overflow-hidden rounded-2xl border border-white/10">
               <MapContainer center={userLocation || JAMAICA_CENTER} zoom={13} scrollWheelZoom={false} className="h-[200px] w-full">
                 <InvalidateMapSize />
                 <MapRecenter center={userLocation || JAMAICA_CENTER} zoom={13} />
-                <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
+                <TileLayer
+                  key={satelliteView ? 'sat' : 'street'}
+                  attribution={satelliteView ? MAP_TILES.satellite.attribution : MAP_TILES.street.attribution}
+                  url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
+                />
                 {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
                 {nearest5.map(c => (
                   <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
@@ -181,6 +187,9 @@ const ContactsSection: React.FC = () => {
                   </Marker>
                 ))}
               </MapContainer>
+              <div className="absolute bottom-3 right-3 z-[500]">
+                <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
+              </div>
             </div>
             <div className="space-y-2">
               {nearest5.map(c => (
@@ -240,11 +249,15 @@ const ContactsSection: React.FC = () => {
         </div>
 
         {showMapView ? (
-          <div className="overflow-hidden rounded-2xl border border-white/10">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10">
             <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[350px] w-full lg:h-[450px]">
               <InvalidateMapSize />
               <MapRecenter center={mapCenter} zoom={mapZoom} />
-              <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
+              <TileLayer
+                key={satelliteView ? 'sat' : 'street'}
+                attribution={satelliteView ? MAP_TILES.satellite.attribution : MAP_TILES.street.attribution}
+                url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
+              />
               {filtered.filter(c => c.parish !== 'National').map(c => (
                 <Marker key={c.id} position={c.coordinates} icon={makeContactIcon(c.type)}>
                   <Tooltip direction="top" offset={[0, -18]}>
@@ -255,6 +268,9 @@ const ContactsSection: React.FC = () => {
               ))}
               {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
             </MapContainer>
+            <div className="absolute bottom-4 right-4 z-[500]">
+              <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
@@ -453,6 +469,7 @@ const DangerMapSection: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [mapCenter, setMapCenter] = useState<[number, number]>(JAMAICA_CENTER);
   const [mapZoom, setMapZoom] = useState(9);
+  const [satelliteView, setSatelliteView] = useState(false);
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -525,11 +542,15 @@ const DangerMapSection: React.FC = () => {
       )}
 
       {/* Map */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
         <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom className="h-[44vh] min-h-[320px] w-full lg:h-[56vh] lg:min-h-[420px]">
           <InvalidateMapSize />
           <MapRecenter center={mapCenter} zoom={mapZoom} />
-          <TileLayer attribution={MAP_TILES.street.attribution} url={MAP_TILES.street.url} />
+          <TileLayer
+            key={satelliteView ? 'sat' : 'street'}
+            attribution={satelliteView ? MAP_TILES.satellite.attribution : MAP_TILES.street.attribution}
+            url={satelliteView ? MAP_TILES.satellite.url : MAP_TILES.street.url}
+          />
           {filteredZones.map(zone => (
             <Polygon
               key={zone.id}
@@ -547,6 +568,9 @@ const DangerMapSection: React.FC = () => {
           ))}
           {userLocation && <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={1000} />}
         </MapContainer>
+        <div className="absolute bottom-4 right-4 z-[500]">
+          <MapLayerControl satelliteView={satelliteView} onToggle={() => setSatelliteView(prev => !prev)} />
+        </div>
       </div>
 
       {/* Legend */}

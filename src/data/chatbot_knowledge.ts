@@ -144,7 +144,12 @@ export const CHATBOT_KNOWLEDGE: ChatKnowledge[] = [
     },
     {
         keywords: ['map', 'places', 'destination', 'location', 'gps', 'where to go'],
-        response: "Di Maps module has 25+ curated Jamaican places with real GPS coordinates — beaches, waterfalls, restaurants, and more. Filter by category and get an AI destination guide fi any place!",
+        response: "Di Maps module has 25+ curated Jamaican places with real GPS coordinates — beaches, waterfalls, restaurants, and more. Every travel map can switch between Esri street view and Esri satellite imagery with Maxar and Earthstar Geographics attribution.",
+        action: { type: 'tab', value: 'travel' }
+    },
+    {
+        keywords: ['danger map', 'crime', 'risk', 'safe area', 'safety map', 'danger zone', 'avoid area'],
+        response: "Open Travel > Info > Danger Map fi tourist caution zones. It includes extra-caution areas in Kingston/St. Andrew, St. Catherine, Montego Bay/St. James, Clarendon, Manchester, and Westmoreland, plus safer tourist corridors like Negril Seven Mile Beach, Ocho Rios, Port Antonio, Treasure Beach, Runaway Bay, and Falmouth cruise port. It is guidance, not a real-time police bulletin.",
         action: { type: 'tab', value: 'travel' }
     },
     {

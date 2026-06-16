@@ -4,6 +4,8 @@
  * alias only when it contains an OpenRouter key.
  */
 
+import { JAMAICA_TOURIST_SAFETY_KNOWLEDGE } from '../data/dangerZones';
+
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -461,7 +463,9 @@ Rules:
 - Format responses with clear sections using markdown headers and bullet points.
 - Include relevant emergency numbers when appropriate (119 Police, 110 Fire/Ambulance).
 - Speak in a warm, friendly tone — mix in light Patois where natural.
-- If the user asks about a specific area, include: safety level, best times to visit, what to watch out for, nearest emergency services.`;
+- If the user asks about a specific area, include: safety level, best times to visit, what to watch out for, nearest emergency services.
+
+${JAMAICA_TOURIST_SAFETY_KNOWLEDGE}`;
 
 export async function streamSafetyChat(
   messages: { role: 'user' | 'assistant'; content: string }[],
@@ -576,6 +580,8 @@ At the end of your response, you MUST include a section titled "## 🛡️ Secur
 4. Emergency numbers: 119 (Police), 110 (Fire/Ambulance)
 5. Nearest hospitals or police stations relevant to the mentioned locations
 This section is NOT optional — it must appear in every response.
+
+${JAMAICA_TOURIST_SAFETY_KNOWLEDGE}
 `;
 
 export { KEY_MISSING_RESPONSE };
